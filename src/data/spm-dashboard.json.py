@@ -92,13 +92,17 @@ WIDGETS = [
     ),
     (
         "m4_income_growth.sql",
-        "Metrics 4.1–4.6 — Employment and Income Growth (TH/SH/PH Projects)",
-        "Adult (18+) clients in TH, SH, and PH projects, comparing an earlier and later "
-        "income data point. Per explicit choice: wchmiscsv has no Funder table, so this is "
-        "NOT restricted to CoC Program-funded projects -- the universe here is every "
-        "qualifying project type regardless of funding source. System stayers compare their "
-        "most recent annual assessment to the one before it; system leavers compare "
-        "project-exit income to project-start income.",
+        "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
+        "Adult (18+) clients in CoC Program-funded TH, SH, and PH projects (project types 2, "
+        "3, 8, 9, 10, 13; an active grant whose GrantID starts with \"NY\" -- this CoC's own "
+        "convention for marking a grant as CoC Program-funded, per explicit choice, since "
+        "wchmiscsv.Funder has no standardized Funder source-code field populated the way "
+        "balhmiscsv's does). A grant counts as active for a given fiscal year if its date "
+        "range overlaps that year (StartDate on or before the year's end, EndDate on or "
+        "after the year's start, or no EndDate at all) -- a project can therefore be "
+        "in-scope for one fiscal year and not the other if its CoC grant started or ended "
+        "between them. System stayers compare their most recent annual assessment to the "
+        "one before it; system leavers compare project-exit income to project-start income.",
         [
             {"name": "row_label", "label": " "},
             {"name": "current_fy_universe", "label": "Current FY Universe", "number": "number"},
