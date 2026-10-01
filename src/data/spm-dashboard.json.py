@@ -95,10 +95,10 @@ WIDGETS = [
         "Metrics 4.1–4.6 — Employment and Income Growth (TH/SH/PH Projects)",
         "Adult (18+) clients in TH, SH, and PH projects, comparing an earlier and later "
         "income data point. Per explicit choice: wchmiscsv has no Funder table, so this is "
-        "NOT restricted to CoC Program-funded projects the way Baltimore's equivalent "
-        "measure is -- the universe here is every qualifying project type regardless of "
-        "funding source. System stayers compare their most recent annual assessment to the "
-        "one before it; system leavers compare project-exit income to project-start income.",
+        "NOT restricted to CoC Program-funded projects -- the universe here is every "
+        "qualifying project type regardless of funding source. System stayers compare their "
+        "most recent annual assessment to the one before it; system leavers compare "
+        "project-exit income to project-start income.",
         [
             {"name": "row_label", "label": " "},
             {"name": "current_fy_universe", "label": "Current FY Universe", "number": "number"},
