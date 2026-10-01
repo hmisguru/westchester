@@ -12,7 +12,10 @@ const kpiIds = [
 export default {
   title: "Westchester CoC System Performance KPIs",
   root: "src",
-  pages: [{name: "Embedding guide", path: "/embedding"}],
+  pages: [
+    {name: "Full System Performance Dashboard", path: "/spm/"},
+    {name: "Embedding guide", path: "/embedding"}
+  ],
   sidebar: false,
   toc: false,
   pager: false,

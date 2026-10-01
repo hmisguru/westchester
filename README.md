@@ -17,6 +17,10 @@ Six HUD System Performance Measures, for the most recent complete federal fiscal
 
 There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester` has no `Funder` table, so there's no funded-project subset to scope to.
 
+## Full System Performance Dashboard
+
+Want every HUD measure, not just the six KPIs above? **https://hmisguru.github.io/westchester-kpis/spm/** renders all 9 measure widgets from `wcspm.yml` (Measures 1, 2, 3.2, 4, 5.1, 5.2, 7a.1, 7b.1, 7b.2) as a static page — a full Observable rendering of the dashboard, with no interactive filters (always current vs. previous fiscal year, every CoC project).
+
 ## Embedding
 
 There are three ways to put the KPIs on another website. All of them update automatically when this site rebuilds (first Wednesday of each month). The site's [embedding guide](https://hmisguru.github.io/westchester-kpis/embedding) has copy-and-paste snippets.
@@ -87,7 +91,7 @@ https://hmisguru.github.io/westchester-kpis/data/spm.json has every figure.
 ## How it works
 
 - `sql/*.sql` are copies of widgets in the System Performance Dashboard (`wcspm.yml` in `hmisguru/westchester`, `main` branch), so published numbers match the dashboard. Regenerate with `scripts/extract_sql.py`; don't hand-edit. `sql/m7_exits_to_ph.sql` is generated from the 7a.1 and 7b.1 copies: each measure's logic is unchanged, and only the final unduplicated count of people exiting either to permanent housing is added.
-- `src/data/spm.json.py` is a build-time data loader: it runs those queries in BigQuery and writes a small JSON of CoC-wide aggregates. No row-level data or credentials reach the site.
+- `src/data/spm.json.py` is a build-time data loader: it runs 6 of those queries in BigQuery and writes a small JSON of CoC-wide aggregates for the KPI tiles. `src/data/spm-dashboard.json.py` runs all 9 and writes every result row, for the full dashboard page. No row-level data or credentials reach the site.
 - `.github/workflows/deploy.yml` rebuilds and deploys monthly (first Wednesday of the month), on every push to `main`, and on demand (Actions → Build and deploy KPIs → Run workflow).
 
 ## Local development

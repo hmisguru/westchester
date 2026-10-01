@@ -21,7 +21,7 @@ These figures come from the CoC's HMIS and follow HUD's System Performance Measu
 
 </div>
 
-Want to put these on another website? See the [embedding guide](./embedding).
+Want every measure, not just these six? See the [full System Performance Dashboard](./spm/). Want to put these tiles on another website? See the [embedding guide](./embedding).
 
 <style>
 .lede { max-width: 720px; font-size: 18px; }
