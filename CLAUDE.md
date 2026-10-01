@@ -33,6 +33,10 @@ A static Observable rendering of every measure widget in `wcspm.yml`, not just t
 - `src/components/spm-dashboard.js`/`.css` render it: `renderNotes()` for the intro box, `renderDashboard()` for the 9 measure tables (plain HTML tables via each widget's own `columns` config — no conditional-format pills, since none of `wcspm.yml`'s table columns use them, unlike `baltimore-kpis`'s Bridge tables). Class prefix `spmd-`, distinct from `kpi.js`'s `wkpi-` and the rest of the site, since this isn't an embeddable module.
 - Linked from the KPI homepage (`src/index.md`) and links back to it; not added to `dynamicPaths` (no embed/iframe variant requested for this page, unlike the KPI tiles).
 
+## Measure 2 deviation: stacked PH subsidy enrollments
+
+`sql/m2_returns.sql` (which feeds both the `returns-to-homelessness` KPI tile and the full dashboard's Measure 2 table) deviates from the HUD programming specs by explicit choice: if a client has a still-open PH enrollment that began within 14 days of a qualifying exit (their successful placement), no later PH entry counts as a return to homelessness, however far outside the normal 14-day window it starts. HUD's spec has no provision for a client remaining in that same placement under a second, stacked PH subsidy program (multiple funding sources covering one household's housing) — taken literally, it misreads that second enrollment as a new homelessness episode. Surfaced and confirmed live via `hmisguru/westchester`'s own `wcspm.yml` (that repo's commit history has the full investigation): PersonalID 13523 moved into an open-ended PH placement the day before their qualifying shelter exit and started a second, distinct PH enrollment over a year later — correctly not counted as a return. Regenerate this file (and the other 8) with `scripts/extract_sql.py` whenever `wcspm.yml`'s Measure 2 logic changes; the deviation lives in the dashboard source, not here.
+
 ## Embedding surfaces (keep all three working)
 
 1. **Iframes**: `src/embed/[kpi].md` (one parameterized page per KPI) and `src/embed/all.md` (grid). Chrome-free (no header/footer/sidebar), `?theme=light|dark|auto` override.
