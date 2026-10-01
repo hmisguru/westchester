@@ -71,14 +71,13 @@ export function renderNotes(data) {
     "Current FY" is the most recent complete federal fiscal year (Oct 1 – Sep 30,
     ${data.fiscal_year.start} to ${data.fiscal_year.end}) covered by the HMIS export dated
     ${data.export_end}; "Previous FY" is the 12 months immediately prior
-    (${data.previous_fiscal_year.start} to ${data.previous_fiscal_year.end}). Unlike the
-    live DAC dashboard this is built from, this page has no Fiscal Year Start Date control
-    -- it's a static snapshot of the current reporting year, refreshed when this site
-    rebuilds. The Project dropdown below narrows which project counts toward each measure's
-    starting universe only; any further CoC-wide search a measure does (prior homelessness
-    history, a later return to homelessness) still covers every CoC project, matching the
-    live dashboard. It lists open projects (no end date) of a type HUD's SPM programming
-    specs cover. Only projects participating in the CoC (Project.ContinuumProject = 1) are
+    (${data.previous_fiscal_year.start} to ${data.previous_fiscal_year.end}). This page has
+    no Fiscal Year Start Date control -- it's a static snapshot of the current reporting
+    year, refreshed when this site rebuilds. The Project dropdown below narrows which
+    project counts toward each measure's starting universe only; any further CoC-wide
+    search a measure does (prior homelessness history, a later return to homelessness)
+    still covers every CoC project. It lists open projects (no end date) of a type HUD's
+    SPM programming specs cover. Only projects participating in the CoC (Project.ContinuumProject = 1) are
     included; enrollments are scoped to CoC NY-604 (the only CoC code present in this
     dataset). Measure 3.1 (PIT counts) is intentionally omitted -- HUD specifies it is
     manually entered from separate Point-in-Time count submissions, not generated from HMIS
