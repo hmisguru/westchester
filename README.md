@@ -11,7 +11,7 @@ Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) c
 | `length-of-time-homeless` | 1a | Average length of time homeless (ES + Safe Haven) |
 | `returns-to-homelessness` | 2 | People returning to homelessness within 2 years of exiting to permanent housing |
 | `people-sheltered` | 3.2 | Unduplicated people in ES or TH |
-| `people-in-street-outreach` | *(not a HUD measure)* | Unduplicated people with any Street Outreach contact |
+| `people-in-street-outreach` | Local 3.3 *(not a HUD measure)* | Unduplicated people with any Street Outreach contact |
 | `first-time-homeless` | 5.1 | People homeless for the first time (no activity in prior 24 months) |
 | `street-outreach-exits` | 7a.1 | People exiting Street Outreach |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |

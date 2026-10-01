@@ -142,7 +142,7 @@ def build_kpis(results):
         },
         {
             "id": "people-in-street-outreach",
-            "eyebrow": "Dashboard metric",
+            "eyebrow": "Local Measure 3.3",
             "title": "People in Street Outreach",
             "value": so_active["current_fy"],
             "previous": so_active["previous_fy"],
