@@ -20,6 +20,11 @@ periods AS (
   SELECT 'Current FY', cur_start, cur_end FROM bounds
 ),
 ee_based AS (
+  -- "ex.ExitDate > en.EntryDate" (in addition to the period-overlap test below) rejects
+  -- zero-length enrollments (EntryDate = ExitDate): without it, a same-day entry/exit can
+  -- satisfy both overlap inequalities despite representing zero actual nights, which would
+  -- violate "Method 5: 1+ Nights Active" -- confirmed live against ES-EE enrollments that
+  -- would otherwise be miscounted as active.
   SELECT en.PersonalID, qp.ProjectType, pe.period
   FROM wchmiscsv.Enrollment en
   JOIN qualifying_projects qp ON en.ProjectID = qp.ProjectID
@@ -28,7 +33,7 @@ ee_based AS (
   WHERE qp.ProjectType IN (0, 2, 8)
     AND (en.EnrollmentCoC = 'NY-604' OR en.EnrollmentCoC IS NULL)
     AND en.EntryDate <= pe.period_end
-    AND (ex.ExitDate IS NULL OR ex.ExitDate > pe.period_start)
+    AND (ex.ExitDate IS NULL OR (ex.ExitDate > pe.period_start AND ex.ExitDate > en.EntryDate))
 ),
 nbn AS (
   SELECT s.PersonalID, 1 AS ProjectType, pe.period

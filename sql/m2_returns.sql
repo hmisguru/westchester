@@ -37,8 +37,11 @@ ph_exits AS (
   WHERE Destination BETWEEN 400 AND 499
 ),
 bucketed AS (
+  -- EnrollmentID is carried through (unlike the rest of this row's fields) solely so
+  -- `matches` below can exclude a candidate from matching its own originating exit --
+  -- see the EnrollmentID exclusion there.
   SELECT
-    PersonalID, ExitDate, report_end,
+    PersonalID, EnrollmentID, ExitDate, report_end,
     CASE
       WHEN ProjectType = 4 THEN 'Exit was from SO'
       WHEN ProjectType IN (0, 1) THEN 'Exit was from ES'
@@ -50,9 +53,15 @@ bucketed AS (
   WHERE rn = 1
 ),
 candidates AS (
-  SELECT en2.PersonalID, en2.EnrollmentID, en2.EntryDate, qp2.ProjectType
+  -- has_duration flags a non-zero-length enrollment (ExitDate > EntryDate, or still open).
+  -- Street Outreach is deliberately excluded from this flag's effect below -- SO isn't
+  -- residential, so a client can legitimately be contacted as street homeless on a single
+  -- day with no multi-day span to speak of.
+  SELECT en2.PersonalID, en2.EnrollmentID, en2.EntryDate, qp2.ProjectType,
+    (ex2.ExitDate IS NULL OR ex2.ExitDate > en2.EntryDate) AS has_duration
   FROM wchmiscsv.Enrollment en2
   JOIN coc_projects qp2 ON en2.ProjectID = qp2.ProjectID
+  LEFT JOIN wchmiscsv.Exit ex2 ON en2.EnrollmentID = ex2.EnrollmentID
   WHERE (en2.EnrollmentCoC = 'NY-604' OR en2.EnrollmentCoC IS NULL)
 ),
 matches AS (
@@ -62,12 +71,21 @@ matches AS (
   FROM bucketed b
   JOIN candidates c
     ON c.PersonalID = b.PersonalID
+   -- Without this, a zero-length enrollment whose own exit produced the `bucketed` row
+   -- above (EntryDate = ExitDate) would satisfy "c.EntryDate >= b.ExitDate" against
+   -- itself and match as its own return -- confirmed live (PersonalID 441289,
+   -- EnrollmentID 301041: a single same-day TH enrollment exiting to a permanent
+   -- destination, which would otherwise count as both the successful exit and the
+   -- return to homelessness it supposedly triggered).
+   AND c.EnrollmentID != b.EnrollmentID
    AND c.EntryDate >= b.ExitDate
    AND c.EntryDate <= b.report_end
   WHERE
-    c.ProjectType IN (4, 0, 1, 2, 8)
+    c.ProjectType = 4
+    OR (c.ProjectType IN (0, 1, 2, 8) AND c.has_duration)
     OR (
       c.ProjectType IN (3, 9, 10, 13)
+      AND c.has_duration
       AND c.EntryDate > DATE_ADD(b.ExitDate, INTERVAL 14 DAY)
       AND NOT EXISTS (
         SELECT 1
