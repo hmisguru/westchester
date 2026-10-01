@@ -6,15 +6,51 @@ result row, for a static Observable rendering of the whole dashboard --
 modeled on balspm.yml (hmisguru/baltimore, `staging` branch), the same
 widget order and "Dashboard Notes" intro text, adapted for Westchester.
 
-CoC-wide only, per explicit choice -- there is no interactive "Fiscal Year
-Start Date" or Project filter, just the most recent *complete* federal
-fiscal year (Oct 1 - Sep 30) covered by the latest HMIS CSV export, compared
-against the fiscal year before it, across every CoC project. A per-project
-version of this loader (one scope per individual "active SPM project" --
-121 of them as of 2026-10-01, a single-select dropdown on the page) was
-built and then archived rather than deleted: see
-archive/spm-dashboard.json.py and archive/README.md for the full version
-and how to reactivate it.
+Every widget is computed once for all CoC projects (top-level "widgets"),
+and once PER PROJECT for every "active SPM project" -- a project with no
+OperatingEndDate (still open) and a project type HUD's SPM programming
+specs cover (ES-E/E 0, ES-NbN 1, TH 2, PSH 3, SO 4, SH 8, OPH 9 and 10, RRH
+13) -- each its own entry under "projects", keyed by ProjectID, per
+explicit request for a project-level drill-down (a dropdown of individual
+projects, not a single pooled "active projects" scope). Per explicit
+choice, this replaces the MOHS-funded-style scope baltimore-kpis uses for a
+*different* dashboard (Bridge to Housing, HUD LSA-based) -- there is no
+Funder table here, and no such grant-funded concept applies to an
+SPM-programming-spec dashboard anyway. 121 of wchmiscsv's 179
+ContinuumProject=1 projects qualify as of 2026-10-01 (confirmed live): 24
+have an OperatingEndDate, 41 are of some other type, with some overlap
+between those two exclusions.
+
+This means every one of the 9 widgets runs 122 times (1 CoC-wide + 121
+per-project) -- 1,098 BigQuery queries per build. Confirmed acceptable on
+2026-10-01: on-demand BigQuery pricing bills by bytes scanned with a 50MB
+floor per query, so the added cost of 1,098 queries is a few cents even for
+the heaviest widget (Measure 1, ~46MB scanned for one project); the real
+constraint is wall-clock build time and BigQuery's concurrent-query
+quota, not cost, which is why QUERY_CONCURRENCY below exists.
+
+As in every extracted query (see scripts/extract_sql.py), the Project filter
+only narrows the *initial* client universe -- which projects' entries/exits
+start someone's inclusion in a measure. Any downstream CoC-wide scan (prior
+homelessness history for Measure 5, the search for a return to homelessness
+for Measure 2) is NOT narrowed by it and always searches every CoC project,
+per the HUD SPM programming specs' own step 5a ("use the same universe of
+projects as for the initial selection of data in step 2"). This mirrors the
+live DAC dashboard's Project filter behavior exactly -- it's baked into
+sql/*.sql itself (UNFILTERED_CTES in extract_sql.py), not something this
+loader has to do anything extra for. Each per-project scope here passes
+exactly one ProjectID in @project_ids, so a single project is this
+measure's whole initial universe; any larger multi-project combination
+would require re-running the query (summing precomputed single-project
+rows is NOT valid for the several widgets whose per-person dedup logic
+spans the whole selected universe at once) -- which is exactly why this is
+a single-select dropdown, not a multi-select filter.
+
+Reports the most recent *complete* federal fiscal year (Oct 1 - Sep 30)
+covered by the latest HMIS CSV export, compared against the fiscal year
+before it -- there is no interactive "Fiscal Year Start Date" control here,
+since pre-computing every possible start date isn't practical (same
+reasoning the public KPI tiles already use).
 
 Credentials: standard Google Application Default Credentials, i.e. the
 GOOGLE_APPLICATION_CREDENTIALS env var pointing at a service account key file.
@@ -32,6 +68,15 @@ BQ_PROJECT_ID = "bruin-508014"
 SQL_DIR = Path(__file__).resolve().parents[2] / "sql"
 
 client = bigquery.Client(project=BQ_PROJECT_ID)
+
+
+# HUD SPM programming-spec project types: ES-E/E, ES-NbN, TH, PSH, SO, SH, OPH, RRH.
+ACTIVE_SPM_PROJECT_TYPES = [0, 1, 2, 3, 4, 8, 9, 10, 13]
+
+# Caps simultaneous BigQuery query jobs. 1,098 queries (9 widgets x 122
+# scopes) all in flight at once would risk BigQuery's per-project concurrent
+# query quota; this keeps a steady stream in flight without tripping it.
+QUERY_CONCURRENCY = 32
 
 
 # (sql filename, widget name, description, columns) in the same order as
@@ -181,13 +226,31 @@ def query(sql, params=()):
     return [dict(row) for row in job.result()]
 
 
-def run_measure(filename, report_start):
-    """Run one measure query, scoped to every CoC project."""
+def run_measure(filename, report_start, project_ids=None):
+    """Run one measure query; project_ids=None means every CoC project."""
     return query((SQL_DIR / filename).read_text(), [
         bigquery.ScalarQueryParameter("report_start", "DATE", report_start),
-        bigquery.ScalarQueryParameter("all_projects", "BOOL", True),
-        bigquery.ArrayQueryParameter("project_ids", "INT64", []),
+        bigquery.ScalarQueryParameter("all_projects", "BOOL", project_ids is None),
+        bigquery.ArrayQueryParameter("project_ids", "INT64", project_ids or []),
     ])
+
+
+def active_spm_projects():
+    """Open (no OperatingEndDate) projects of an HUD SPM-covered type."""
+    rows = query("""
+        SELECT ProjectID, ProjectName
+        FROM wchmiscsv.Project
+        WHERE ContinuumProject = 1
+          AND OperatingEndDate IS NULL
+          AND ProjectType IN UNNEST(@project_types)
+        ORDER BY ProjectName
+    """, [
+        bigquery.ArrayQueryParameter("project_types", "INT64", ACTIVE_SPM_PROJECT_TYPES),
+    ])
+    if not rows:
+        # Publishing all-zero "active projects" figures would be worse than a failed build.
+        sys.exit("No active SPM projects found; check Project.OperatingEndDate/ProjectType")
+    return rows
 
 
 def fiscal_year(end_year):
@@ -212,15 +275,36 @@ def jsonable(row):
     return out
 
 
+def build_widgets(results, scope):
+    return [
+        {
+            "name": name,
+            "description": description,
+            "columns": columns,
+            "rows": [jsonable(row) for row in results[(scope, filename)]],
+        }
+        for filename, name, description, columns in WIDGETS
+    ]
+
+
 def main():
     export_end = query("SELECT MAX(ExportEndDate) AS d FROM wchmiscsv.Export")[0]["d"]
     fy_end_year = export_end.year if export_end >= date(export_end.year, 9, 30) else export_end.year - 1
     current, previous = fiscal_year(fy_end_year), fiscal_year(fy_end_year - 1)
     cur_start = date.fromisoformat(current["start"])
 
-    with ThreadPoolExecutor(max_workers=len(WIDGETS)) as pool:
-        futures = {filename: pool.submit(run_measure, filename, cur_start) for filename, _name, _desc, _cols in WIDGETS}
-        results = {filename: future.result() for filename, future in futures.items()}
+    active_projects = active_spm_projects()
+    # "all" (CoC-wide, project_ids=None) plus one scope per individual active project.
+    scopes = {"all": None, **{row["ProjectID"]: [row["ProjectID"]] for row in active_projects}}
+    print(f"Running {len(WIDGETS)} widgets x {len(scopes)} scopes = {len(WIDGETS) * len(scopes)} queries...", file=sys.stderr)
+
+    with ThreadPoolExecutor(max_workers=QUERY_CONCURRENCY) as pool:
+        futures = {
+            (scope, filename): pool.submit(run_measure, filename, cur_start, project_ids)
+            for scope, project_ids in scopes.items()
+            for filename, _name, _desc, _cols in WIDGETS
+        }
+        results = {key: future.result() for key, future in futures.items()}
 
     json.dump(
         {
@@ -229,14 +313,14 @@ def main():
             "fiscal_year": current,
             "previous_fiscal_year": previous,
             "source": "Westchester County Continuum of Care (NY-604) HMIS",
-            "widgets": [
+            "widgets": build_widgets(results, "all"),
+            "projects": [
                 {
-                    "name": name,
-                    "description": description,
-                    "columns": columns,
-                    "rows": [jsonable(row) for row in results[filename]],
+                    "id": row["ProjectID"],
+                    "name": row["ProjectName"],
+                    "widgets": build_widgets(results, row["ProjectID"]),
                 }
-                for filename, name, description, columns in WIDGETS
+                for row in active_projects
             ],
         },
         sys.stdout,
