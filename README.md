@@ -19,7 +19,7 @@ There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/we
 
 ## Full System Performance Dashboard
 
-Want every HUD measure, not just the six KPIs above? **https://hmisguru.github.io/westchester-kpis/spm/** renders all 9 measure widgets from `wcspm.yml` (Measures 1, 2, 3.2, 4, 5.1, 5.2, 7a.1, 7b.1, 7b.2) as a static page — a full Observable rendering of the dashboard, CoC-wide, for the current vs. previous fiscal year.
+Want every HUD measure, not just the six KPIs above? **https://hmisguru.github.io/westchester-kpis/spm/** renders all 9 measure widgets from `wcspm.yml` (Measures 1, 2, 3.2, 4, 5.1, 5.2, 7a.1, 7b.1, 7b.2) as a static page — a full Observable rendering of the dashboard, CoC-wide, for the current vs. previous fiscal year. Has its own light/dark toggle in the page (light by default).
 
 ## Embedding
 
