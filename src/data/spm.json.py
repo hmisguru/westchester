@@ -141,6 +141,26 @@ def build_kpis(results):
             "universe": None,
         },
         {
+            "id": "people-in-street-outreach",
+            "eyebrow": "Dashboard metric",
+            "title": "People in Street Outreach",
+            "value": so_active["current_fy"],
+            "previous": so_active["previous_fy"],
+            "format": "number",
+            "unit": "people",
+            # Neither direction is inherently better: fewer people found in
+            # Street Outreach can mean less homelessness, or just less outreach
+            # contact -- same reasoning as street-outreach-exits below.
+            "better": None,
+            "description": (
+                "Unduplicated people with any Street Outreach contact during the fiscal "
+                "year. Not an official HUD System Performance Measure -- a dashboard-only "
+                "addition modeled on Metric 3.2's comparison, since Street Outreach has no "
+                "HUD-defined 'active clients' measure of its own."
+            ),
+            "universe": None,
+        },
+        {
             "id": "first-time-homeless",
             "measure": "Measure 5.1",
             "title": "People experiencing homelessness for the first time",
@@ -170,26 +190,6 @@ def build_kpis(results):
                 "shelter, housing, or another destination."
             ),
             "universe": int(m7a_universe["current_fy"]),
-        },
-        {
-            "id": "people-in-street-outreach",
-            "eyebrow": "Dashboard metric",
-            "title": "People in Street Outreach",
-            "value": so_active["current_fy"],
-            "previous": so_active["previous_fy"],
-            "format": "number",
-            "unit": "people",
-            # Neither direction is inherently better: fewer people found in
-            # Street Outreach can mean less homelessness, or just less outreach
-            # contact -- same reasoning as street-outreach-exits above.
-            "better": None,
-            "description": (
-                "Unduplicated people with any Street Outreach contact during the fiscal "
-                "year. Not an official HUD System Performance Measure -- a dashboard-only "
-                "addition modeled on Metric 3.2's comparison, since Street Outreach has no "
-                "HUD-defined 'active clients' measure of its own."
-            ),
-            "universe": None,
         },
         {
             "id": "exits-to-permanent-housing",
