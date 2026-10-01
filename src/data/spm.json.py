@@ -154,9 +154,7 @@ def build_kpis(results):
             "better": None,
             "description": (
                 "Unduplicated people with any Street Outreach contact during the fiscal "
-                "year. Not an official HUD System Performance Measure -- a dashboard-only "
-                "addition modeled on Metric 3.2's comparison, since Street Outreach has no "
-                "HUD-defined 'active clients' measure of its own."
+                "year. Not an official HUD System Performance Measure."
             ),
             "universe": None,
         },
