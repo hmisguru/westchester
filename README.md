@@ -15,7 +15,7 @@ Six HUD System Performance Measures, for the most recent complete federal fiscal
 | `street-outreach-exits` | 7a.1 | People exiting Street Outreach (always 0 — the Westchester CoC has no active Street Outreach projects) |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
 
-Unlike `hmisguru/baltimore-kpis`, there is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester` has no `Funder` table, and there's no Westchester equivalent of Baltimore's MOHS-funded project subset.
+There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester` has no `Funder` table, so there's no funded-project subset to scope to.
 
 ## Embedding
 
