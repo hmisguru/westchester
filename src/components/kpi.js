@@ -1,37 +1,47 @@
 // KPI stat tile: plain DOM, no dependencies, so it renders the same inside an
 // Observable page, an iframe, or a third-party site embedding it.
 //
-// Neutral default styling (slate text, deep blue accent, system font stack) --
-// no branding is assumed for the embedding site. Host sites can restyle it
-// through the --wkpi-* custom properties below.
+// Styled to match Westchester County's Department of Social Services site
+// (socialservices.westchestercountyny.gov): its deep forest green
+// (#02372D, that site's own primary button / dark-section color), the same
+// green/white pairing it uses for dark sections, and its own success/danger
+// colors (#3DC372 / #E44E56) for the Improved/Worsened arrows. Fonts match
+// that site's two Adobe Fonts -- "sofia-pro" for body text, "degular" for
+// large display numbers -- with Google Fonts fallbacks (Work Sans, Sora)
+// since Adobe/Typekit kits are domain-locked and won't load anywhere but
+// that site itself. Host sites can restyle through the --wkpi-* custom
+// properties below.
 //
-// Light by default. data-theme="dark" forces the dark variant; data-theme="auto"
-// follows the OS setting.
+// Light by default. data-theme="dark" forces the dark variant (matching that
+// site's own dark-green/white section style); data-theme="auto" follows the
+// OS setting.
 
 const STYLE_ID = "wkpi-style";
+const FONTS_LINK_ID = "wkpi-fonts";
+const FONTS_HREF = "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&family=Sora:wght@500;700&display=swap";
 
 const DARK = `
-    --wkpi-surface: #1b2430;
-    --wkpi-border: #334155;
-    --wkpi-accent: #60a5fa;
+    --wkpi-surface: #02372d;
+    --wkpi-border: #41675d;
+    --wkpi-accent: #3dc372;
     --wkpi-text: #ffffff;
-    --wkpi-text-secondary: #cbd5e1;
-    --wkpi-eyebrow: #60a5fa;
-    --wkpi-good: #4ade80;
-    --wkpi-bad: #f87171;
-    --wkpi-neutral: #94a3b8;`;
+    --wkpi-text-secondary: #d4d3d6;
+    --wkpi-eyebrow: #3dc372;
+    --wkpi-good: #3dc372;
+    --wkpi-bad: #ff9e45;
+    --wkpi-neutral: #d4d3d6;`;
 
 const CSS = `
 .wkpi {
   --wkpi-surface: #ffffff;
-  --wkpi-border: #e2e8f0;
-  --wkpi-accent: #2563eb;
-  --wkpi-text: #0f172a;
-  --wkpi-text-secondary: #475569;
-  --wkpi-eyebrow: #1d4ed8;
-  --wkpi-good: #15803d;
-  --wkpi-bad: #b91c1c;
-  --wkpi-neutral: #64748b;
+  --wkpi-border: #d4d3d6;
+  --wkpi-accent: #02372d;
+  --wkpi-text: #2d2e33;
+  --wkpi-text-secondary: #6c6d74;
+  --wkpi-eyebrow: #02372d;
+  --wkpi-good: #3dc372;
+  --wkpi-bad: #e44e56;
+  --wkpi-neutral: #6c6d74;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -43,7 +53,7 @@ const CSS = `
   border-radius: 12px;
   background: var(--wkpi-surface);
   color: var(--wkpi-text);
-  font-family: var(--wkpi-font, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  font-family: var(--wkpi-font, "sofia-pro", "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   line-height: 1.3;
 }
 .wkpi[data-theme="dark"] {${DARK}
@@ -54,6 +64,7 @@ const CSS = `
 }
 .wkpi * { box-sizing: border-box; }
 .wkpi-measure {
+  font-family: var(--wkpi-font-display, "degular", "Sora", system-ui, sans-serif);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -61,7 +72,13 @@ const CSS = `
   color: var(--wkpi-eyebrow);
 }
 .wkpi-title { margin: 0; font-family: inherit; font-size: 18px; font-weight: 400; line-height: 1.3; color: var(--wkpi-text); }
-.wkpi-value { font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+.wkpi-value {
+  font-family: var(--wkpi-font-display, "degular", "Sora", system-ui, sans-serif);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
 .wkpi-unit { font-size: 20px; font-weight: 400; color: var(--wkpi-text-secondary); margin-left: 4px; }
 .wkpi-delta { display: flex; flex-wrap: wrap; align-items: baseline; align-content: flex-start; gap: 4px 8px; font-size: 15px; }
 .wkpi-arrow { font-size: 13px; }
@@ -91,19 +108,19 @@ const CSS = `
   }
 }
 .wkpi-grid-wrapper {
-  --wkpi-footer-text: #475569;
+  --wkpi-footer-text: #6c6d74;
 }
 .wkpi-grid-wrapper[data-theme="dark"] {
-  --wkpi-footer-text: #cbd5e1;
+  --wkpi-footer-text: #d4d3d6;
 }
 @media (prefers-color-scheme: dark) {
   .wkpi-grid-wrapper[data-theme="auto"] {
-    --wkpi-footer-text: #cbd5e1;
+    --wkpi-footer-text: #d4d3d6;
   }
 }
 .wkpi-grid-footer {
   margin-top: 12px;
-  font-family: var(--wkpi-font, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  font-family: var(--wkpi-font, "sofia-pro", "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   font-size: 13px;
   color: var(--wkpi-footer-text);
 }
@@ -111,6 +128,17 @@ const CSS = `
 
 function ensureStyle(root = document) {
   const host = root.head ?? root;
+  if (!host.querySelector?.(`#${FONTS_LINK_ID}`)) {
+    // Work Sans / Sora are fallbacks for the Westchester County site's own
+    // "sofia-pro" / "degular" (Adobe Fonts, domain-locked to that site) --
+    // loading them here means tiles still look intentionally styled on any
+    // other host, not just on socialservices.westchestercountyny.gov itself.
+    const link = document.createElement("link");
+    link.id = FONTS_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = FONTS_HREF;
+    host.append?.(link);
+  }
   if (host.querySelector?.(`#${STYLE_ID}`)) return;
   const style = document.createElement("style");
   style.id = STYLE_ID;
