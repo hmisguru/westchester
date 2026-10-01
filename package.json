@@ -1,0 +1,26 @@
+{
+  "name": "westchester-kpis",
+  "version": "0.0.0",
+  "scripts": {
+    "clean": "rm -rf src/.observablehq/cache",
+    "build": "observable build && node scripts/strip_generator.js",
+    "dev": "observable preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hmisguru/westchester-kpis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hmisguru/westchester-kpis/issues"
+  },
+  "homepage": "https://github.com/hmisguru/westchester-kpis#readme",
+  "devDependencies": {
+    "@observablehq/framework": "^1.13.4"
+  },
+  "private": true,
+  "type": "module",
+  "description": "Embeddable HUD System Performance Measure KPIs for the Westchester County CoC",
+  "engines": {
+    "node": ">=18"
+  }
+}
