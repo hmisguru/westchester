@@ -1,0 +1,62 @@
+/* Full System Performance Dashboard page -- styled like kpi.js's county-
+   government palette (see that file for where the colors/fonts came from),
+   but with its own class prefix since this isn't an embeddable module. */
+
+.spmd-notes {
+  padding: 16px 20px;
+  background: #f0f5f3;
+  border: 1px solid #d4e3dd;
+  border-left: 4px solid #02372d;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #2d2e33;
+  margin-bottom: 24px;
+}
+
+.spmd-card {
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #d4d3d6;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.spmd-card-title {
+  margin: 0 0 4px;
+  font-family: "degular", "Sora", system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #02372d;
+}
+
+.spmd-card-description {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6c6d74;
+  max-width: 900px;
+}
+
+.spmd-table-wrap { overflow-x: auto; }
+.spmd-table { width: 100%; max-width: none; font-size: 14px; border-collapse: collapse; }
+.spmd-table th {
+  vertical-align: bottom;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6c6d74;
+  padding: 4px 10px;
+  border-bottom: 2px solid #02372d;
+}
+.spmd-table th:first-child { text-align: left; }
+.spmd-table td {
+  padding: 5px 10px;
+  text-align: right;
+  border-bottom: 1px solid #e5e5e7;
+  font-variant-numeric: tabular-nums;
+}
+.spmd-table td:first-child { text-align: left; }
+.spmd-table tbody tr:last-child td { border-bottom: 0; }
+
+.spmd-empty { color: #6c6d74; font-style: italic; margin: 0; }
