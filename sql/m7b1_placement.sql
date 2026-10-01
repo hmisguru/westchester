@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester, main): "Metric 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metric 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT

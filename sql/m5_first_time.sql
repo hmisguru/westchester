@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester, main): "Metric 5.1 — First-Time Homeless (ES, SH, TH)".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metric 5.1 — First-Time Homeless (ES, SH, TH)".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT
