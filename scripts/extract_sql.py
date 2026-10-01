@@ -1,13 +1,13 @@
-"""Re-extract queries from the westchester repo's System Performance dashboard.
+"""Re-extract queries from the westchester-dac repo's System Performance dashboard.
 
-The SQL in sql/ is a copy of every measure widget in wcspm.yml (hmisguru/westchester,
+The SQL in sql/ is a copy of every measure widget in wcspm.yml (hmisguru/westchester-dac,
 `main` branch) -- both the 6 used by the public KPI tiles (kpis.js/spm.json.py)
 and the 3 extra ones (Measures 4, 5.2, 7b.2) used only by the full dashboard
 page (src/spm/index.md). All 9 are extracted the same way, so published
 numbers on both pages match the dashboard exactly. When a measure's logic
 changes there, re-run this against a fresh copy of that file:
 
-    git -C ../westchester show origin/main:wcspm.yml > /tmp/wcspm.yml
+    git -C ../westchester-dac show origin/main:wcspm.yml > /tmp/wcspm.yml
     python scripts/extract_sql.py /tmp/wcspm.yml
 
 The dashboard's `{{ filters.report_start }}` date becomes the BigQuery query
@@ -40,7 +40,7 @@ WIDGETS = {
     "m1_length_of_time.sql": "Measures 1a and 1b — Average and Median Length of Time Homeless",
     "m2_returns.sql": "Measure 2a/2b — Returns to Homelessness Within 6, 12, and 24 Months",
     "m3_sheltered.sql": "Metric 3.2 — Unduplicated Sheltered Persons",
-    "m4_income_growth.sql": "Metrics 4.1–4.6 — Employment and Income Growth (TH/SH/PH Projects)",
+    "m4_income_growth.sql": "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
     "m5_first_time.sql": "Metric 5.1 — First-Time Homeless (ES, SH, TH)",
     "m5_2_first_time_ph.sql": "Metric 5.2 — First-Time Homeless (ES, SH, TH, PH)",
     "m7a1_street_outreach.sql": "Metric 7a.1 — Successful Placement from Street Outreach",
@@ -140,7 +140,7 @@ def main(dashboard_path):
         # Drop blank lines left behind by the Jinja blocks.
         sql = "\n".join(line for line in sql.splitlines() if line.strip()) + "\n"
         header = (
-            f"-- Copied from wcspm.yml (hmisguru/westchester, main): \"{name}\".\n"
+            f"-- Copied from wcspm.yml (hmisguru/westchester-dac, main): \"{name}\".\n"
             "-- Regenerate with scripts/extract_sql.py; do not edit by hand.\n"
         )
         (SQL_DIR / filename).write_text(header + sql)
