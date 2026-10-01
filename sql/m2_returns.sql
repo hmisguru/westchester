@@ -80,6 +80,21 @@ matches AS (
           AND c.EntryDate >= DATE_ADD(en3.EntryDate, INTERVAL 1 DAY)
           AND c.EntryDate <= LEAST(COALESCE(DATE_ADD(ex3.ExitDate, INTERVAL 14 DAY), DATE_ADD(en3.EntryDate, INTERVAL 14 DAY)), b.report_end)
       )
+      -- Explicit deviation from the HUD spec: if the client has a still-open PH
+      -- enrollment that began within 14 days of this exit (their successful
+      -- placement), no later PH enrollment counts as a return, however far outside
+      -- the 14-day window it starts -- HUD's spec doesn't account for a client
+      -- staying in that same placement under a second, stacked PH subsidy program.
+      AND NOT EXISTS (
+        SELECT 1
+        FROM wchmiscsv.Enrollment en0
+        JOIN coc_projects qp0 ON en0.ProjectID = qp0.ProjectID
+        LEFT JOIN wchmiscsv.Exit ex0 ON en0.EnrollmentID = ex0.EnrollmentID
+        WHERE en0.PersonalID = b.PersonalID
+          AND qp0.ProjectType IN (3, 9, 10, 13)
+          AND ex0.ExitDate IS NULL
+          AND en0.EntryDate <= DATE_ADD(b.ExitDate, INTERVAL 14 DAY)
+      )
     )
   GROUP BY b.PersonalID, b.row_bucket, b.ExitDate
 ),
