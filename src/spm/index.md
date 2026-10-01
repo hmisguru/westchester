@@ -12,7 +12,7 @@ const spm = FileAttachment("../data/spm-dashboard.json").json();
 
 # Westchester CoC System Performance Dashboard
 
-<p class="lede">Every HUD System Performance Measure computed for the Westchester County Continuum of Care (NY-604) -- a full rendering of <a href="https://github.com/hmisguru/westchester" target="_blank" rel="noopener">wcspm.yml</a>'s own tables, built with Observable Framework instead of DAC.</p>
+<p class="lede">Every HUD System Performance Measure computed for the Westchester County Continuum of Care (NY-604).</p>
 
 ```js
 display(renderNotes(spm));
@@ -22,7 +22,7 @@ display(renderNotes(spm));
 display(renderDashboard(spm));
 ```
 
-<p class="footer-note">Source: ${spm.source}. Generated ${spm.generated}.</p>
+<p class="footer-note">Generated ${spm.generated}.</p>
 
 Looking for just the headline numbers? See the <a href="../">KPI tiles</a>.
 
