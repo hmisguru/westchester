@@ -1,6 +1,6 @@
-# westchester-kpis
+# westchester
 
-Embeddable KPIs for the Westchester County Continuum of Care (NY-604), built from HMIS data with [Observable Framework](https://observablehq.com/framework/) and published on GitHub Pages at **https://hmisguru.github.io/westchester-kpis/**.
+Embeddable KPIs for the Westchester County Continuum of Care (NY-604), built from HMIS data with [Observable Framework](https://observablehq.com/framework/) and published on GitHub Pages at **https://hmisguru.github.io/westchester/**.
 
 ## KPIs
 
@@ -16,15 +16,15 @@ Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) c
 | `street-outreach-exits` | 7a.1 | People exiting Street Outreach |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
 
-There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester` has no `Funder` table, so there's no funded-project subset to scope to.
+There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester-dac` has no `Funder` table, so there's no funded-project subset to scope to.
 
 ## Full System Performance Dashboard
 
-Want every HUD measure, not just the KPIs above? **https://hmisguru.github.io/westchester-kpis/spm/** renders all 9 measure widgets from `wcspm.yml` (Measures 1, 2, 3.2, 4, 5.1, 5.2, 7a.1, 7b.1, 7b.2) as a static page — a full Observable rendering of the dashboard, CoC-wide, for the current vs. previous fiscal year. Has its own light/dark toggle in the page (light by default). `people-in-street-outreach` isn't on this page since it isn't a `wcspm.yml` widget — KPI tiles only.
+Want every HUD measure, not just the KPIs above? **https://hmisguru.github.io/westchester/spm/** renders all 9 measure widgets from `wcspm.yml` (Measures 1, 2, 3.2, 4, 5.1, 5.2, 7a.1, 7b.1, 7b.2) as a static page — a full Observable rendering of the dashboard, CoC-wide, for the current vs. previous fiscal year. Has its own light/dark toggle in the page (light by default). `people-in-street-outreach` isn't on this page since it isn't a `wcspm.yml` widget — KPI tiles only.
 
 ## Embedding
 
-There are three ways to put the KPIs on another website. All of them update automatically when this site rebuilds (first Wednesday of each month). The site's [embedding guide](https://hmisguru.github.io/westchester-kpis/embedding) has copy-and-paste snippets.
+There are three ways to put the KPIs on another website. All of them update automatically when this site rebuilds (first Wednesday of each month). The site's [embedding guide](https://hmisguru.github.io/westchester/embedding) has copy-and-paste snippets.
 
 ### 1. JavaScript module (recommended)
 
@@ -33,7 +33,7 @@ Renders the tiles directly into your page, so they fit your layout and resize on
 ```html
 <div id="westchester-kpis"></div>
 <script type="module">
-  import {KPIGrid} from "https://hmisguru.github.io/westchester-kpis/kpis.js";
+  import {KPIGrid} from "https://hmisguru.github.io/westchester/kpis.js";
   document.querySelector("#westchester-kpis").append(await KPIGrid());
 </script>
 ```
@@ -45,7 +45,7 @@ Common variations:
 await KPIGrid(["people-sheltered", "first-time-homeless"])
 
 // A single tile
-import {KPI} from "https://hmisguru.github.io/westchester-kpis/kpis.js";
+import {KPI} from "https://hmisguru.github.io/westchester/kpis.js";
 await KPI("exits-to-permanent-housing")
 ```
 
@@ -69,12 +69,12 @@ Works anywhere you can paste HTML, but the iframe needs a fixed height and uses 
 
 ```html
 <!-- Full grid -->
-<iframe src="https://hmisguru.github.io/westchester-kpis/embed/all"
+<iframe src="https://hmisguru.github.io/westchester/embed/all"
   title="Westchester CoC system performance KPIs"
   width="100%" height="630" style="border:0"></iframe>
 
 <!-- One KPI -->
-<iframe src="https://hmisguru.github.io/westchester-kpis/embed/people-sheltered"
+<iframe src="https://hmisguru.github.io/westchester/embed/people-sheltered"
   title="People in shelter or transitional housing"
   width="360" height="340" style="border:0"></iframe>
 ```
@@ -87,11 +87,11 @@ Single-KPI pages are `embed/<id>`, using the ids in the KPI table above. Suggest
 
 ### 3. Raw JSON
 
-https://hmisguru.github.io/westchester-kpis/data/spm.json has every figure.
+https://hmisguru.github.io/westchester/data/spm.json has every figure.
 
 ## How it works
 
-- `sql/*.sql` are mostly copies of widgets in the System Performance Dashboard (`wcspm.yml` in `hmisguru/westchester`, `main` branch), so published numbers match the dashboard. Regenerate with `scripts/extract_sql.py`; don't hand-edit. `sql/m7_exits_to_ph.sql` is generated from the 7a.1 and 7b.1 copies: each measure's logic is unchanged, and only the final unduplicated count of people exiting either to permanent housing is added. `sql/street_outreach_active.sql` is the one exception — hand-written, not generated, since it has no `wcspm.yml` widget to copy from (see its own header comment).
+- `sql/*.sql` are mostly copies of widgets in the System Performance Dashboard (`wcspm.yml` in `hmisguru/westchester-dac`, `main` branch), so published numbers match the dashboard. Regenerate with `scripts/extract_sql.py`; don't hand-edit. `sql/m7_exits_to_ph.sql` is generated from the 7a.1 and 7b.1 copies: each measure's logic is unchanged, and only the final unduplicated count of people exiting either to permanent housing is added. `sql/street_outreach_active.sql` is the one exception — hand-written, not generated, since it has no `wcspm.yml` widget to copy from (see its own header comment).
 - `src/data/spm.json.py` is a build-time data loader: it runs those queries in BigQuery and writes a small JSON of CoC-wide aggregates for the KPI tiles. `src/data/spm-dashboard.json.py` runs all 9 `wcspm.yml`-sourced ones and writes every result row, for the full dashboard page. No row-level data or credentials reach the site.
 - `.github/workflows/deploy.yml` rebuilds and deploys monthly (first Wednesday of the month), on every push to `main`, and on demand (Actions → Build and deploy KPIs → Run workflow).
 
