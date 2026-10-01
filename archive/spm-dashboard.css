@@ -1,8 +1,6 @@
 /* Full System Performance Dashboard page -- styled like kpi.js's county-
    government palette (see that file for where the colors/fonts came from),
-   but with its own class prefix since this isn't an embeddable module.
-   CoC-wide only; a per-project dropdown version is archived at
-   archive/spm-dashboard.css (and its matching .js/.json.py). */
+   but with its own class prefix since this isn't an embeddable module. */
 
 .spmd-notes {
   padding: 16px 20px;
@@ -62,3 +60,29 @@
 .spmd-table tbody tr:last-child td { border-bottom: 0; }
 
 .spmd-empty { color: #6c6d74; font-style: italic; margin: 0; }
+
+.spmd-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; }
+.spmd-select-label {
+  font-family: "sofia-pro", "Work Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d2e33;
+}
+.spmd-select {
+  min-width: 260px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #d4d3d6;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2d2e33;
+  font-family: "sofia-pro", "Work Sans", system-ui, sans-serif;
+  font-size: 14px;
+}
+.spmd-select:focus-visible { outline: 2px solid #02372d; outline-offset: 2px; }
+
+.spmd-scope-footer {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #6c6d74;
+}
