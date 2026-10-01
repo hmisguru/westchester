@@ -56,7 +56,7 @@ await KPI("exits-to-permanent-housing")
 | `description` | `KPIGrid`, `KPI` | `true` | `false` hides the one-line definition on each tile |
 | `footer` | `KPIGrid`, `KPI` | `true` | `false` hides the fiscal year and source line |
 
-The tiles use a neutral default style (no branding assumed). To adapt them to another site, override these CSS custom properties on `.wkpi`: `--wkpi-font`, `--wkpi-surface`, `--wkpi-border`, `--wkpi-accent` (top stripe), `--wkpi-eyebrow` (measure label), `--wkpi-text`, `--wkpi-text-secondary`, `--wkpi-good`, `--wkpi-bad`, `--wkpi-neutral`.
+The tiles are styled to match [socialservices.westchestercountyny.gov](https://socialservices.westchestercountyny.gov/) (deep forest green, that site's own success/danger colors, "sofia-pro"/"degular" with Google Fonts fallbacks). To adapt them to another site, override these CSS custom properties on `.wkpi`: `--wkpi-font` (body text), `--wkpi-font-display` (the large value number and eyebrow label), `--wkpi-surface`, `--wkpi-border`, `--wkpi-accent` (top stripe), `--wkpi-eyebrow` (measure label), `--wkpi-text`, `--wkpi-text-secondary`, `--wkpi-good`, `--wkpi-bad`, `--wkpi-neutral`.
 
 ### 2. Iframe
 
