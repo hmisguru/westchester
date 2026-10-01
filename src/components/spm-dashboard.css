@@ -9,6 +9,74 @@
    for Baltimore's Bridge/Coordinated Entry dashboard headers. */
 .spmd-header h1 { max-width: none; }
 
+/* Light/dark toggle, default light -- user-controlled (not OS-driven), via
+   a [data-theme] attribute set on <html> by renderThemeToggle() in
+   spm-dashboard.js. Overriding Framework's own --theme-foreground/
+   --theme-background-* custom properties here flips the page background,
+   text, and link color for free (global.css's `html { background:
+   var(--theme-background); color: var(--theme-foreground); }` already
+   consumes them) -- only this page's own hardcoded-hex .spmd-* colors below
+   need explicit dark variants. Dark palette matches kpi.js's own
+   data-theme="dark" variant (the same deep forest green / white pairing
+   Westchester County's own site uses for its dark sections), for visual
+   consistency with the embeddable KPI tiles elsewhere on this site. */
+html[data-theme="dark"] {
+  --theme-foreground: #dfdfd6;
+  --theme-background-a: #161616;
+  --theme-background-b: #161616;
+  --theme-foreground-focus: oklch(0.712564 0.257662 265.758);
+  color-scheme: dark;
+}
+
+.spmd-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #02372d;
+  background: #ffffff;
+  border: 1px solid #d4d3d6;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.spmd-theme-toggle:hover { border-color: #02372d; }
+.spmd-theme-toggle:focus-visible { outline: 2px solid #02372d; outline-offset: 2px; }
+html[data-theme="dark"] .spmd-theme-toggle {
+  color: #ffffff;
+  background: #02372d;
+  border-color: #41675d;
+}
+html[data-theme="dark"] .spmd-theme-toggle:hover { border-color: #3dc372; }
+
+html[data-theme="dark"] .footer-note { color: #a9abb3; }
+
+html[data-theme="dark"] .spmd-notes {
+  background: #02372d;
+  border-color: #41675d;
+  border-left-color: #3dc372;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .spmd-card {
+  background: #1b231f;
+  border-color: #33423c;
+}
+
+html[data-theme="dark"] .spmd-card-title { color: #3dc372; }
+html[data-theme="dark"] .spmd-card-description { color: #a9abb3; }
+
+html[data-theme="dark"] .spmd-table th {
+  color: #a9abb3;
+  border-bottom-color: #3dc372;
+}
+html[data-theme="dark"] .spmd-table td { border-bottom-color: #33423c; }
+
+html[data-theme="dark"] .spmd-empty { color: #a9abb3; }
+
 .spmd-notes {
   padding: 16px 20px;
   background: #f0f5f3;

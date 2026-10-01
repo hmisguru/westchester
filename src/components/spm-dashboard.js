@@ -71,3 +71,40 @@ export function renderNotes(data) {
 export function renderDashboard(data) {
   return html`<div>${data.widgets.map(renderWidget)}</div>`;
 }
+
+const THEME_KEY = "spmd-theme";
+
+function storedTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Private browsing / blocked storage: theme still applies for this page view.
+  }
+}
+
+/** A light/dark toggle button, default light -- see spm-dashboard.css for the
+ * [data-theme] styling this drives. Remembers the visitor's choice via
+ * localStorage, but every first-ever visit starts light. */
+export function renderThemeToggle() {
+  const theme = storedTheme() === "dark" ? "dark" : "light";
+  applyTheme(theme);
+
+  const label = (t) => (t === "dark" ? "☀️ Light mode" : "🌙 Dark mode");
+  const button = html`<button type="button" class="spmd-theme-toggle" aria-pressed=${theme === "dark"}>${label(theme)}</button>`;
+  button.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(next);
+    button.setAttribute("aria-pressed", String(next === "dark"));
+    button.textContent = label(next);
+  });
+  return button;
+}
