@@ -1,8 +1,11 @@
-"""Re-extract the KPI queries from the westchester repo's System Performance dashboard.
+"""Re-extract queries from the westchester repo's System Performance dashboard.
 
-The SQL in sql/ is a copy of specific widgets in wcspm.yml (hmisguru/westchester,
-`main` branch), so the published KPIs match the dashboard exactly. When a
-measure's logic changes there, re-run this against a fresh copy of that file:
+The SQL in sql/ is a copy of every measure widget in wcspm.yml (hmisguru/westchester,
+`main` branch) -- both the 6 used by the public KPI tiles (kpis.js/spm.json.py)
+and the 3 extra ones (Measures 4, 5.2, 7b.2) used only by the full dashboard
+page (src/spm/index.md). All 9 are extracted the same way, so published
+numbers on both pages match the dashboard exactly. When a measure's logic
+changes there, re-run this against a fresh copy of that file:
 
     git -C ../westchester show origin/main:wcspm.yml > /tmp/wcspm.yml
     python scripts/extract_sql.py /tmp/wcspm.yml
@@ -37,9 +40,12 @@ WIDGETS = {
     "m1_length_of_time.sql": "Measures 1a and 1b — Average and Median Length of Time Homeless",
     "m2_returns.sql": "Measure 2a/2b — Returns to Homelessness Within 6, 12, and 24 Months",
     "m3_sheltered.sql": "Metric 3.2 — Unduplicated Sheltered Persons",
+    "m4_income_growth.sql": "Metrics 4.1–4.6 — Employment and Income Growth (TH/SH/PH Projects)",
     "m5_first_time.sql": "Metric 5.1 — First-Time Homeless (ES, SH, TH)",
+    "m5_2_first_time_ph.sql": "Metric 5.2 — First-Time Homeless (ES, SH, TH, PH)",
     "m7a1_street_outreach.sql": "Metric 7a.1 — Successful Placement from Street Outreach",
     "m7b1_placement.sql": "Metric 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)",
+    "m7b2_retention.sql": "Metric 7b.2 — Successful Placement/Retention in Permanent Housing",
 }
 
 # CTEs whose Project filter is dropped so they always cover every CoC project.
