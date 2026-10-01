@@ -24,5 +24,10 @@ These figures come from the CoC's HMIS. Six tiles follow HUD's System Performanc
 Want every HUD measure, not just these? See the [full System Performance Dashboard](./spm/) (HUD measures only -- the dashboard-only tile above isn't on that page). Want to put these tiles on another website? See the [embedding guide](./embedding).
 
 <style>
+/* Framework's own default h1 max-width (640px, with text-wrap: balance) wraps
+   this page's title across two lines -- same workaround already used for
+   the full System Performance Dashboard page (see spm-dashboard.css) and
+   Baltimore's Bridge/Coordinated Entry dashboard headers. */
+h1 { max-width: none; }
 .lede { max-width: 720px; font-size: 18px; }
 </style>
