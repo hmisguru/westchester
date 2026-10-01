@@ -10,9 +10,13 @@ import {renderNotes, renderDashboard} from "../components/spm-dashboard.js";
 const spm = FileAttachment("../data/spm-dashboard.json").json();
 ```
 
+<div class="spmd-header">
+
 # Westchester CoC System Performance Dashboard
 
 <p class="lede">Every HUD System Performance Measure computed for the Westchester County Continuum of Care (NY-604).</p>
+
+</div>
 
 ```js
 display(renderNotes(spm));
