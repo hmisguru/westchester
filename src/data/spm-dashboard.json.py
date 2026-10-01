@@ -3,7 +3,7 @@
 Unlike spm.json.py (which picks a handful of values for the public KPI
 tiles), this loader runs all 9 measure widgets in full and returns every
 result row, for a static Observable rendering of the whole dashboard --
-modeled on balspm.yml (hmisguru/baltimore, `staging` branch), the same
+modeled on balspm.yml (hmisguru/baltimore-dac, `staging` branch), the same
 widget order and "Dashboard Notes" intro text, adapted for Westchester.
 
 CoC-wide only, per explicit choice -- there is no interactive "Fiscal Year

@@ -25,7 +25,7 @@ including the PRs that built and later removed this (search for "per-project").
    `.spmd-select`, `.spmd-select-label` rules back into `src/components/spm-dashboard.css` (the rest of
    that file is unchanged between the two versions, so don't blindly overwrite it).
 2. Diff the archived files against the current live ones first -- `sql/*.sql` and `wcspm.yml`
-   (`hmisguru/westchester`) may have changed measure logic since this was archived, and the archived
+   (`hmisguru/westchester-dac`) may have changed measure logic since this was archived, and the archived
    loader's widget descriptions/columns should be reconciled with whatever's current.
 3. `src/spm/index.md` doesn't need changes either way -- it already calls `renderDashboard(spm)` with
    no options, and the per-project version's `renderDashboard` accepts an optional second argument

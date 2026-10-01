@@ -1,8 +1,8 @@
 // Renders the full System Performance Dashboard (src/data/spm-dashboard.json)
 // as a static page: one renderer per DAC `type: table` widget, driven by
 // each widget's own columns config, so the layout matches wcspm.yml
-// (hmisguru/westchester) -- same widget order and intro notes as
-// balspm.yml (hmisguru/baltimore, `staging` branch), which this was built
+// (hmisguru/westchester-dac) -- same widget order and intro notes as
+// balspm.yml (hmisguru/baltimore-dac, `staging` branch), which this was built
 // from directly, per explicit request.
 
 import {format as d3format} from "npm:d3-format";

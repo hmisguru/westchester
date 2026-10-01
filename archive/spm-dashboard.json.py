@@ -3,7 +3,7 @@
 Unlike spm.json.py (which picks a handful of values for the public KPI
 tiles), this loader runs all 9 measure widgets in full and returns every
 result row, for a static Observable rendering of the whole dashboard --
-modeled on balspm.yml (hmisguru/baltimore, `staging` branch), the same
+modeled on balspm.yml (hmisguru/baltimore-dac, `staging` branch), the same
 widget order and "Dashboard Notes" intro text, adapted for Westchester.
 
 Every widget is computed once for all CoC projects (top-level "widgets"),
@@ -13,7 +13,7 @@ specs cover (ES-E/E 0, ES-NbN 1, TH 2, PSH 3, SO 4, SH 8, OPH 9 and 10, RRH
 13) -- each its own entry under "projects", keyed by ProjectID, per
 explicit request for a project-level drill-down (a dropdown of individual
 projects, not a single pooled "active projects" scope). Per explicit
-choice, this replaces the MOHS-funded-style scope baltimore-kpis uses for a
+choice, this replaces the MOHS-funded-style scope baltimore uses for a
 *different* dashboard (Bridge to Housing, HUD LSA-based) -- there is no
 Funder table here, and no such grant-funded concept applies to an
 SPM-programming-spec dashboard anyway. 121 of wchmiscsv's 179
