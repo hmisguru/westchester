@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester, main): "Metrics 4.1–4.6 — Employment and Income Growth (TH/SH/PH Projects)".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT
@@ -13,11 +13,21 @@ periods AS (
   SELECT 'Current FY', cur_start, cur_end FROM bounds
 ),
 universe_projects AS (
+  -- CoC Program-funded: an active grant (date range overlapping the fiscal year) whose
+  -- GrantID starts with "NY" -- this CoC's own convention for CoC-funded grants, confirmed
+  -- live against wchmiscsv.Funder (e.g. "NY01B10-4007"), distinct from non-CoC grant number
+  -- formats also present there (e.g. "90CY6591"). Mirrors balspm.yml's own Funder-based
+  -- universe_projects filter, adapted for this CoC's own GrantID convention in place of
+  -- balhmiscsv's Funder source-code field.
   SELECT DISTINCT p.ProjectID, pe.period
   FROM wchmiscsv.Project p
+  JOIN wchmiscsv.Funder f ON f.ProjectID = p.ProjectID
   CROSS JOIN periods pe
   WHERE p.ContinuumProject = 1
     AND p.ProjectType IN (2, 3, 8, 9, 10, 13)
+    AND f.GrantID LIKE 'NY%'
+    AND f.StartDate <= pe.report_end
+    AND (f.EndDate IS NULL OR f.EndDate >= pe.report_start)
     AND (@all_projects OR p.ProjectID IN UNNEST(@project_ids))
 ),
 -- ===== System stayers (4.1-4.3) =====

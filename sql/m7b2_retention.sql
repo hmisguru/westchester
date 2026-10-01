@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester, main): "Metric 7b.2 — Successful Placement/Retention in Permanent Housing".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metric 7b.2 — Successful Placement/Retention in Permanent Housing".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT
