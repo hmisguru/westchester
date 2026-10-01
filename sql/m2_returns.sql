@@ -78,7 +78,7 @@ matches AS (
           AND qp3.ProjectType IN (3, 9, 10, 13)
           AND en3.EnrollmentID != c.EnrollmentID
           AND c.EntryDate >= DATE_ADD(en3.EntryDate, INTERVAL 1 DAY)
-          AND c.EntryDate <= LEAST(COALESCE(DATE_ADD(ex3.ExitDate, INTERVAL 14 DAY), b.report_end), b.report_end)
+          AND c.EntryDate <= LEAST(COALESCE(DATE_ADD(ex3.ExitDate, INTERVAL 14 DAY), DATE_ADD(en3.EntryDate, INTERVAL 14 DAY)), b.report_end)
       )
     )
   GROUP BY b.PersonalID, b.row_bucket, b.ExitDate
