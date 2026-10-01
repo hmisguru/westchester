@@ -4,6 +4,11 @@
    CoC-wide only; a per-project dropdown version is archived at
    archive/spm-dashboard.css (and its matching .js/.json.py). */
 
+/* Framework's own default h1 max-width (640px, with text-wrap: balance) wraps
+   this page's longer title across two lines -- same workaround already used
+   for Baltimore's Bridge/Coordinated Entry dashboard headers. */
+.spmd-header h1 { max-width: none; }
+
 .spmd-notes {
   padding: 16px 20px;
   background: #f0f5f3;

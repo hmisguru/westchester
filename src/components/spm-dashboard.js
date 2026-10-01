@@ -55,10 +55,10 @@ export function renderNotes(data) {
     every CoC project. "Current FY" is the most recent complete federal fiscal year (Oct 1 – Sep 30,
     ${data.fiscal_year.start} to ${data.fiscal_year.end}) covered by the HMIS export dated
     ${data.export_end}; "Previous FY" is the 12 months immediately prior
-    (${data.previous_fiscal_year.start} to ${data.previous_fiscal_year.end}). Unlike the live DAC
-    dashboard this is built from, this page has no Fiscal Year Start Date or Project filter -- it's a
-    static snapshot of the current reporting year for every CoC project, refreshed when this site
-    rebuilds. Only projects participating in the CoC (Project.ContinuumProject = 1) are included;
+    (${data.previous_fiscal_year.start} to ${data.previous_fiscal_year.end}). This page has no Fiscal
+    Year Start Date or Project filter -- it's a static snapshot of the current reporting year for
+    every CoC project, refreshed monthly (first Wednesday of each month) when this site rebuilds.
+    Only projects participating in the CoC (Project.ContinuumProject = 1) are included;
     enrollments are scoped to CoC NY-604 (the only CoC code present in this dataset). Measure 3.1 (PIT
     counts) is intentionally omitted -- HUD specifies it is manually entered from separate
     Point-in-Time count submissions, not generated from HMIS data. Measure 6 (Category 3 /
