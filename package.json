@@ -1,5 +1,5 @@
 {
-  "name": "westchester-kpis",
+  "name": "westchester",
   "version": "0.0.0",
   "scripts": {
     "clean": "rm -rf src/.observablehq/cache",
@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hmisguru/westchester-kpis.git"
+    "url": "git+https://github.com/hmisguru/westchester.git"
   },
   "bugs": {
-    "url": "https://github.com/hmisguru/westchester-kpis/issues"
+    "url": "https://github.com/hmisguru/westchester/issues"
   },
-  "homepage": "https://github.com/hmisguru/westchester-kpis#readme",
+  "homepage": "https://github.com/hmisguru/westchester#readme",
   "devDependencies": {
     "@observablehq/framework": "^1.13.4"
   },

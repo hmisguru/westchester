@@ -2,7 +2,7 @@
 //
 //   <div id="kpis"></div>
 //   <script type="module">
-//     import {KPIGrid} from "https://hmisguru.github.io/westchester-kpis/kpis.js";
+//     import {KPIGrid} from "https://hmisguru.github.io/westchester/kpis.js";
 //     document.querySelector("#kpis").append(await KPIGrid());
 //   </script>
 //

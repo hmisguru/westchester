@@ -4,8 +4,8 @@ Runs the queries in sql/ against BigQuery at build time and writes one small
 JSON document of CoC-wide aggregates to stdout. Nothing row-level ever leaves
 BigQuery, and no credentials reach the published site.
 
-Unlike baltimore-kpis, there is no project-funding filter here -- every KPI
-covers all Westchester CoC projects. (hmisguru/westchester has no `Funder`
+Unlike baltimore, there is no project-funding filter here -- every KPI
+covers all Westchester CoC projects. (hmisguru/westchester-dac has no `Funder`
 table, and there's no Westchester equivalent of Baltimore's MOHS-funded
 subset.)
 
