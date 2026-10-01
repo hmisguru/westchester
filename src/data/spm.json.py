@@ -48,11 +48,15 @@ def pick(rows, label_field, label, default=None):
     """Return the one row whose label column matches.
 
     Falls back to `default` (rather than failing the build) when the query
-    returned no rows at all for either fiscal year -- expected for Measure
-    7a.1 here, since Westchester has zero Street Outreach (ProjectType 4)
-    projects, so its GROUP BY produces no groups rather than a zero-valued
-    one. Missing a row when one COULD legitimately exist (`default=None`)
-    still fails the build, same as before.
+    returned no rows at all for either fiscal year. Originally added for
+    Measure 7a.1 when Westchester had zero Street Outreach (ProjectType 4)
+    projects -- its GROUP BY then produced no groups rather than a
+    zero-valued one. Westchester's HMIS export now includes Street Outreach
+    projects (confirmed live, 2026-10-01), so that case shouldn't trigger
+    any more, but the fallback is kept as a defensive default rather than
+    removed, in case that ever reverts. Missing a row when one COULD
+    legitimately exist (`default=None`) still fails the build, same as
+    before.
     """
     for row in rows:
         if row[label_field] == label:
@@ -81,8 +85,8 @@ def build_kpis(results):
     m2_prev = pick(results["m2_prev"], "row_bucket", m2_label)
     m3 = pick(results["m3"], "bucket", "Total (Unduplicated)")
     m5 = pick(results["m5"], "row_label", "Newly homeless (no prior activity)")
-    # Westchester has zero Street Outreach projects, so this query returns no
-    # rows at all (not a zero-valued one) -- see pick()'s default= above.
+    # Defensive default, no longer expected to trigger -- see pick()'s own
+    # docstring above for why it exists.
     zero_fy = {"current_fy": 0, "previous_fy": 0}
     m7a_universe = pick(
         results["m7a1"], "row_label", "Universe: persons who exit Street Outreach", default=zero_fy
@@ -162,8 +166,7 @@ def build_kpis(results):
             "better": None,
             "description": (
                 "People who left Street Outreach during the fiscal year, whether to "
-                "shelter, housing, or another destination. The Westchester CoC has no "
-                "active Street Outreach projects, so this is 0."
+                "shelter, housing, or another destination."
             ),
             "universe": int(m7a_universe["current_fy"]),
         },

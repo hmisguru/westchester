@@ -17,7 +17,7 @@ display(renderKpiGrid(spm));
 
 <div class="note">
 
-These figures come from the CoC's HMIS and follow HUD's System Performance Measures specifications. They cover the most recent complete federal fiscal year (${spm.fiscal_year.start} to ${spm.fiscal_year.end}) in the HMIS export dated ${spm.export_end}, and are refreshed monthly. Treat them as directionally useful, not audit-exact: they are not the CoC's official HUD submission. The Westchester CoC has no active Street Outreach projects, so the "People exiting Street Outreach" KPI is 0.
+These figures come from the CoC's HMIS and follow HUD's System Performance Measures specifications. They cover the most recent complete federal fiscal year (${spm.fiscal_year.start} to ${spm.fiscal_year.end}) in the HMIS export dated ${spm.export_end}, and are refreshed monthly. Treat them as directionally useful, not audit-exact: they are not the CoC's official HUD submission.
 
 </div>
 
