@@ -17,7 +17,7 @@ display(renderKpiGrid(spm));
 
 <div class="note">
 
-These figures come from the CoC's HMIS. Six tiles follow HUD's System Performance Measures specifications; one ("People in Street Outreach") is a dashboard-only addition, not a HUD measure -- its tile is marked "Dashboard metric" rather than a HUD measure number. All seven cover the most recent complete federal fiscal year (${spm.fiscal_year.start} to ${spm.fiscal_year.end}) in the HMIS export dated ${spm.export_end}, and are refreshed monthly. Treat them as directionally useful, not audit-exact: they are not the CoC's official HUD submission.
+These figures come from the CoC's HMIS. Six tiles follow HUD's System Performance Measures specifications; one ("People in Street Outreach") is a dashboard-only addition, not a HUD measure -- its tile is marked "Local Measure 3.3" to flag that distinction while staying consistent with the numbered HUD measures around it. All seven cover the most recent complete federal fiscal year (${spm.fiscal_year.start} to ${spm.fiscal_year.end}) in the HMIS export dated ${spm.export_end}, and are refreshed monthly. Treat them as directionally useful, not audit-exact: they are not the CoC's official HUD submission.
 
 </div>
 
