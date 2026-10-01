@@ -97,14 +97,18 @@ selfreport_eeshth AS (
     AND ec.EntryDate >= ec.lookback_stop
 ),
 -- Same as above for ES-NbN, anchored to the stay's true earliest recorded bed night
--- (not floored at lookback_stop, per HUD step 5b) rather than EntryDate.
+-- (not floored at lookback_stop, per HUD step 5b) rather than EntryDate. Derived from
+-- nbn_nights itself (rather than re-deriving the entry/exit bounds here) so this CTE can
+-- never disagree with nbn_nights about which bed nights belong to the enrollment -- an
+-- earlier version bounded its upper end at ExitDate instead of ExitDate - 1, one day more
+-- permissive than nbn_nights, which could anchor backdating to a date nbn_nights itself
+-- doesn't count as one of the enrollment's nights.
 nbn_earliest AS (
   SELECT ec.EnrollmentID, ec.PersonalID, ec.ProjectType, ec.DateToStreetESSH, ec.lookback_stop,
-    MIN(s.DateProvided) AS earliest_bed_night
+    MIN(nn.stay_date) AS earliest_bed_night
   FROM entry_criteria ec
-  JOIN wchmiscsv.Services s ON s.EnrollmentID = ec.EnrollmentID
-  WHERE ec.ProjectType = 1 AND ec.meets_lh_criteria AND s.RecordType = 200
-    AND s.DateProvided >= ec.EntryDate AND s.DateProvided <= COALESCE(ec.ExitDate, ec.report_end)
+  JOIN nbn_nights nn ON nn.EnrollmentID = ec.EnrollmentID
+  WHERE ec.ProjectType = 1 AND ec.meets_lh_criteria
   GROUP BY ec.EnrollmentID, ec.PersonalID, ec.ProjectType, ec.DateToStreetESSH, ec.lookback_stop
 ),
 selfreport_nbn AS (
