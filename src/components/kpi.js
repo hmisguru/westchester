@@ -221,7 +221,10 @@ export function renderKpi(data, kpi, {theme = "light", description = true, foote
   tile.dataset.theme = theme;
   tile.dataset.kpi = kpi.id;
 
-  tile.append(el("div", "wkpi-measure", `HUD ${kpi.measure}`));
+  // kpi.eyebrow overrides the default "HUD <measure>" label -- used by the one
+  // dashboard-only KPI (people-in-street-outreach) that isn't an official HUD
+  // measure, so its tile doesn't misleadingly claim a HUD measure number.
+  tile.append(el("div", "wkpi-measure", kpi.eyebrow ?? `HUD ${kpi.measure}`));
   tile.append(el("h3", "wkpi-title", kpi.title));
 
   const {value, unit} = formatValue(kpi);
