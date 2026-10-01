@@ -6,7 +6,7 @@ toc: false
 <link rel="stylesheet" href="../components/spm-dashboard.css">
 
 ```js
-import {renderNotes, renderDashboard} from "../components/spm-dashboard.js";
+import {renderNotes, renderDashboard, renderThemeToggle} from "../components/spm-dashboard.js";
 const spm = FileAttachment("../data/spm-dashboard.json").json();
 ```
 
@@ -15,6 +15,10 @@ const spm = FileAttachment("../data/spm-dashboard.json").json();
 # Westchester CoC System Performance Dashboard
 
 <p class="lede">Every HUD System Performance Measure computed for the Westchester County Continuum of Care (NY-604).</p>
+
+```js
+display(renderThemeToggle());
+```
 
 </div>
 
