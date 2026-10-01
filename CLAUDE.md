@@ -1,0 +1,39 @@
+# westchester-kpis
+
+Public repo: embeddable HUD System Performance Measure KPIs for the Westchester County CoC (NY-604), built with Observable Framework (`src/`, config in `observablehq.config.js`) and deployed to GitHub Pages (https://hmisguru.github.io/westchester-kpis/) by `.github/workflows/deploy.yml`. Companion to the private `hmisguru/westchester` repo (DAC `wcspm.yml` dashboard), which is where the data and query logic come from. Modeled directly on `hmisguru/baltimore-kpis`, with the project-funding-filter concept removed entirely (see "No funding filter" below).
+
+**This repo is public.** Never commit credentials, row-level data, internal service IDs/URLs, or anything from `hmisguru/westchester`'s CLAUDE.md beyond what's needed here. Only CoC-wide aggregates are published. No small-count suppression is applied, per Baltimore's own precedent: every KPI is a system-wide total or rate.
+
+## Data flow
+
+- `sql/*.sql` are **generated copies** of specific widgets in `wcspm.yml` (System Performance Dashboard, `main` branch of `hmisguru/westchester`), rendered with no Project filter and with `{{ filters.report_start }}` turned into the BigQuery parameter `@report_start`. Regenerate with `scripts/extract_sql.py <path to wcspm.yml>` whenever the dashboard's measure logic changes; never hand-edit, or the published numbers will drift from the dashboard.
+- `src/data/spm.json.py` is the only data loader, reading from BigQuery project `bruin-508014` (`wchmiscsv`/`clienttrack`-equivalent datasets live there, not `baldash-508920`). It reads `MAX(ExportEndDate)` from `wchmiscsv.Export`, reports the most recent **complete** federal fiscal year ending on or before it (FY = Oct 1 – Sep 30), and compares against the prior FY. Measures 1 and 2 are single-period queries, so they run once per FY; 3.2, 5.1, 7a.1 and 7b.1 already return Current/Previous FY columns. It picks one row per measure by exact label and `sys.exit`s if a label is missing (so a changed dashboard query fails the build instead of publishing nulls) — **except** Measure 7a.1's universe row, which `pick()` defaults to `{current_fy: 0, previous_fy: 0}` instead of failing: the Westchester CoC has zero Street Outreach (ProjectType 4) projects, so that query's `GROUP BY` produces no rows at all for either fiscal year, not a zero-valued row. This is expected and confirmed, not a bug — see "No Street Outreach" below.
+- KPI ids are hardcoded in both the loader (`"id"` fields) and `observablehq.config.js` (`kpiIds`, used for the `/embed/<id>` dynamic paths). Keep the two lists in sync.
+- Auth: Application Default Credentials. In CI, the `GCP_SERVICE_ACCOUNT_JSON` repository secret is written to a temp file and pointed to by `GOOGLE_APPLICATION_CREDENTIALS`. This repo's service account needs read-only access to `wcdashboard`/`wchmiscsv` on project `bruin-508014` — a separate credential from Baltimore's `balkpis-public@baldash-508920.iam.gserviceaccount.com`, scoped to a different GCP project entirely.
+
+## No funding filter
+
+Unlike `baltimore-kpis`, there is no MOHS-funded/project-scope split here, per explicit user choice when this repo was commissioned. `hmisguru/westchester`'s `wchmiscsv` has no `Funder` table at all, so there's no equivalent concept to filter by. Every KPI, and `wcspm.yml`'s own Measure 4 (Income Growth) that this repo doesn't surface, is scoped to all TH/SH/PH (or ES/SH/TH, per measure) projects CoC-wide. `kpi.js`'s `scopeData`/`toggle`/`mohsFunded` machinery from the Baltimore version is removed entirely, not just unused — there is nothing to toggle.
+
+## No Street Outreach
+
+The Westchester CoC has zero active Street Outreach (ProjectType 4) projects, confirmed directly against `wchmiscsv.Project`. Per explicit user choice ("Keep both tiles exactly as Baltimore has them"), the `street-outreach-exits` and `exits-to-permanent-housing` tiles are kept unchanged from Baltimore's version rather than relabeled or dropped:
+
+- `street-outreach-exits` (Measure 7a.1) always reads 0 for both fiscal years — a correct zero-universe result, not an error. Its description notes this explicitly.
+- `exits-to-permanent-housing` (Measures 7a.1 + 7b.1) gets its entire contribution from 7b.1 (ES/SH/TH/RRH/other PH exits), since 7a.1 can never contribute a permanent-housing exit with zero Street Outreach projects. `sql/m7_exits_to_ph.sql` still unions the (empty) 7a.1 `classified` CTE with 7b.1's, so the file stays structurally identical to Baltimore's and needs no special-casing — only the standalone 7a.1 query (used for the `street-outreach-exits` tile's own value) needed the `pick()` default described above, since the dashboard's own Measure 7a.1 table is allowed to render empty (DAC just shows no rows) but a `sys.exit` in a build script is not.
+
+## Embedding surfaces (keep all three working)
+
+1. **Iframes**: `src/embed/[kpi].md` (one parameterized page per KPI) and `src/embed/all.md` (grid). Chrome-free (no header/footer/sidebar), `?theme=light|dark|auto` override.
+2. **Exported JS module**: `src/kpis.js` → published unhashed at `/kpis.js` via `dynamicPaths`. Exports `KPI(id, options)`, `KPIGrid(ids, options)`, `data()`. Its `FileAttachment` resolves relative to `import.meta.url`, so cross-origin imports work (GitHub Pages sends `Access-Control-Allow-Origin: *`).
+3. **Raw JSON**: `/data/spm.json`, also via `dynamicPaths`.
+
+`src/components/kpi.js` is the one tile renderer all three share: plain DOM, no dependencies, self-injected CSS scoped to `.wkpi` (not `.bkpi` — a distinct prefix, since this is a separate published module, not a copy sharing Baltimore's `--bkpi-*` custom property names), restylable via `--wkpi-*` custom properties. **Neutral default styling** (slate text, blue accent, system font stack) — no branding was requested for Westchester, unlike Baltimore's baltimorecity.gov purple/gold/Proxima-Nova treatment; if Westchester branding is ever supplied, update the `CSS`/`DARK` constants in `kpi.js` and the `head`/`footer`/`theme` keys in `observablehq.config.js` together. Light by default (`theme: "dark"` or `"auto"` opt in). In `renderKpiGrid`, tiles use CSS subgrid (`grid-row: span <tile part count>` + `grid-template-rows: subgrid`) so each part (label, title, value, change, description) aligns across tiles in the same row even when titles wrap differently; browsers without subgrid fall back to normal stacking. Delta color is never the only signal: every tile shows an arrow plus an "Improved"/"Worsened"/"No change" label, based on each KPI's `better` direction.
+
+**No visible Observable branding**, matching Baltimore's precedent: the site footer is set explicitly (unset, Framework adds "Built with Observable"), no page text names it, and `scripts/strip_generator.js` (run by `npm run build`) removes Framework's `<meta name="generator">` tag from the built pages.
+
+**No Bridge/Coordinated-Entry-style prototype dashboard** — per explicit scoping, this repo is KPI tiles only, unlike `baltimore-kpis`'s `/bridge/` and `/coordinated-entry/` full-dashboard prototypes. Don't add one without being asked.
+
+## Scheduling
+
+Monthly on the first Wednesday (13:17 UTC), plus on push to `main` and manual dispatch. Cron ORs day-of-month with day-of-week, so the schedule fires every Wednesday (`17 13 * * 3`) and a `schedule-gate` job skips `build`/`deploy` unless the UTC date is the 1st-7th; pushes and manual runs always build. No daily cron (unlike `baltimore-kpis`, which added one for its Coordinated Entry prototype's "this month" freshness) — these KPIs only ever change when a new HMIS CSV export lands, which a monthly rebuild already keeps pace with. GitHub disables scheduled workflows in public repos after 60 days of no repo activity; the `keepalive` job re-enables the workflow via the API on each scheduled run to reset that clock.
