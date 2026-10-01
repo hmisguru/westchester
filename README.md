@@ -12,7 +12,7 @@ Six HUD System Performance Measures, for the most recent complete federal fiscal
 | `returns-to-homelessness` | 2 | People returning to homelessness within 2 years of exiting to permanent housing |
 | `people-sheltered` | 3.2 | Unduplicated people in ES or TH |
 | `first-time-homeless` | 5.1 | People homeless for the first time (no activity in prior 24 months) |
-| `street-outreach-exits` | 7a.1 | People exiting Street Outreach (always 0 — the Westchester CoC has no active Street Outreach projects) |
+| `street-outreach-exits` | 7a.1 | People exiting Street Outreach |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
 
 There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester` has no `Funder` table, so there's no funded-project subset to scope to.
