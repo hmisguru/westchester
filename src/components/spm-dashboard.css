@@ -5,8 +5,7 @@
    archive/spm-dashboard.css (and its matching .js/.json.py). */
 
 /* Framework's own default h1 max-width (640px, with text-wrap: balance) wraps
-   this page's longer title across two lines -- same workaround already used
-   for Baltimore's Bridge/Coordinated Entry dashboard headers. */
+   this page's longer title across two lines. */
 .spmd-header h1 { max-width: none; }
 
 /* Light/dark toggle, default light -- user-controlled (not OS-driven), via

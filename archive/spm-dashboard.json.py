@@ -3,8 +3,8 @@
 Unlike spm.json.py (which picks a handful of values for the public KPI
 tiles), this loader runs all 9 measure widgets in full and returns every
 result row, for a static Observable rendering of the whole dashboard --
-modeled on balspm.yml (hmisguru/baltimore-dac, `staging` branch), the same
-widget order and "Dashboard Notes" intro text, adapted for Westchester.
+modeled on a fuller dashboard-notes template, the same widget order and
+"Dashboard Notes" intro text, adapted for Westchester.
 
 Every widget is computed once for all CoC projects (top-level "widgets"),
 and once PER PROJECT for every "active SPM project" -- a project with no
@@ -13,8 +13,8 @@ specs cover (ES-E/E 0, ES-NbN 1, TH 2, PSH 3, SO 4, SH 8, OPH 9 and 10, RRH
 13) -- each its own entry under "projects", keyed by ProjectID, per
 explicit request for a project-level drill-down (a dropdown of individual
 projects, not a single pooled "active projects" scope). Per explicit
-choice, this replaces the MOHS-funded-style scope baltimore uses for a
-*different* dashboard (Bridge to Housing, HUD LSA-based) -- there is no
+choice, this uses a per-project drill-down instead of the funded-project-
+scope split some other, HUD LSA-based dashboards use -- there is no
 Funder table here, and no such grant-funded concept applies to an
 SPM-programming-spec dashboard anyway. 121 of wchmiscsv's 179
 ContinuumProject=1 projects qualify as of 2026-10-01 (confirmed live): 24
@@ -79,9 +79,9 @@ ACTIVE_SPM_PROJECT_TYPES = [0, 1, 2, 3, 4, 8, 9, 10, 13]
 QUERY_CONCURRENCY = 32
 
 
-# (sql filename, widget name, description, columns) in the same order as
-# balspm.yml's own rows. Columns are {name, label, number} straight from
-# wcspm.yml's own `columns:` config, so formatting matches the dashboard.
+# (sql filename, widget name, description, columns), in this page's own
+# widget order (see CLAUDE.md). Columns are {name, label, number} straight
+# from wcspm.yml's own `columns:` config, so formatting matches the dashboard.
 WIDGETS = [
     (
         "m1_length_of_time.sql",
