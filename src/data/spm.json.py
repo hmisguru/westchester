@@ -93,7 +93,7 @@ def build_kpis(results):
     )
     m7_ph = results["m7_ph"][0]
     so_active = results["so_active"][0]
-    m4_stayers_total = pick(results["m4"], "row_label", "Metric 4.3 — Total income (system stayers)")
+    m4_stayers_total = pick(results["m4"], "row_label", "Measure 4.3 — Total income (system stayers)")
 
     kpis = [
         {

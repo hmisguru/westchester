@@ -13,10 +13,9 @@ changes there, re-run this against a fresh copy of that file:
 The dashboard's `{{ filters.report_start }}` date becomes the BigQuery query
 parameter `@report_start`, which the data loader sets to the fiscal year being
 reported. Its Project filter (by ProjectName) becomes
-`(@all_projects OR p.ProjectID IN UNNEST(@project_ids))`. Unlike Baltimore's
-version of this script, there's no "MOHS-funded only" variant here -- that
-concept doesn't apply to Westchester, so the loader only ever passes
-`@all_projects = TRUE`.
+`(@all_projects OR p.ProjectID IN UNNEST(@project_ids))`. There's no
+"funded-projects only" variant here -- that concept doesn't apply to
+Westchester, so the loader only ever passes `@all_projects = TRUE`.
 
 One intentional deviation from the dashboard, listed in UNFILTERED_CTES: when
 Measure 5.1 is filtered to some projects, the dashboard also narrows its
@@ -35,17 +34,17 @@ import yaml
 
 SQL_DIR = Path(__file__).resolve().parent.parent / "sql"
 
-# Output file -> exact widget name in balspm.yml.
+# Output file -> exact widget name in wcspm.yml.
 WIDGETS = {
     "m1_length_of_time.sql": "Measures 1a and 1b — Average and Median Length of Time Homeless",
     "m2_returns.sql": "Measure 2a/2b — Returns to Homelessness Within 6, 12, and 24 Months",
-    "m3_sheltered.sql": "Metric 3.2 — Unduplicated Sheltered Persons",
-    "m4_income_growth.sql": "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
-    "m5_first_time.sql": "Metric 5.1 — First-Time Homeless (ES, SH, TH)",
-    "m5_2_first_time_ph.sql": "Metric 5.2 — First-Time Homeless (ES, SH, TH, PH)",
-    "m7a1_street_outreach.sql": "Metric 7a.1 — Successful Placement from Street Outreach",
-    "m7b1_placement.sql": "Metric 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)",
-    "m7b2_retention.sql": "Metric 7b.2 — Successful Placement/Retention in Permanent Housing",
+    "m3_sheltered.sql": "Measure 3.2 — Unduplicated Sheltered Persons",
+    "m4_income_growth.sql": "Measures 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
+    "m5_first_time.sql": "Measure 5.1 — First-Time Homeless (ES, SH, TH)",
+    "m5_2_first_time_ph.sql": "Measure 5.2 — First-Time Homeless (ES, SH, TH, PH)",
+    "m7a1_street_outreach.sql": "Measure 7a.1 — Successful Placement from Street Outreach",
+    "m7b1_placement.sql": "Measure 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)",
+    "m7b2_retention.sql": "Measure 7b.2 — Successful Placement/Retention in Permanent Housing",
 }
 
 # CTEs whose Project filter is dropped so they always cover every CoC project.
@@ -158,5 +157,5 @@ def main(dashboard_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit("usage: python scripts/extract_sql.py path/to/balspm.yml")
+        sys.exit("usage: python scripts/extract_sql.py path/to/wcspm.yml")
     main(sys.argv[1])

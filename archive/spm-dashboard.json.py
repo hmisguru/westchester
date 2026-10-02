@@ -122,10 +122,10 @@ WIDGETS = [
     ),
     (
         "m3_sheltered.sql",
-        "Metric 3.2 — Unduplicated Sheltered Persons",
+        "Measure 3.2 — Unduplicated Sheltered Persons",
         "Unduplicated counts of clients active in Emergency Shelter (ES-EE and ES-NbN "
         "combined), Safe Haven, and Transitional Housing projects during each fiscal year, "
-        "using the \"Active Clients - Method 5: 1+ Nights Active\" methodology. Metric 3.1 "
+        "using the \"Active Clients - Method 5: 1+ Nights Active\" methodology. Measure 3.1 "
         "(Point-in-Time counts) is omitted -- per HUD, it is manually entered from separate "
         "PIT submissions, not HMIS-generated.",
         [
@@ -137,12 +137,11 @@ WIDGETS = [
     ),
     (
         "m4_income_growth.sql",
-        "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
+        "Measures 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)",
         "Adult (18+) clients in CoC Program-funded TH, SH, and PH projects (project types 2, "
         "3, 8, 9, 10, 13; an active grant whose GrantID starts with \"NY\" -- this CoC's own "
-        "convention for marking a grant as CoC Program-funded, per explicit choice, since "
-        "wchmiscsv.Funder has no standardized Funder source-code field populated the way "
-        "balhmiscsv's does). A grant counts as active for a given fiscal year if its date "
+        "convention for marking a grant as CoC Program-funded, per explicit choice). A grant "
+        "counts as active for a given fiscal year if its date "
         "range overlaps that year (StartDate on or before the year's end, EndDate on or "
         "after the year's start, or no EndDate at all) -- a project can therefore be "
         "in-scope for one fiscal year and not the other if its CoC grant started or ended "
@@ -159,7 +158,7 @@ WIDGETS = [
     ),
     (
         "m5_first_time.sql",
-        "Metric 5.1 — First-Time Homeless (ES, SH, TH)",
+        "Measure 5.1 — First-Time Homeless (ES, SH, TH)",
         "Clients entering ES-EE, ES-NbN, Safe Haven, or Transitional Housing during the "
         "fiscal year with no prior enrollment (looking back up to 24 months) in ES-EE, "
         "ES-NbN, SH, TH, or any PH project.",
@@ -172,7 +171,7 @@ WIDGETS = [
     ),
     (
         "m5_2_first_time_ph.sql",
-        "Metric 5.2 — First-Time Homeless (ES, SH, TH, PH)",
+        "Measure 5.2 — First-Time Homeless (ES, SH, TH, PH)",
         "Clients entering ES-EE, ES-NbN, Safe Haven, Transitional Housing, or any Permanent "
         "Housing project during the fiscal year with no prior enrollment (same 24-month "
         "lookback) in any of those same project types.",
@@ -185,7 +184,7 @@ WIDGETS = [
     ),
     (
         "m7a1_street_outreach.sql",
-        "Metric 7a.1 — Successful Placement from Street Outreach",
+        "Measure 7a.1 — Successful Placement from Street Outreach",
         "Street Outreach leavers (exited SO during the fiscal year and not active in any SO "
         "project as of the fiscal year end) classified by exit destination.",
         [
@@ -197,7 +196,7 @@ WIDGETS = [
     ),
     (
         "m7b1_placement.sql",
-        "Metric 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)",
+        "Measure 7b.1 — Successful Placement (ES, SH, TH, PH-RRH, PH exits without move-in)",
         "Leavers from ES-EE, ES-NbN, Safe Haven, Transitional Housing, and PH-RRH, plus "
         "leavers from other PH projects who exited without ever moving into housing -- "
         "classified by exit destination. PH exits with a valid housing move-in date are "
@@ -211,7 +210,7 @@ WIDGETS = [
     ),
     (
         "m7b2_retention.sql",
-        "Metric 7b.2 — Successful Placement/Retention in Permanent Housing",
+        "Measure 7b.2 — Successful Placement/Retention in Permanent Housing",
         "Stayers and leavers in PH-PSH, PH-Housing Only, and PH-Housing Services Only "
         "projects (excludes PH-RRH) with a valid housing move-in date. Stayers who remain "
         "housed always count as successful; leavers are classified by exit destination.",
