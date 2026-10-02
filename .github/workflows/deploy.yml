@@ -7,8 +7,8 @@ on:
     # setting both day-of-month and day-of-week runs when EITHER matches. So
     # this fires every Wednesday and the `schedule-gate` job skips the build
     # unless it's the 1st-7th of the month. There's no daily refresh here
-    # (unlike baltimore) since these KPIs come only from the HMIS CSV
-    # export, which doesn't change day to day.
+    # since these KPIs come only from the HMIS CSV export, which doesn't
+    # change day to day.
     - cron: "17 13 * * 3"
   push:
     branches: [main]

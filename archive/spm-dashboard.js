@@ -1,9 +1,9 @@
 // Renders the full System Performance Dashboard (src/data/spm-dashboard.json)
 // as a static page: one renderer per DAC `type: table` widget, driven by
-// each widget's own columns config, so the layout matches wcspm.yml
-// (hmisguru/westchester-dac) -- same widget order and intro notes as
-// balspm.yml (hmisguru/baltimore-dac, `staging` branch), which this was built
-// from directly, per explicit request.
+// each widget's own columns config. Widget order and intro notes follow a
+// fuller dashboard-notes template this was built from directly, per explicit
+// request -- see CLAUDE.md for why that differs slightly from wcspm.yml's
+// (hmisguru/westchester-dac) own order.
 
 import {format as d3format} from "npm:d3-format";
 import {html} from "npm:htl";
@@ -64,7 +64,7 @@ export function scopeData(data, projectId) {
   return {...data, widgets: project.widgets, scope_label: project.name};
 }
 
-/** The dashboard's intro note (adapted from balspm.yml's "Dashboard Notes" widget). */
+/** The dashboard's intro note, adapted from the template's "Dashboard Notes" widget. */
 export function renderNotes(data) {
   return html`<div class="spmd-notes">
     HUD System Performance Measures, for the Westchester County Continuum of Care (NY-604).
@@ -92,8 +92,8 @@ function footerText(data) {
 }
 
 /**
- * Every measure widget, in wcspm.yml/balspm.yml's own order, with a Project
- * dropdown above them that swaps between precomputed scopes client-side
+ * Every measure widget, in this page's own widget order (see CLAUDE.md), with
+ * a Project dropdown above them that swaps between precomputed scopes client-side
  * (no live queries) -- "All CoC projects" plus one option per project in
  * data.projects (already sorted by name by the loader).
  *

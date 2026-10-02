@@ -3,8 +3,10 @@
 Unlike spm.json.py (which picks a handful of values for the public KPI
 tiles), this loader runs all 9 measure widgets in full and returns every
 result row, for a static Observable rendering of the whole dashboard --
-modeled on balspm.yml (hmisguru/baltimore-dac, `staging` branch), the same
-widget order and "Dashboard Notes" intro text, adapted for Westchester.
+modeled on a fuller dashboard-notes template, the same widget order and
+"Dashboard Notes" intro text, adapted for Westchester (see CLAUDE.md's
+"Full System Performance Dashboard" section for why the widget order
+differs slightly from wcspm.yml's own).
 
 CoC-wide only, per explicit choice -- there is no interactive "Fiscal Year
 Start Date" or Project filter, just the most recent *complete* federal
@@ -34,9 +36,9 @@ SQL_DIR = Path(__file__).resolve().parents[2] / "sql"
 client = bigquery.Client(project=BQ_PROJECT_ID)
 
 
-# (sql filename, widget name, description, columns) in the same order as
-# balspm.yml's own rows. Columns are {name, label, number} straight from
-# wcspm.yml's own `columns:` config, so formatting matches the dashboard.
+# (sql filename, widget name, description, columns), in this page's own
+# widget order (see CLAUDE.md). Columns are {name, label, number} straight
+# from wcspm.yml's own `columns:` config, so formatting matches the dashboard.
 WIDGETS = [
     (
         "m1_length_of_time.sql",
