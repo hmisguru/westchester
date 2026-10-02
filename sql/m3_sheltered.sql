@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metric 3.2 — Unduplicated Sheltered Persons".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Measure 3.2 — Unduplicated Sheltered Persons".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT

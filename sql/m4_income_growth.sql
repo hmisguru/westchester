@@ -1,4 +1,4 @@
--- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Metrics 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)".
+-- Copied from wcspm.yml (hmisguru/westchester-dac, main): "Measures 4.1–4.6 — Employment and Income Growth (CoC-Funded Projects)".
 -- Regenerate with scripts/extract_sql.py; do not edit by hand.
 WITH bounds AS (
   SELECT
@@ -16,9 +16,7 @@ universe_projects AS (
   -- CoC Program-funded: an active grant (date range overlapping the fiscal year) whose
   -- GrantID starts with "NY" -- this CoC's own convention for CoC-funded grants, confirmed
   -- live against wchmiscsv.Funder (e.g. "NY01B10-4007"), distinct from non-CoC grant number
-  -- formats also present there (e.g. "90CY6591"). Mirrors balspm.yml's own Funder-based
-  -- universe_projects filter, adapted for this CoC's own GrantID convention in place of
-  -- balhmiscsv's Funder source-code field.
+  -- formats also present there (e.g. "90CY6591").
   SELECT DISTINCT p.ProjectID, pe.period
   FROM wchmiscsv.Project p
   JOIN wchmiscsv.Funder f ON f.ProjectID = p.ProjectID
@@ -187,24 +185,26 @@ leaver_summary AS (
   GROUP BY period
 ),
 final_rows AS (
-  SELECT period, 'Metric 4.1 — Earned income (system stayers)' AS row_label, 1 AS row_order,
+  SELECT period, 'Measure 4.1 — Earned income (system stayers)' AS row_label, 1 AS row_order,
     universe, earned_up_cnt AS up_cnt FROM stayer_summary
   UNION ALL
-  SELECT period, 'Metric 4.2 — Non-employment income (system stayers)', 2, universe, nonemp_up_cnt FROM stayer_summary
+  SELECT period, 'Measure 4.2 — Non-employment income (system stayers)', 2, universe, nonemp_up_cnt FROM stayer_summary
   UNION ALL
-  SELECT period, 'Metric 4.3 — Total income (system stayers)', 3, universe, total_up_cnt FROM stayer_summary
+  SELECT period, 'Measure 4.3 — Total income (system stayers)', 3, universe, total_up_cnt FROM stayer_summary
   UNION ALL
-  SELECT period, 'Metric 4.4 — Earned income (system leavers)', 4, universe, earned_up_cnt FROM leaver_summary
+  SELECT period, 'Measure 4.4 — Earned income (system leavers)', 4, universe, earned_up_cnt FROM leaver_summary
   UNION ALL
-  SELECT period, 'Metric 4.5 — Non-employment income (system leavers)', 5, universe, nonemp_up_cnt FROM leaver_summary
+  SELECT period, 'Measure 4.5 — Non-employment income (system leavers)', 5, universe, nonemp_up_cnt FROM leaver_summary
   UNION ALL
-  SELECT period, 'Metric 4.6 — Total income (system leavers)', 6, universe, total_up_cnt FROM leaver_summary
+  SELECT period, 'Measure 4.6 — Total income (system leavers)', 6, universe, total_up_cnt FROM leaver_summary
 )
 SELECT
   row_label,
   MAX(CASE WHEN period = 'Current FY' THEN universe END) AS current_fy_universe,
+  MAX(CASE WHEN period = 'Current FY' THEN up_cnt END) AS current_fy_up_cnt,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Current FY' THEN up_cnt END), MAX(CASE WHEN period = 'Current FY' THEN universe END)) * 100, 2) AS current_fy_pct,
   MAX(CASE WHEN period = 'Previous FY' THEN universe END) AS previous_fy_universe,
+  MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END) AS previous_fy_up_cnt,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END), MAX(CASE WHEN period = 'Previous FY' THEN universe END)) * 100, 2) AS previous_fy_pct,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Current FY' THEN up_cnt END), MAX(CASE WHEN period = 'Current FY' THEN universe END)) * 100, 2)
     - ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END), MAX(CASE WHEN period = 'Previous FY' THEN universe END)) * 100, 2) AS pct_difference
