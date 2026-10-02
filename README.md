@@ -4,7 +4,7 @@ Embeddable KPIs for the Westchester County Continuum of Care (NY-604), built fro
 
 ## KPIs
 
-Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- six are official HUD System Performance Measures, one (`people-in-street-outreach`) is a dashboard-only addition:
+Eight KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- seven are official HUD System Performance Measures, one (`people-in-street-outreach`) is a dashboard-only addition:
 
 | id | Measure | KPI |
 |---|---|---|
@@ -12,6 +12,7 @@ Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) c
 | `returns-to-homelessness` | 2 | People returning to homelessness within 2 years of exiting to permanent housing |
 | `people-sheltered` | 3.2 | Unduplicated people in ES or TH |
 | `people-in-street-outreach` | Local 3.3 *(not a HUD measure)* | Unduplicated people with any Street Outreach contact |
+| `income-growth-stayers` | 4.3 | Stayers in CoC-funded projects whose total income increased year over year |
 | `first-time-homeless` | 5.1 | People homeless for the first time (no activity in prior 24 months) |
 | `street-outreach-exits` | 7a.1 | People exiting Street Outreach |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
@@ -51,7 +52,7 @@ await KPI("exits-to-permanent-housing")
 
 | Export | What it returns |
 |---|---|
-| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all seven by default), with one source line below it |
+| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all eight by default), with one source line below it |
 | `KPI(id, options?)` | A single tile, with its own source line |
 | `data()` | The underlying numbers, for building your own display |
 

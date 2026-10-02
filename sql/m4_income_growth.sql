@@ -203,8 +203,10 @@ final_rows AS (
 SELECT
   row_label,
   MAX(CASE WHEN period = 'Current FY' THEN universe END) AS current_fy_universe,
+  MAX(CASE WHEN period = 'Current FY' THEN up_cnt END) AS current_fy_up_cnt,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Current FY' THEN up_cnt END), MAX(CASE WHEN period = 'Current FY' THEN universe END)) * 100, 2) AS current_fy_pct,
   MAX(CASE WHEN period = 'Previous FY' THEN universe END) AS previous_fy_universe,
+  MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END) AS previous_fy_up_cnt,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END), MAX(CASE WHEN period = 'Previous FY' THEN universe END)) * 100, 2) AS previous_fy_pct,
   ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Current FY' THEN up_cnt END), MAX(CASE WHEN period = 'Current FY' THEN universe END)) * 100, 2)
     - ROUND(SAFE_DIVIDE(MAX(CASE WHEN period = 'Previous FY' THEN up_cnt END), MAX(CASE WHEN period = 'Previous FY' THEN universe END)) * 100, 2) AS pct_difference
