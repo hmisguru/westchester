@@ -4,10 +4,9 @@ Runs the queries in sql/ against BigQuery at build time and writes one small
 JSON document of CoC-wide aggregates to stdout. Nothing row-level ever leaves
 BigQuery, and no credentials reach the published site.
 
-Unlike baltimore, there is no project-funding filter here -- every KPI
-covers all Westchester CoC projects. (hmisguru/westchester-dac has no `Funder`
-table, and there's no Westchester equivalent of Baltimore's MOHS-funded
-subset.)
+There is no project-funding filter here -- every KPI covers all Westchester
+CoC projects. (hmisguru/westchester-dac has no `Funder` table, and there's
+no funded-project subset to scope to.)
 
 Reports the most recent *complete* federal fiscal year (Oct 1 - Sep 30) covered
 by the latest HMIS CSV export, compared against the fiscal year before it.
@@ -133,7 +132,7 @@ def build_kpis(results):
             "previous": m3["previous_fy"],
             "format": "number",
             # Shown as a neutral change (gray arrow, no Improved/Worsened), per
-            # Baltimore's own convention: fewer people sheltered isn't clearly better.
+            # explicit choice: fewer people sheltered isn't clearly better.
             "better": None,
             "description": (
                 "Unduplicated people who stayed in emergency shelter, Safe Haven, or "

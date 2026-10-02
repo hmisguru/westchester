@@ -26,8 +26,7 @@ Want every HUD measure, not just these? See the [full System Performance Dashboa
 <style>
 /* Framework's own default h1 max-width (640px, with text-wrap: balance) wraps
    this page's title across two lines -- same workaround already used for
-   the full System Performance Dashboard page (see spm-dashboard.css) and
-   Baltimore's Bridge/Coordinated Entry dashboard headers. */
+   the full System Performance Dashboard page (see spm-dashboard.css). */
 h1 { max-width: none; }
 .lede { max-width: 720px; font-size: 18px; }
 </style>
