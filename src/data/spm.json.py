@@ -93,6 +93,7 @@ def build_kpis(results):
     )
     m7_ph = results["m7_ph"][0]
     so_active = results["so_active"][0]
+    m4_stayers_total = pick(results["m4"], "row_label", "Metric 4.3 — Total income (system stayers)")
 
     kpis = [
         {
@@ -159,6 +160,22 @@ def build_kpis(results):
             "universe": None,
         },
         {
+            "id": "income-growth-stayers",
+            "measure": "Measure 4.3",
+            "title": "Stayers with increased total income",
+            "value": int(m4_stayers_total["current_fy_up_cnt"]),
+            "previous": int(m4_stayers_total["previous_fy_up_cnt"]),
+            "format": "number",
+            "unit": "people",
+            "better": "higher",
+            "description": (
+                "Adult clients who stayed at least a year in CoC Program-funded transitional, "
+                "Safe Haven, or permanent housing programs and saw their total income increase "
+                "from one annual assessment to the next."
+            ),
+            "universe": int(m4_stayers_total["current_fy_universe"]),
+        },
+        {
             "id": "first-time-homeless",
             "measure": "Measure 5.1",
             "title": "People experiencing homelessness for the first time",
@@ -222,6 +239,7 @@ def main():
         "m2_cur": ("m2_returns.sql", cur_start),
         "m2_prev": ("m2_returns.sql", prev_start),
         "m3": ("m3_sheltered.sql", cur_start),
+        "m4": ("m4_income_growth.sql", cur_start),
         "m5": ("m5_first_time.sql", cur_start),
         "m7a1": ("m7a1_street_outreach.sql", cur_start),
         # Measures 7a.1 + 7b.1 permanent-housing exits, each person once
