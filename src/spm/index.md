@@ -27,11 +27,16 @@ display(pageControls);
 </div>
 
 ```js
-display(renderNotes(spm));
+display(renderDashboard(spm));
 ```
 
 ```js
-display(renderDashboard(spm));
+const notesDetails = document.createElement("details");
+notesDetails.className = "spmd-notes-details";
+const notesSummary = document.createElement("summary");
+notesSummary.textContent = "About this data";
+notesDetails.append(notesSummary, renderNotes(spm));
+display(notesDetails);
 ```
 
 <p class="footer-note">Generated ${spm.generated}.</p>
