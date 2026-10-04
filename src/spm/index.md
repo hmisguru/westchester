@@ -49,6 +49,8 @@ Looking for just the headline numbers? See the <a href="../">KPI tiles</a>.
 .footer-note { font-size: 12px; color: #6c6d74; margin-top: 24px; }
 
 /* Theme toggle + share controls, side by side; wraps on narrow screens
-   rather than the toggle and share buttons overlapping. */
-.page-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+   rather than the toggle and share buttons overlapping. margin-top (rather
+   than on .spmd-theme-toggle itself) keeps the row's own spacing below the
+   lede without unevenly offsetting one button against its siblings. */
+.page-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
 </style>
