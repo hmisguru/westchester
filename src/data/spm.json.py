@@ -216,7 +216,8 @@ def build_kpis(results):
             "better": "higher",
             "description": (
                 "People leaving Street Outreach, shelter, Safe Haven, transitional "
-                "housing, or rapid re-housing who moved into permanent housing."
+                "housing, or rapid re-housing who moved into some form of stable, "
+                "permanent housing."
             ),
             "universe": None,
         },
