@@ -4,11 +4,9 @@ toc: false
 ---
 
 <link rel="stylesheet" href="../components/spm-dashboard.css">
-<link rel="stylesheet" href="../components/share.css">
 
 ```js
 import {renderNotes, renderDashboard, renderThemeToggle} from "../components/spm-dashboard.js";
-import {renderShareControls} from "../components/share.js";
 const spm = FileAttachment("../data/spm-dashboard.json").json();
 ```
 
@@ -20,13 +18,9 @@ const spm = FileAttachment("../data/spm-dashboard.json").json();
 
 ```js
 const themeToggle = renderThemeToggle();
-const shareControls = renderShareControls({
-  subject: "Westchester CoC System Performance Dashboard",
-  body: "The full HUD System Performance Dashboard for the Westchester County Continuum of Care (NY-604):"
-});
 const pageControls = document.createElement("div");
 pageControls.className = "page-controls";
-pageControls.append(themeToggle, shareControls);
+pageControls.append(themeToggle);
 display(pageControls);
 ```
 
