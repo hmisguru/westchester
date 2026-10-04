@@ -3,12 +3,10 @@ title: System Performance KPIs
 ---
 
 <link rel="stylesheet" href="./components/spm-dashboard.css">
-<link rel="stylesheet" href="./components/share.css">
 
 ```js
 import {renderKpiGrid} from "./components/kpi.js";
 import {renderThemeToggle} from "./components/spm-dashboard.js";
-import {renderShareControls} from "./components/share.js";
 const spm = FileAttachment("./data/spm.json").json();
 ```
 
@@ -18,13 +16,9 @@ const spm = FileAttachment("./data/spm.json").json();
 
 ```js
 const themeToggle = renderThemeToggle();
-const shareControls = renderShareControls({
-  subject: "Westchester CoC System Performance KPIs",
-  body: "Key HUD System Performance Measure KPIs for the Westchester County Continuum of Care (NY-604):"
-});
 const pageControls = document.createElement("div");
 pageControls.className = "page-controls";
-pageControls.append(themeToggle, shareControls);
+pageControls.append(themeToggle);
 display(pageControls);
 ```
 
