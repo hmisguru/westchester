@@ -7,8 +7,24 @@
 .share-copy-link, .share-email {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px 14px;
+  /* box-sizing: border-box matters here specifically for .share-email -- an
+     <a>, not a <button> -- since browsers' UA stylesheets default <button>
+     to border-box but leave <a> at the initial content-box, where min-width
+     would size the text alone and let padding/border inflate the pill
+     past 140px. Set explicitly on both selectors so the match doesn't
+     depend on which element each one happens to be. */
+  box-sizing: border-box;
+  /* Matches spm-dashboard.css's .spmd-theme-toggle min-width -- the widest
+     label across every pill's own states ("Light mode" there, "Link
+     copied" here) is ~134px, so 140px keeps all of them the same visual
+     size regardless of which label is showing. Keep both files in sync if
+     a label's text changes. The long copy-failure fallback message is
+     exempt -- that's a rare error state, left free to grow past 140px
+     rather than truncating. */
+  min-width: 140px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;

@@ -30,9 +30,21 @@ html[data-theme="dark"] {
 .spmd-theme-toggle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   margin-top: 8px;
   padding: 6px 14px;
+  /* Explicit even though <button> already defaults to border-box in every
+     browser's UA stylesheet -- share.css's .share-email (an <a>, which
+     doesn't) needs this set explicitly to match, so it's set here too
+     rather than relying on an element-specific default on one side only. */
+  box-sizing: border-box;
+  /* Matches share.css's .share-copy-link/.share-email min-width -- the
+     widest label across every pill's own states ("Light mode" here,
+     "Link copied" there) is ~134px, so 140px keeps all of them the same
+     visual size regardless of which label is showing. Keep both files in
+     sync if a label's text changes. */
+  min-width: 140px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
