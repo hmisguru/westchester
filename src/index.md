@@ -3,10 +3,12 @@ title: System Performance KPIs
 ---
 
 <link rel="stylesheet" href="./components/spm-dashboard.css">
+<link rel="stylesheet" href="./components/share.css">
 
 ```js
 import {renderKpiGrid} from "./components/kpi.js";
 import {renderThemeToggle} from "./components/spm-dashboard.js";
+import {renderShareControls} from "./components/share.js";
 const spm = FileAttachment("./data/spm.json").json();
 ```
 
@@ -16,7 +18,14 @@ const spm = FileAttachment("./data/spm.json").json();
 
 ```js
 const themeToggle = renderThemeToggle();
-display(themeToggle);
+const shareControls = renderShareControls({
+  subject: "Westchester CoC System Performance KPIs",
+  body: "Key HUD System Performance Measure KPIs for the Westchester County Continuum of Care (NY-604):"
+});
+const pageControls = document.createElement("div");
+pageControls.className = "page-controls";
+pageControls.append(themeToggle, shareControls);
+display(pageControls);
 ```
 
 ```js
@@ -51,6 +60,10 @@ Want every HUD measure, not just these? See the [full System Performance Dashboa
    the full System Performance Dashboard page (see spm-dashboard.css). */
 h1 { max-width: none; }
 .lede { max-width: 720px; font-size: 18px; }
+
+/* Theme toggle + share controls, side by side; wraps on narrow screens
+   rather than the toggle and share buttons overlapping. */
+.page-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* Collapsed "About this data" note -- lightweight by design (styled summary
    text only, no box/border), since the note had no visual chrome before this
