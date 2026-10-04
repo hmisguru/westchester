@@ -62,8 +62,10 @@ h1 { max-width: none; }
 .lede { max-width: 720px; font-size: 18px; }
 
 /* Theme toggle + share controls, side by side; wraps on narrow screens
-   rather than the toggle and share buttons overlapping. */
-.page-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+   rather than the toggle and share buttons overlapping. margin-top (rather
+   than on .spmd-theme-toggle itself) keeps the row's own spacing below the
+   lede without unevenly offsetting one button against its siblings. */
+.page-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
 
 /* Collapsed "About this data" note -- lightweight by design (styled summary
    text only, no box/border), since the note had no visual chrome before this

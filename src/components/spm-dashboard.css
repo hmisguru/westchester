@@ -32,7 +32,13 @@ html[data-theme="dark"] {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 8px;
+  /* No margin here -- this button now always renders inside .page-controls
+     alongside the share buttons (see index.md/spm/index.md), which puts
+     the top spacing on that shared row instead. A margin on one row item
+     and not its siblings throws off align-items: center (margin is part
+     of what gets centered), visibly misaligning this button a few px
+     below the others -- caught after shipping the share buttons, when the
+     three ended up in a row together for the first time. */
   padding: 6px 14px;
   /* Explicit even though <button> already defaults to border-box in every
      browser's UA stylesheet -- share.css's .share-email (an <a>, which
