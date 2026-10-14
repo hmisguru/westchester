@@ -574,7 +574,7 @@ function mergeQuarterTopRow(rows) {
     if (next?.length === 1 && nextNames[0] === "Project Type Filter Note") {
       merged.push([withCol(row[0], CURRENT_QUARTER_SPAN), withCol(next[0], 12 - CURRENT_QUARTER_SPAN)]);
       i++;
-    } else if (next?.length === 2 && nextNames.includes("People served across program types") && nextNames.includes("Households served across program types")) {
+    } else if (next?.length === 2 && nextNames.includes("People Served in Interim Housing") && nextNames.includes("Households Served in Interim Housing")) {
       merged.push([row[0], ...next].map((w) => withCol(w, CURRENT_QUARTER_SPAN)));
       i++;
     } else {
@@ -591,13 +591,10 @@ function mergeQuarterTopRow(rows) {
 // sibling site's own source YAML were authored independently by each CoC's
 // own consultant, so a handful of tab/widget names differ in wording for
 // functionally identical content; these are the ones worth aligning.
-// Deliberately NOT included here: "People served/Households served across
-// program types" -- the sibling dashboard's own equivalent widgets are
-// named "...in Interim Housing" because their SQL explicitly excludes PSH
-// (`project_type != 'PSH'`); this dashboard's own query has no such
-// exclusion and genuinely includes PSH, so adopting that name would
-// misstate what the number covers. Renaming it would need a scope change
-// to the query first, not just a label swap -- flagged, not silently done.
+// "People Served/Households Served in Interim Housing" needed no override
+// here -- dashboard.yml itself was renamed to match (and its own SQL now
+// excludes PSH, per explicit request, so the name is accurate, not just
+// copied).
 const TAB_TITLE_OVERRIDES = {"System Flow": "System Engagement"};
 const WIDGET_TITLE_OVERRIDES = {
   "Priority households — quarter-over-quarter": "Priority Households",

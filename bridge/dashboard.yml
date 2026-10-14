@@ -9,7 +9,7 @@ filters:
     name: project_type
     type: select
     options:
-      values: [All Project Types, ES/SH/TH, PSH, RRH]
+      values: [All Project Types, ES/SH/TH, RRH]
 name: Westchester Performance Dashboard
 rows:
   - widgets:
@@ -24,7 +24,7 @@ rows:
 
           **Household Type filter:** Adults Only = households with no children present. Families with Children = at least one adult and one child. Unaccompanied Minors = households of children under 18 with no adult present.
 
-          **Project Type filter:** ES/SH/TH = Emergency Shelter, Safe Haven, and Transitional Housing for persons experiencing homelessness. PSH = Permanent Supportive Housing for formerly homeless persons. RRH = Rapid Rehousing with time-limited rental subsidy for formerly homeless persons.
+          **Project Type filter:** ES/SH/TH = Emergency Shelter, Safe Haven, and Transitional Housing for persons experiencing homelessness. RRH = Rapid Rehousing with time-limited rental subsidy for formerly homeless persons.
         col: 12
   - tab: Overview
     widgets:
@@ -50,8 +50,8 @@ rows:
     widgets:
       - col: 6
         id: people_served_total
-        name: People served across program types
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        name: People Served in Interim Housing
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -59,8 +59,8 @@ rows:
           type: number
       - col: 6
         id: households_served_total
-        name: Households served across program types
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        name: Households Served in Interim Housing
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -79,7 +79,8 @@ rows:
             WHERE category = 'Summary'
               AND `set` = 'Total Number of People Served'
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND project_type != 'PSH'
             GROUP BY 1
           ), ranked AS (
             SELECT value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -103,7 +104,8 @@ rows:
             WHERE category = 'Summary'
               AND `set` = 'Total Number of Households Served'
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND project_type != 'PSH'
             GROUP BY 1
           ), ranked AS (
             SELECT value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -134,9 +136,9 @@ rows:
           FROM `wcdashboard.performance_metrics`
           WHERE category = 'Summary'
             AND `set` = 'Total Number of People Served'
-            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND project_type IN ('ES,SH,TH', 'RRH')
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
           GROUP BY 1, 2
           ORDER BY 1, 2
         type: chart
@@ -163,9 +165,9 @@ rows:
           FROM `wcdashboard.performance_metrics`
           WHERE category = 'Summary'
             AND `set` = 'Total Number of Households Served'
-            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND project_type IN ('ES,SH,TH', 'RRH')
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
           GROUP BY 1, 2
           ORDER BY 1, 2
         type: chart
@@ -202,10 +204,10 @@ rows:
             SUM(value) AS people_served
           FROM `wcdashboard.performance_metrics`
           WHERE category = 'Prior Living Situation'
-            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
           GROUP BY 1, 2
           ORDER BY 1, 2
         type: chart
@@ -242,8 +244,8 @@ rows:
     widgets:
       - col: 6
         id: people_served_total_demographics
-        name: People served across program types
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        name: People Served in Interim Housing
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -251,8 +253,8 @@ rows:
           type: number
       - col: 6
         id: households_served_total_demographics
-        name: Households served across program types
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        name: Households Served in Interim Housing
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -288,7 +290,8 @@ rows:
             WHERE category = 'Summary'
               AND `set` IN ('Total Number of Disabled Households', 'Total Number of 55+ Households', 'Total Number of Veteran Households')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND project_type != 'PSH'
             GROUP BY 1, 2
           ), ranked AS (
             SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -328,10 +331,10 @@ rows:
             FROM `wcdashboard.performance_metrics`
             WHERE category = 'Race and Ethnicity'
               AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
-              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND project_type IN ('ES,SH,TH', 'RRH')
               AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
             GROUP BY 1
           ), totaled AS (
             SELECT race, people_served, SUM(people_served) OVER () AS grand_total
@@ -366,10 +369,10 @@ rows:
           FROM `wcdashboard.performance_metrics`
           WHERE category = 'Race and Ethnicity'
             AND `set` != 'Race: Not provided/missing/invalid responses'
-            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
           GROUP BY 1
           ORDER BY 1
         type: chart
@@ -407,9 +410,9 @@ rows:
             FROM `wcdashboard.performance_metrics`
             WHERE category = 'Race and Ethnicity'
               AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
-              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
             GROUP BY 1, 2
           ), ranked AS (
             SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -463,9 +466,9 @@ rows:
             FROM `wcdashboard.performance_metrics`
             WHERE category = 'Race and Ethnicity'
               AND `set` != 'Race: Not provided/missing/invalid responses'
-              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
             GROUP BY 1, 2
           ), ranked AS (
             SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -495,10 +498,10 @@ rows:
             SUM(value) AS people_served
           FROM `wcdashboard.performance_metrics`
           WHERE category = 'Age'
-            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
           GROUP BY 1
           ORDER BY 1
         type: chart
@@ -550,9 +553,9 @@ rows:
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
             WHERE category = 'Age'
-              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
-              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
             GROUP BY 1, 2, 3
           ), ranked AS (
             SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
@@ -1180,7 +1183,7 @@ rows:
   - height: 140px
     tab: Positive Outcomes
     widgets:
-      - col: 12
+      - col: 7
         columns:
           - label: Indicator
             name: indicator
@@ -1230,6 +1233,37 @@ rows:
             CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
           FROM ranked
           WHERE period_rank <= 5
+        type: table
+      - col: 5
+        columns:
+          - label: Destination
+            name: destination
+          - align: right
+            label: Households
+            name: households
+            number: number
+        id: permanent_destination_breakdown
+        name: Top Permanent Destinations This Quarter
+        sql: |
+          WITH totals AS (
+            SELECT
+              `set` AS destination,
+              SUM(value) AS households
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Destination'
+              AND LOWER(`set`) LIKE '%permanent%'
+              AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
+              AND ('{{ filters.household_type }}' = 'All Household Types' OR population_group = CASE '{{ filters.household_type }}'
+                WHEN 'Adults Only' THEN 'AO'
+                WHEN 'Families with Children' THEN 'AC'
+                WHEN 'Unaccompanied Minors' THEN 'CO'
+              END)
+            GROUP BY `set`
+          )
+          SELECT destination, households
+          FROM totals
+          QUALIFY ROW_NUMBER() OVER (ORDER BY households DESC, destination) <= 3
+          ORDER BY households DESC, destination
         type: table
   - height: 140px
     tab: Positive Outcomes
