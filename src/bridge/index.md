@@ -1,5 +1,5 @@
 ---
-title: Westchester Performance Dashboard (prototype)
+title: Bridge to Housing (prototype)
 toc: false
 ---
 
@@ -12,7 +12,12 @@ const dashboard = FileAttachment("../data/dashboard.json").json();
 
 <div class="bridge-header">
   <p class="bridge-eyebrow">Prototype</p>
-  <h1>${dashboard.name}</h1>
+  <!-- Hardcoded to match the sibling dashboard's own page title exactly,
+       per explicit request, rather than pulled from dashboard.name --
+       dashboard.yml's own "Westchester Performance Dashboard" name is its
+       internal DAC identity (shown in Bruin's own admin UI etc.) and stays
+       as-is; only this page's own display title changes. -->
+  <h1>Bridge to Housing</h1>
 </div>
 
 ```js
