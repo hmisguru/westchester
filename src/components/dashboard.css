@@ -1,0 +1,110 @@
+/* Westchester Performance Dashboard styles (/bridge/), class prefix
+   "bridge-" throughout, matching this page's own route. Colors/fonts match
+   kpi.js's and spm-dashboard.css's own county-government palette -- deep
+   forest green (#02372d) / white, accent green (#3dc372), "degular"/"Sora"
+   for headings and large numbers, "sofia-pro"/"Work Sans" for body text --
+   for visual consistency with the rest of this site, under its own class
+   prefix since this isn't an embeddable module. */
+:root {
+  --bridge-accent: #02372d; --bridge-surface: #ffffff; --bridge-border: #d4d3d6; --bridge-muted: #6c6d74;
+  --bridge-note-bg: #f0f5f3; --bridge-note-border: #d4e3dd;
+  /* Validated categorical palette (dataviz skill reference instance, light
+     steps), referenced by SERIES in dashboard.js -- never raw hex in chart
+     code, so the html[data-theme="dark"] block below can swap every
+     chart's colors with no re-render. */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+}
+
+/* Light/dark toggle, default light -- user-controlled (not OS-driven), via a
+   [data-theme] attribute set on <html> by renderThemeToggle()/applyTheme()
+   in dashboard.js. Overriding Framework's own --theme-foreground/
+   --theme-background-* custom properties here flips the page background,
+   text, and link color for free (global.css's existing var() consumption);
+   redefining this file's own --bridge- and --series- custom properties at
+   this same scope recolors every element and chart that already references
+   them, so only the hardcoded-hex rules below need an explicit dark
+   variant. Dark palette matches spm-dashboard.css's own data-theme="dark"
+   variant (deep forest green surfaces, white text, #3dc372 accent). */
+html[data-theme="dark"] {
+  --bridge-accent: #3dc372;
+  --bridge-surface: #1b231f;
+  --bridge-border: #33423c;
+  --bridge-muted: #a9abb3;
+  --bridge-note-bg: #02372d;
+  --bridge-note-border: #41675d;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  --theme-foreground: #dfdfd6;
+  --theme-background-a: #161616;
+  --theme-background-b: #161616;
+  --theme-foreground-focus: #3dc372;
+  color-scheme: dark;
+}
+#observablehq-main { max-width: 1280px; }
+.bridge-header h1 { margin: 0.1em 0 0.2em; max-width: none; }
+.bridge-eyebrow { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--bridge-accent); }
+.bridge-lede { margin: 0 0 16px; color: var(--bridge-muted); max-width: 70ch; }
+.bridge-controls { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-bottom: 8px; }
+.bridge-controls form { width: auto; }
+.bridge-controls label { font-weight: 600; }
+.bridge-tabs { width: 100% !important; max-width: none !important; margin: 8px 0 20px; border-bottom: 2px solid var(--bridge-border); }
+.bridge-tabs > div { display: flex; flex-wrap: wrap; gap: 0; }
+.bridge-tabs label { position: relative; margin: 0; padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--bridge-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.bridge-tabs label:has(input:checked) { color: var(--bridge-accent); border-bottom-color: var(--bridge-accent); }
+.bridge-tabs label:has(input:focus-visible) { outline: 2px solid var(--bridge-accent); outline-offset: -2px; border-radius: 4px; }
+.bridge-tabs input { position: absolute; opacity: 0; pointer-events: none; }
+.bridge-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.bridge-card { grid-column: span var(--span); min-width: 0; padding: 16px 20px; background: var(--bridge-surface); border: 1px solid var(--bridge-border); border-radius: 12px; }
+.bridge-card-metric { border-top: 4px solid var(--bridge-accent); }
+.bridge-note { background: var(--bridge-note-bg); border-color: var(--bridge-note-border); }
+.bridge-card-title { margin: 0 0 10px; font-family: "degular", "Sora", system-ui, sans-serif; font-size: 15px; font-weight: 700; color: var(--bridge-accent); max-width: none; }
+.bridge-metric { font-family: "degular", "Sora", system-ui, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.1; color: #161616; }
+html[data-theme="dark"] .bridge-metric { color: #ffffff; }
+.bridge-metric-text { font-size: 24px; }
+.bridge-text p:first-child, .bridge-text h3:first-child { margin-top: 0; }
+.bridge-text p:last-child { margin-bottom: 0; }
+.bridge-empty { color: var(--bridge-muted); font-style: italic; margin: 0; }
+.bridge-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; }
+.bridge-table-wrap { overflow-x: auto; }
+.bridge-table { width: 100%; max-width: none; font-size: 14px; border-collapse: collapse; }
+.bridge-table th { vertical-align: bottom; font-size: 13px; padding: 4px 8px; border-bottom: 1px solid var(--bridge-border); }
+.bridge-table td { padding: 4px 8px; border-bottom: 1px solid #e5e5e7; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .bridge-table td { border-bottom-color: #33423c; }
+.bridge-table tbody tr:last-child td { border-bottom: 0; }
+.bridge-chart-note { margin: 0 0 10px; font-size: 12px; color: var(--bridge-muted); }
+.bridge-about { margin: 0 0 20px; padding: 16px 20px; background: var(--bridge-note-bg); border: 1px solid var(--bridge-note-border); border-left: 4px solid var(--bridge-accent); border-radius: 12px; }
+.bridge-about-note + .bridge-about-note { margin-top: 12px; }
+.bridge-about p { max-width: none; }
+.bridge-about-intro p { font-size: 16px; }
+.bridge-about-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px 32px; margin-top: 12px; }
+.bridge-about-term p { margin: 0; font-size: 15px; }
+.bridge-footnote { font-size: 13px; color: var(--bridge-muted); max-width: none; }
+
+/* Theme toggle -- a plain pill button whose own label text swaps between
+   "Dark mode"/"Light mode" (not a switch), matching /spm/'s own toggle. */
+.bridge-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 6px 14px;
+  border: 1px solid var(--bridge-border);
+  border-radius: 999px;
+  background: var(--bridge-surface);
+  color: var(--bridge-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.bridge-theme-toggle:hover { border-color: var(--bridge-accent); }
+.bridge-theme-toggle:focus-visible { outline: 2px solid var(--bridge-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-theme-toggle { transition: none; }
+}
+
+@media (max-width: 760px) {
+  .bridge-row { grid-template-columns: 1fr; }
+  .bridge-card { grid-column: 1 / -1; }
+}
