@@ -87,7 +87,8 @@ WITH scoped AS (
     '""" + DV_SURVIVOR_INDICATOR + """' AS indicator,
     SUM(value) AS value
   FROM `wcdashboard.performance_metrics`
-  WHERE category = 'Domestic Violence Survivor Status'
+  WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY)
+    AND category = 'Domestic Violence Survivor Status'
     AND `set` != 'No history of domestic violence reported'
     AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
     AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
