@@ -1,0 +1,1160 @@
+connection: bigquery
+filters:
+  - default: All Household Types
+    name: household_type
+    type: select
+    options:
+      values: [All Household Types, Adults Only, Families with Children, Unaccompanied Minors]
+  - default: All Project Types
+    name: project_type
+    type: select
+    options:
+      values: [All Project Types, ES/SH/TH, PSH, RRH]
+name: Westchester Performance Dashboard
+rows:
+  - widgets:
+      - name: Dashboard Notes
+        type: text
+        content: |
+          This dashboard shows how our homeless system performs, analyzing how people move through the dedicated core housing projects.
+
+          This dashboard sources data from Westchester County's HMIS. Definitions and logic align with HUD's Longitudinal Systems Analysis. Program totals are not unduplicated across program types.
+
+          **For the best experience, please view this dashboard on a desktop or laptop computer.**
+
+          **Household Type filter:** Adults Only = households with no children present. Families with Children = at least one adult and one child. Unaccompanied Minors = households of children under 18 with no adult present.
+
+          **Project Type filter:** ES/SH/TH = Emergency Shelter, Safe Haven, and Transitional Housing for persons experiencing homelessness. PSH = Permanent Supportive Housing for formerly homeless persons. RRH = Rapid Rehousing with time-limited rental subsidy for formerly homeless persons.
+        col: 12
+  - tab: Overview
+    widgets:
+      - col: 12
+        id: current_quarter_range
+        name: Current Quarter
+        sql: |
+          WITH latest AS (
+            SELECT DATE_ADD(DATE '1899-12-30', INTERVAL MAX(date) DAY) AS report_date
+            FROM `wcdashboard.performance_metrics`
+          )
+          SELECT
+            CONCAT(
+              FORMAT_DATE('%-m/%-d/%Y', DATE_TRUNC(report_date, QUARTER)),
+              ' - ',
+              FORMAT_DATE('%-m/%-d/%Y', DATE_SUB(DATE_ADD(DATE_TRUNC(report_date, QUARTER), INTERVAL 3 MONTH), INTERVAL 1 DAY))
+            ) AS quarter_range
+          FROM latest
+        type: metric
+        value:
+          field: quarter_range
+  - tab: Overview
+    widgets:
+      - col: 6
+        id: people_served_total
+        name: People served across program types
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        type: metric
+        value:
+          field: value
+          format: ",.0f"
+          type: number
+      - col: 6
+        id: households_served_total
+        name: Households served across program types
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        type: metric
+        value:
+          field: value
+          format: ",.0f"
+          type: number
+  - height: 130px
+    tab: Overview
+    widgets:
+      - col: 6
+        id: people_served_qoq
+        name: Quarterly Change — Persons Served
+        sql: |
+          WITH scoped AS (
+            SELECT date, SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Summary'
+              AND `set` = 'Total Number of People Served'
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1
+          ), ranked AS (
+            SELECT value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS value
+          FROM ranked
+          WHERE period_rank <= 2
+        type: metric
+        value:
+          field: value
+          format: ".1%"
+          type: number
+      - col: 6
+        id: households_served_qoq
+        name: Quarterly Change — Households Served
+        sql: |
+          WITH scoped AS (
+            SELECT date, SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Summary'
+              AND `set` = 'Total Number of Households Served'
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1
+          ), ranked AS (
+            SELECT value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS value
+          FROM ranked
+          WHERE period_rank <= 2
+        type: metric
+        value:
+          field: value
+          format: ".1%"
+          type: number
+  - height: 500px
+    tab: Overview
+    widgets:
+      - chart: line
+        col: 6
+        color:
+          field: project_type
+        id: people_served_trend
+        name: People served by program type over time
+        sql: |
+          SELECT
+            FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS report_period,
+            CASE WHEN project_type = 'ES,SH,TH' THEN 'ES/SH/TH' ELSE project_type END AS project_type,
+            SUM(value) AS served
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Summary'
+            AND `set` = 'Total Number of People Served'
+            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+          GROUP BY 1, 2
+          ORDER BY 1, 2
+        type: chart
+        x:
+          field: report_period
+          title: Report quarter
+          type: category
+        y:
+          field: served
+          format: ",.0f"
+          title: People served
+          type: number
+      - chart: line
+        col: 6
+        color:
+          field: project_type
+        id: households_served_trend
+        name: Households served by program type over time
+        sql: |
+          SELECT
+            FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS report_period,
+            CASE WHEN project_type = 'ES,SH,TH' THEN 'ES/SH/TH' ELSE project_type END AS project_type,
+            SUM(value) AS served
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Summary'
+            AND `set` = 'Total Number of Households Served'
+            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+          GROUP BY 1, 2
+          ORDER BY 1, 2
+        type: chart
+        x:
+          field: report_period
+          title: Report quarter
+          type: category
+        y:
+          field: served
+          format: ",.0f"
+          title: Households served
+          type: number
+  - height: 400px
+    tab: Overview
+    widgets:
+      - chart: bar
+        col: 12
+        color:
+          field: living_situation
+        id: prior_living_situation_by_project_type
+        name: Prior Living Situation by Project Type
+        stacked: true
+        sql: |
+          SELECT
+            CASE WHEN project_type = 'ES,SH,TH' THEN 'ES/SH/TH' ELSE project_type END AS project_type,
+            CASE
+              WHEN `set` = 'Homeless - Street' THEN 'Street'
+              WHEN STARTS_WITH(LOWER(`set`), 'homeless') THEN 'Emergency Shelter / Housing'
+              WHEN STARTS_WITH(LOWER(`set`), 'permanent') THEN 'Permanent Setting'
+              WHEN STARTS_WITH(LOWER(`set`), 'institutions') THEN 'Institutional Setting'
+              WHEN `set` = 'Staying with family or friends' THEN 'Family or Friends'
+              ELSE 'Other'
+            END AS living_situation,
+            SUM(value) AS people_served
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Prior Living Situation'
+            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
+            AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+          GROUP BY 1, 2
+          ORDER BY 1, 2
+        type: chart
+        x:
+          field: project_type
+          title: Project type
+          type: category
+        y:
+          field: people_served
+          format: ",.0f"
+          title: People served
+          type: number
+  - tab: Demographics
+    widgets:
+      - col: 12
+        id: current_quarter_range_demographics
+        name: Current Quarter
+        sql: |
+          WITH latest AS (
+            SELECT DATE_ADD(DATE '1899-12-30', INTERVAL MAX(date) DAY) AS report_date
+            FROM `wcdashboard.performance_metrics`
+          )
+          SELECT
+            CONCAT(
+              FORMAT_DATE('%-m/%-d/%Y', DATE_TRUNC(report_date, QUARTER)),
+              ' - ',
+              FORMAT_DATE('%-m/%-d/%Y', DATE_SUB(DATE_ADD(DATE_TRUNC(report_date, QUARTER), INTERVAL 3 MONTH), INTERVAL 1 DAY))
+            ) AS quarter_range
+          FROM latest
+        type: metric
+        value:
+          field: quarter_range
+  - tab: Demographics
+    widgets:
+      - col: 6
+        id: people_served_total_demographics
+        name: People served across program types
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        type: metric
+        value:
+          field: value
+          format: ",.0f"
+          type: number
+      - col: 6
+        id: households_served_total_demographics
+        name: Households served across program types
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)"
+        type: metric
+        value:
+          field: value
+          format: ",.0f"
+          type: number
+  - tab: Demographics
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: Previous Quarter
+            name: previous_value
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: priority_households
+        name: Priority households — quarter-over-quarter
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              CASE `set` WHEN 'Total Number of Disabled Households' THEN 'Disabled households' WHEN 'Total Number of 55+ Households' THEN 'Households age 55+' WHEN 'Total Number of Veteran Households' THEN 'Veteran households' END AS indicator,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Summary'
+              AND `set` IN ('Total Number of Disabled Households', 'Total Number of 55+ Households', 'Total Number of Veteran Households')
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1, 2
+          ), ranked AS (
+            SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM (SELECT DISTINCT date FROM scoped)
+          )
+          SELECT
+            indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change
+          FROM scoped
+          JOIN ranked USING (date)
+          WHERE period_rank <= 2
+          GROUP BY indicator
+          ORDER BY indicator
+        type: table
+  - height: 450px
+    tab: Demographics
+    widgets:
+      - chart: pie
+        col: 6
+        id: race_pie
+        name: Race of People Served — Current Quarter
+        sql: |
+          WITH mapped AS (
+            SELECT
+              CASE REGEXP_REPLACE(`set`, r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '')
+                WHEN 'American Indian, Alaska Native or Indigenous' THEN 'AI/AN or Indigenous'
+                WHEN 'Asian or Asian American' THEN 'Asian'
+                WHEN 'Black or African-American' THEN 'Black/African-American'
+                WHEN 'Middle Eastern or North African' THEN 'MENA'
+                WHEN 'Multiple Race selections: any two or more races selected' THEN 'Multiple Races'
+                WHEN 'Native Hawaiian or Pacific Islander' THEN 'NH/Pacific Islander'
+                ELSE 'White'
+              END AS race,
+              SUM(value) AS people_served
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Race and Ethnicity'
+              AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
+              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1
+          ), totaled AS (
+            SELECT race, people_served, SUM(people_served) OVER () AS grand_total
+            FROM mapped
+          )
+          SELECT
+            CASE WHEN SAFE_DIVIDE(people_served, grand_total) < 0.03 THEN 'Other' ELSE race END AS race,
+            SUM(people_served) AS people_served
+          FROM totaled
+          GROUP BY 1
+          ORDER BY 2 DESC
+        type: chart
+        label: race
+        value:
+          field: people_served
+          format: ",.0f"
+      - chart: pie
+        col: 6
+        id: ethnicity_pie
+        name: Ethnicity of People Served — Current Quarter
+        sql: |
+          SELECT
+            CASE
+              WHEN `set` LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
+              WHEN `set` LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
+              WHEN `set` = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
+              WHEN `set` LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
+              WHEN `set` LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
+              ELSE 'Non-Hispanic'
+            END AS ethnicity,
+            SUM(value) AS people_served
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Race and Ethnicity'
+            AND `set` != 'Race: Not provided/missing/invalid responses'
+            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
+            AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+          GROUP BY 1
+          ORDER BY 1
+        type: chart
+        label: ethnicity
+        value:
+          field: people_served
+          format: ",.0f"
+  - height: 400px
+    tab: Demographics
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: Previous Quarter
+            name: previous_value
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: race_ethnicity_qoq
+        name: Race of People Served
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              REGEXP_REPLACE(`set`, r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '') AS indicator,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Race and Ethnicity'
+              AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
+              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1, 2
+          ), ranked AS (
+            SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM (SELECT DISTINCT date FROM scoped)
+          )
+          SELECT
+            indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change
+          FROM scoped
+          JOIN ranked USING (date)
+          WHERE period_rank <= 2
+          GROUP BY indicator
+          ORDER BY indicator
+        type: table
+  - height: 260px
+    tab: Demographics
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: Previous Quarter
+            name: previous_value
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: ethnicity_qoq
+        name: Ethnicity of People Served
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              CASE
+                WHEN `set` LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
+                WHEN `set` LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
+                WHEN `set` = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
+                WHEN `set` LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
+                WHEN `set` LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
+                ELSE 'Non-Hispanic'
+              END AS indicator,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Race and Ethnicity'
+              AND `set` != 'Race: Not provided/missing/invalid responses'
+              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1, 2
+          ), ranked AS (
+            SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM (SELECT DISTINCT date FROM scoped)
+          )
+          SELECT
+            indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change
+          FROM scoped
+          JOIN ranked USING (date)
+          WHERE period_rank <= 2
+          GROUP BY indicator
+          ORDER BY indicator
+        type: table
+  - tab: System Flow
+    widgets:
+      - col: 12
+        id: current_quarter_range_system_flow
+        name: Current Quarter
+        sql: |
+          WITH latest AS (
+            SELECT DATE_ADD(DATE '1899-12-30', INTERVAL MAX(date) DAY) AS report_date
+            FROM `wcdashboard.performance_metrics`
+          )
+          SELECT
+            CONCAT(
+              FORMAT_DATE('%-m/%-d/%Y', DATE_TRUNC(report_date, QUARTER)),
+              ' - ',
+              FORMAT_DATE('%-m/%-d/%Y', DATE_SUB(DATE_ADD(DATE_TRUNC(report_date, QUARTER), INTERVAL 3 MONTH), INTERVAL 1 DAY))
+            ) AS quarter_range
+          FROM latest
+        type: metric
+        value:
+          field: quarter_range
+  - tab: System Flow
+    widgets:
+      - name: Project Type Filter Note
+        id: system_flow_filter_note
+        type: text
+        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        col: 12
+  - height: 130px
+    tab: System Flow
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: Previous Quarter
+            name: previous_value
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: system_indicators_qoq
+        name: Quarter-over-quarter comparison
+        sql: |
+          WITH scoped AS (
+            SELECT date, value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'System Engagement History%'
+              AND `set` = 'UNIVERSE: Households experiencing any homelessness or RRH during the report period'
+              AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
+          ), ranked AS (
+            SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM (SELECT DISTINCT date FROM scoped)
+          )
+          SELECT
+            'Households experiencing homelessness' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change
+          FROM scoped
+          JOIN ranked USING (date)
+          WHERE period_rank <= 2
+        type: table
+  - height: 370px
+    tab: System Flow
+    widgets:
+      - chart: line
+        col: 12
+        color:
+          field: engagement
+        id: engagement_mix
+        name: Household system-engagement mix over time
+        sql: |
+          SELECT
+            FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS period,
+            CASE
+              WHEN `set` IN (
+                'Households that have been continuously homeless since a prior reporting period',
+                'Households who have been continuously homeless since a prior reporting period'
+              ) THEN 'Continuously homeless'
+              WHEN `set` = 'Households experiencing homelessness for the first time this reporting period' THEN 'First-time homelessness'
+              WHEN `set` IN (
+                'Households that re-engaged in the homeless system after a previous temporary or unknown destination',
+                'Households who re-engaged in the homeless system after a previous temporary or unknown destination'
+              ) THEN 'Re-engaged after temporary or unknown exit'
+              ELSE 'Returned after permanent placement'
+            END AS engagement,
+            value AS households
+          FROM `wcdashboard.performance_metrics`
+          WHERE category LIKE 'System Engagement History%'
+            AND `set` IN (
+              'Households that have been continuously homeless since a prior reporting period',
+              'Households who have been continuously homeless since a prior reporting period',
+              'Households experiencing homelessness for the first time this reporting period',
+              'Households that re-engaged in the homeless system after a previous temporary or unknown destination',
+              'Households who re-engaged in the homeless system after a previous temporary or unknown destination',
+              'Households that returned to homelessness this reporting period after a previous permanent housing placement',
+              'Households who returned to homelessness this reporting period after a previous permanent housing placement'
+            )
+            AND project_type = CASE '{{ filters.household_type }}' WHEN 'All Household Types' THEN 'ALL' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' END
+          ORDER BY date, engagement
+        type: chart
+        x:
+          field: period
+          title: Report quarter
+          type: category
+        y:
+          field: households
+          format: ",.0f"
+          title: Households
+          type: number
+  - tab: Length of Time
+    widgets:
+      - col: 12
+        id: current_quarter_range_length_of_time
+        name: Current Quarter
+        sql: |
+          WITH latest AS (
+            SELECT DATE_ADD(DATE '1899-12-30', INTERVAL MAX(date) DAY) AS report_date
+            FROM `wcdashboard.performance_metrics`
+          )
+          SELECT
+            CONCAT(
+              FORMAT_DATE('%-m/%-d/%Y', DATE_TRUNC(report_date, QUARTER)),
+              ' - ',
+              FORMAT_DATE('%-m/%-d/%Y', DATE_SUB(DATE_ADD(DATE_TRUNC(report_date, QUARTER), INTERVAL 3 MONTH), INTERVAL 1 DAY))
+            ) AS quarter_range
+          FROM latest
+        type: metric
+        value:
+          field: quarter_range
+  - tab: Length of Time
+    widgets:
+      - name: Project Type Filter Note
+        id: length_of_time_filter_note
+        type: text
+        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        col: 12
+  - height: 360px
+    tab: Length of Time
+    widgets:
+      - chart: line
+        col: 12
+        color:
+          field: measure
+        id: length_of_time_metrics
+        name: Average days in the system over time
+        sql: |
+          SELECT
+            FORMAT_DATE(
+              '%Y Q%Q',
+              DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)
+            ) AS period,
+            CASE `set`
+              WHEN 'Average length of time served in Emergency Shelters and Safe Havens (days)' THEN 'ES/SH Only'
+              WHEN 'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)' THEN 'ES/SH + TH'
+              ELSE 'ES/SH/TH + Days In Permanent Housing Search'
+            END AS measure,
+            value AS days
+          FROM
+            `wcdashboard.performance_metrics`
+          WHERE
+            category LIKE 'Average Length of Time Homeless%'
+            AND `set` IN (
+              'Average length of time served in Emergency Shelters and Safe Havens (days)',
+              'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)',
+              'Average length of time homeless combining all ES, SH, TH, and "pre-housing" enrollments (days)'
+            )
+            AND project_type = CASE '{{ filters.household_type }}'
+              WHEN 'All Household Types' THEN 'ALL'
+              WHEN 'Adults Only' THEN 'AO'
+              WHEN 'Families with Children' THEN 'AC'
+              WHEN 'Unaccompanied Minors' THEN 'CO'
+            END
+          ORDER BY
+            date,
+            measure
+        type: chart
+        x:
+          field: period
+          title: Report quarter
+          type: category
+        y:
+          field: days
+          format: ".0f"
+          title: Days
+          type: number
+  - height: 240px
+    tab: Length of Time
+    widgets:
+      - col: 12
+        columns:
+          - label: Definition
+            name: measure
+          - label: Report quarter
+            name: report_period
+          - align: right
+            label: Current days
+            name: current_quarter_days
+            number: number
+          - align: right
+            label: Prior-quarter days
+            name: prior_quarter_days
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: length_of_time_qoq
+        name: Average days in the system — quarter-over-quarter detail
+        sql: |
+          WITH series AS (
+            SELECT
+              date,
+              FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS period,
+              CASE `set`
+                WHEN 'Average length of time served in Emergency Shelters and Safe Havens (days)' THEN 'ES/SH Only'
+                WHEN 'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)' THEN 'ES/SH + TH'
+                ELSE 'ES/SH/TH + Days In Permanent Housing Search'
+              END AS measure,
+              value AS days
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'Average Length of Time Homeless%'
+              AND `set` IN (
+                'Average length of time served in Emergency Shelters and Safe Havens (days)',
+                'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)',
+                'Average length of time homeless combining all ES, SH, TH, and "pre-housing" enrollments (days)'
+              )
+              AND project_type = CASE '{{ filters.household_type }}'
+                WHEN 'All Household Types' THEN 'ALL'
+                WHEN 'Adults Only' THEN 'AO'
+                WHEN 'Families with Children' THEN 'AC'
+                WHEN 'Unaccompanied Minors' THEN 'CO'
+              END
+          ), qoq AS (
+            SELECT *, LAG(days) OVER (PARTITION BY measure ORDER BY date) AS prior_quarter_days
+            FROM series
+          )
+          SELECT
+            measure,
+            period AS report_period,
+            days AS current_quarter_days,
+            prior_quarter_days,
+            SAFE_DIVIDE(days - prior_quarter_days, prior_quarter_days) AS qoq_change
+          FROM qoq
+          QUALIFY date = MAX(date) OVER ()
+          ORDER BY measure
+        type: table
+  - height: 500px
+    tab: System Flow
+    widgets:
+      - chart: treemap
+        col: 12
+        id: engagement_household_treemap
+        name: System engagement by household type
+        slices:
+          Adults Only — Established:
+            color: "#1d4ed8"
+          Adults Only — New:
+            color: "#2563eb"
+          Adults Only — Recurring:
+            color: "#3b82f6"
+          Adults Only — Returned:
+            color: "#60a5fa"
+          Families with Children — Established:
+            color: "#15803d"
+          Families with Children — New:
+            color: "#16a34a"
+          Families with Children — Recurring:
+            color: "#22c55e"
+          Families with Children — Returned:
+            color: "#4ade80"
+          Unaccompanied Minors — Established:
+            color: "#7e22ce"
+          Unaccompanied Minors — New:
+            color: "#9333ea"
+          Unaccompanied Minors — Recurring:
+            color: "#a855f7"
+          Unaccompanied Minors — Returned:
+            color: "#c084fc"
+        sql: |
+          WITH source AS (
+            SELECT
+              date,
+              CASE project_type WHEN 'AO' THEN 'Adults Only' WHEN 'AC' THEN 'Families with Children' WHEN 'CO' THEN 'Unaccompanied Minors' END AS household_type,
+              CASE `set`
+                WHEN 'Households who have been continuously homeless since a prior reporting period' THEN 'Established'
+                WHEN 'Households experiencing homelessness for the first time this reporting period' THEN 'New'
+                WHEN 'Households who re-engaged in the homeless system after a previous temporary or unknown destination' THEN 'Recurring'
+                ELSE 'Returned'
+              END AS engagement_state,
+              MAX(value) AS households
+            FROM `wcdashboard.performance_metrics`
+            WHERE population_group = 'System Use'
+              AND category LIKE 'System Engagement History%'
+              AND `set` IN (
+                'Households who have been continuously homeless since a prior reporting period',
+                'Households experiencing homelessness for the first time this reporting period',
+                'Households who re-engaged in the homeless system after a previous temporary or unknown destination',
+                'Households who returned to homelessness this reporting period after a previous permanent housing placement'
+              )
+              AND project_type IN ('AO', 'AC', 'CO')
+              AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' END)
+            GROUP BY 1, 2, 3
+          ), ranked AS (
+            SELECT *, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM source
+          ), current_values AS (
+            SELECT
+              household_type,
+              engagement_state,
+              MAX(IF(period_rank = 1, households, NULL)) AS households,
+              MAX(IF(period_rank = 2, households, NULL)) AS previous_quarter_households
+            FROM ranked
+            WHERE period_rank <= 2
+            GROUP BY 1, 2
+          )
+          SELECT
+            CONCAT(household_type, ' — ', engagement_state) AS segment,
+            household_type,
+            engagement_state,
+            households,
+            previous_quarter_households,
+            CASE
+              WHEN previous_quarter_households = 0 THEN 'N/A — prior quarter was zero'
+              WHEN previous_quarter_households IS NULL THEN 'N/A — no prior quarter'
+              ELSE FORMAT('%+.1f%%', 100 * SAFE_DIVIDE(households - previous_quarter_households, previous_quarter_households))
+            END AS qoq_change,
+            SUM(households) OVER (PARTITION BY household_type) AS household_type_total,
+            FORMAT('%.1f%%', 100 * SAFE_DIVIDE(households, SUM(households) OVER (PARTITION BY household_type))) AS share_within_household_type,
+            FORMAT('%.1f%%', 100 * SAFE_DIVIDE(households, SUM(households) OVER ())) AS share_of_all_households,
+            FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) DAY)) AS report_period
+          FROM current_values
+          ORDER BY households DESC
+        type: chart
+        label: segment
+        value:
+          field: households
+          format: ",.0f"
+  - height: 360px
+    tab: System Flow
+    widgets:
+      - col: 12
+        columns:
+          - label: Household type
+            name: household_type
+          - label: Engagement state
+            name: engagement_state
+          - align: right
+            label: Current households
+            name: current_households
+            number: number
+          - align: right
+            label: Prior-quarter households
+            name: prior_quarter_households
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+        id: engagement_household_qoq_detail
+        name: Household engagement — quarter-over-quarter detail
+        sql: |
+          WITH source AS (
+            SELECT
+              date,
+              CASE project_type WHEN 'AO' THEN 'Adults Only' WHEN 'AC' THEN 'Families with Children' WHEN 'CO' THEN 'Unaccompanied Minors' END AS household_type,
+              CASE `set`
+                WHEN 'Households who have been continuously homeless since a prior reporting period' THEN 'Established'
+                WHEN 'Households experiencing homelessness for the first time this reporting period' THEN 'New'
+                WHEN 'Households who re-engaged in the homeless system after a previous temporary or unknown destination' THEN 'Recurring'
+                ELSE 'Returned'
+              END AS engagement_state,
+              MAX(value) AS households
+            FROM `wcdashboard.performance_metrics`
+            WHERE population_group = 'System Use'
+              AND category LIKE 'System Engagement History%'
+              AND `set` IN (
+                'Households who have been continuously homeless since a prior reporting period',
+                'Households experiencing homelessness for the first time this reporting period',
+                'Households who re-engaged in the homeless system after a previous temporary or unknown destination',
+                'Households who returned to homelessness this reporting period after a previous permanent housing placement'
+              )
+              AND project_type IN ('AO', 'AC', 'CO')
+              AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' END)
+            GROUP BY 1, 2, 3
+          ), ranked AS (
+            SELECT *, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM source
+          ), current_values AS (
+            SELECT
+              household_type,
+              engagement_state,
+              MAX(IF(period_rank = 1, households, NULL)) AS current_households,
+              MAX(IF(period_rank = 2, households, NULL)) AS prior_quarter_households
+            FROM ranked
+            WHERE period_rank <= 2
+            GROUP BY 1, 2
+          ), detail_rows AS (
+            SELECT
+              household_type,
+              engagement_state,
+              current_households,
+              prior_quarter_households,
+              CASE
+                WHEN prior_quarter_households = 0 THEN 'N/A — prior quarter was zero'
+                WHEN prior_quarter_households IS NULL THEN 'N/A — no prior quarter'
+                ELSE FORMAT('%+.1f%%', 100 * SAFE_DIVIDE(current_households - prior_quarter_households, prior_quarter_households))
+              END AS qoq_change,
+              1 AS total_sort,
+              CASE engagement_state WHEN 'Established' THEN 1 WHEN 'New' THEN 2 WHEN 'Recurring' THEN 3 ELSE 4 END AS state_sort
+            FROM current_values
+          ), output_rows AS (
+            SELECT * FROM detail_rows
+            UNION ALL
+            SELECT
+              'Grand total' AS household_type,
+              'All engagement states' AS engagement_state,
+              SUM(current_households) AS current_households,
+              SUM(prior_quarter_households) AS prior_quarter_households,
+              CASE
+                WHEN SUM(prior_quarter_households) = 0 THEN 'N/A — prior quarter was zero'
+                ELSE FORMAT('%+.1f%%', 100 * SAFE_DIVIDE(SUM(current_households) - SUM(prior_quarter_households), SUM(prior_quarter_households)))
+              END AS qoq_change,
+              2 AS total_sort,
+              5 AS state_sort
+            FROM detail_rows
+          )
+          SELECT household_type, engagement_state, current_households, prior_quarter_households, qoq_change
+          FROM output_rows
+          ORDER BY total_sort, household_type, state_sort
+        type: table
+  - tab: Positive Outcomes
+    widgets:
+      - col: 12
+        id: current_quarter_range_positive_outcomes
+        name: Current Quarter
+        sql: |
+          WITH latest AS (
+            SELECT DATE_ADD(DATE '1899-12-30', INTERVAL MAX(date) DAY) AS report_date
+            FROM `wcdashboard.performance_metrics`
+          )
+          SELECT
+            CONCAT(
+              FORMAT_DATE('%-m/%-d/%Y', DATE_TRUNC(report_date, QUARTER)),
+              ' - ',
+              FORMAT_DATE('%-m/%-d/%Y', DATE_SUB(DATE_ADD(DATE_TRUNC(report_date, QUARTER), INTERVAL 3 MONTH), INTERVAL 1 DAY))
+            ) AS quarter_range
+          FROM latest
+        type: metric
+        value:
+          field: quarter_range
+  - tab: Positive Outcomes
+    widgets:
+      - name: Project Type Filter Note
+        id: positive_outcomes_filter_note
+        type: text
+        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        col: 12
+  - height: 140px
+    tab: Positive Outcomes
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: vs. Average
+            name: pct_of_average
+            number: ".1%"
+            format:
+              - { if: greater_than_or_equal, value: 1, backgroundColor: green, textColor: white, bold: true }
+              - { backgroundColor: red, textColor: white }
+          - label: Comparison
+            name: comparison_label
+          - align: right
+            label: 4-Quarter Average
+            name: rolling_avg_4q
+            number: number
+        id: permanent_destination_exits_gauge_context
+        name: Households Exiting to Permanent Housing vs. 4-Quarter Average
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+              AND `set` = 'Households with a system exit to any permanent housing destination'
+              AND project_type IN ('AO', 'AC', 'CO')
+              AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
+                WHEN 'Adults Only' THEN 'AO'
+                WHEN 'Families with Children' THEN 'AC'
+                WHEN 'Unaccompanied Minors' THEN 'CO'
+              END)
+            GROUP BY 1
+          ), ranked AS (
+            SELECT date, value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT
+            'Households exiting to permanent housing' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL)) AS rolling_avg_4q,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) AS pct_of_average,
+            CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
+          FROM ranked
+          WHERE period_rank <= 5
+        type: table
+  - height: 140px
+    tab: Positive Outcomes
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: vs. Average
+            name: pct_of_average
+            number: ".1%"
+            format:
+              - { if: greater_than_or_equal, value: 1, backgroundColor: red, textColor: white, bold: true }
+              - { backgroundColor: green, textColor: white }
+          - label: Comparison
+            name: comparison_label
+          - align: right
+            label: 4-Quarter Average
+            name: rolling_avg_4q
+            number: number
+        id: returns_after_placement_context
+        name: Returns After Permanent Placement vs. 4-Quarter Average
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'System Engagement History%'
+              AND `set` = 'Households who returned to homelessness this reporting period after a previous permanent housing placement'
+              AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
+            GROUP BY 1
+          ), ranked AS (
+            SELECT date, value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT
+            'Households returning to homelessness after permanent placement' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL)) AS rolling_avg_4q,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) AS pct_of_average,
+            CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
+          FROM ranked
+          WHERE period_rank <= 5
+        type: table
+  - height: 400px
+    tab: Positive Outcomes
+    widgets:
+      - chart: line
+        col: 12
+        color:
+          field: household_type
+        id: permanent_destination_exits_trend
+        name: Exits to permanent destinations over time
+        sql: |
+          SELECT
+            FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS period,
+            CASE project_type
+              WHEN 'AO' THEN 'Adults Only'
+              WHEN 'AC' THEN 'Families with Children'
+              WHEN 'CO' THEN 'Unaccompanied Minors'
+            END AS household_type,
+            value AS households
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+            AND `set` = 'Households with a system exit to any permanent housing destination'
+            AND project_type IN ('AO', 'AC', 'CO')
+            AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
+              WHEN 'Adults Only' THEN 'AO'
+              WHEN 'Families with Children' THEN 'AC'
+              WHEN 'Unaccompanied Minors' THEN 'CO'
+            END)
+          ORDER BY date, project_type
+        type: chart
+        x:
+          field: period
+          title: Report quarter
+          type: category
+        y:
+          field: households
+          format: ",.0f"
+          title: Households
+          type: number
+  - height: 240px
+    tab: Positive Outcomes
+    widgets:
+      - col: 12
+        columns:
+          - label: Household type
+            name: household_type
+          - label: Report quarter
+            name: report_period
+          - align: right
+            label: Current exits
+            name: current_quarter_exits
+            number: number
+          - align: right
+            label: Prior-quarter exits
+            name: prior_quarter_exits
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: permanent_destination_exits_qoq
+        name: Permanent-destination exits — quarter-over-quarter detail
+        sql: |
+          WITH series AS (
+            SELECT
+              date,
+              FORMAT_DATE('%Y Q%Q', DATE_ADD(DATE '1899-12-30', INTERVAL date DAY)) AS period,
+              CASE project_type
+                WHEN 'AO' THEN 'Adults Only'
+                WHEN 'AC' THEN 'Families with Children'
+                WHEN 'CO' THEN 'Unaccompanied Minors'
+              END AS household_type,
+              value AS households
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+              AND `set` = 'Households with a system exit to any permanent housing destination'
+              AND project_type IN ('AO', 'AC', 'CO')
+              AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
+                WHEN 'Adults Only' THEN 'AO'
+                WHEN 'Families with Children' THEN 'AC'
+                WHEN 'Unaccompanied Minors' THEN 'CO'
+              END)
+          ), qoq AS (
+            SELECT *, LAG(households) OVER (PARTITION BY household_type ORDER BY date) AS prior_quarter_exits
+            FROM series
+          ), latest AS (
+            SELECT
+              household_type,
+              period AS report_period,
+              households AS current_quarter_exits,
+              prior_quarter_exits,
+              SAFE_DIVIDE(households - prior_quarter_exits, prior_quarter_exits) AS qoq_change
+            FROM qoq
+            QUALIFY date = MAX(date) OVER ()
+          )
+          SELECT * EXCEPT(sort_order)
+          FROM (
+            SELECT household_type, report_period, current_quarter_exits, prior_quarter_exits, qoq_change, 1 AS sort_order
+            FROM latest
+            UNION ALL
+            SELECT
+              'Grand Total' AS household_type,
+              MAX(report_period) AS report_period,
+              SUM(current_quarter_exits) AS current_quarter_exits,
+              SUM(prior_quarter_exits) AS prior_quarter_exits,
+              SAFE_DIVIDE(SUM(current_quarter_exits) - SUM(prior_quarter_exits), SUM(prior_quarter_exits)) AS qoq_change,
+              2 AS sort_order
+            FROM latest
+          )
+          ORDER BY sort_order, household_type
+        type: table
