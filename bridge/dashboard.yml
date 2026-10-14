@@ -318,7 +318,7 @@ rows:
         sql: |
           WITH mapped AS (
             SELECT
-              CASE REGEXP_REPLACE(`set`, r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '')
+              CASE REGEXP_REPLACE(REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o'), r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '')
                 WHEN 'American Indian, Alaska Native or Indigenous' THEN 'AI/AN or Indigenous'
                 WHEN 'Asian or Asian American' THEN 'Asian'
                 WHEN 'Black or African-American' THEN 'Black/African-American'
@@ -330,7 +330,7 @@ rows:
               SUM(value) AS people_served
             FROM `wcdashboard.performance_metrics`
             WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
-              AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
+              AND REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -358,11 +358,11 @@ rows:
         sql: |
           SELECT
             CASE
-              WHEN `set` LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
-              WHEN `set` LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
-              WHEN `set` = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
-              WHEN `set` LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
-              WHEN `set` LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
+              WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
+              WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
+              WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
+              WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
+              WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
               ELSE 'Non-Hispanic'
             END AS ethnicity,
             SUM(value) AS people_served
@@ -405,11 +405,11 @@ rows:
           WITH scoped AS (
             SELECT
               date,
-              REGEXP_REPLACE(`set`, r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '') AS indicator,
+              REGEXP_REPLACE(REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o'), r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '') AS indicator,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
             WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
-              AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
+              AND REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
               AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
@@ -455,11 +455,11 @@ rows:
             SELECT
               date,
               CASE
-                WHEN `set` LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
-                WHEN `set` LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
-                WHEN `set` = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
-                WHEN `set` LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
-                WHEN `set` LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
+                WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%non-Hispanic/Latina/o (single race selected)' THEN 'Non-Hispanic'
+                WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o not selected' THEN 'Non-Hispanic'
+                WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') = 'Hispanic/Latina/o (no other category selected)' THEN 'Hispanic'
+                WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o (single race selected)' THEN 'Hispanic'
+                WHEN REPLACE(`set`, 'Hispanic/Latina/e/o', 'Hispanic/Latina/o') LIKE '%Hispanic/Latina/o also selected' THEN 'Hispanic'
                 ELSE 'Non-Hispanic'
               END AS indicator,
               SUM(value) AS value
