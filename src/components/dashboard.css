@@ -80,6 +80,39 @@ html[data-theme="dark"] .bridge-table td { border-bottom-color: #33423c; }
 .bridge-about-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px 32px; margin-top: 12px; }
 .bridge-about-term p { margin: 0; font-size: 15px; }
 .bridge-footnote { font-size: 13px; color: var(--bridge-muted); max-width: none; }
+.bridge-donut { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; }
+.bridge-donut-legend { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.bridge-donut-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+/* Engagement-state glossary (System Flow tab, above the treemap/table): a
+   light tint per state, not the chart's own saturated mark color -- those
+   colors (from SERIES) don't clear WCAG text contrast as a solid fill
+   behind body text. A light tint of the same hue plus an accent-colored
+   left border and dot (the "colored mark beside the text, never the text
+   itself" rule) keeps ink-on-tint contrast high while still giving each
+   state a distinct, identifiable color. */
+.bridge-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.bridge-legend-tile { padding: 12px 14px; border-radius: 12px; background: var(--tile-bg); border: 1px solid var(--tile-border); border-left: 4px solid var(--tile-accent); }
+html[data-theme="dark"] .bridge-legend-tile { background: var(--tile-bg-dark); border-color: var(--tile-border-dark); border-left-color: var(--tile-accent-dark); }
+.bridge-legend-title { display: flex; align-items: center; gap: 7px; margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--bridge-accent); }
+.bridge-legend-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tile-accent); flex: none; }
+html[data-theme="dark"] .bridge-legend-dot { background: var(--tile-accent-dark); }
+.bridge-legend-tile p { margin: 0; font-size: 13px; color: var(--bridge-muted); }
+.bridge-legend-stat { font-size: 22px; font-weight: 700; line-height: 1.1; color: #161616; margin: 2px 0 6px !important; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .bridge-legend-stat { color: #ffffff; }
+.bridge-legend-stat span { font-size: 13px; font-weight: 600; color: var(--bridge-muted); }
+/* "... vs. 4-Quarter Average" trend tiles: reuses STATUS_COLORS (green/red/
+   neutral) as a sentence badge instead of a single-word pill, since the
+   tile states the full comparison in plain language rather than a table
+   column. display:inline-block keeps it a rounded badge even as the
+   sentence wraps to two lines. */
+.bridge-exits-pill { display: inline-block; margin: 10px 0 0; padding: 5px 14px; border-radius: 999px; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.4; }
+/* Nested inside a glossary tile (the "Returned" tile's trend pill), the
+   pill is still a <p>, so .bridge-legend-tile p's own margin/color (a
+   higher-specificity rule) would otherwise flatten its spacing and
+   overwrite its white text with the tile's muted ink. Restated here at
+   matching (two-class) specificity. */
+.bridge-legend-tile .bridge-exits-pill { margin: 8px 0; color: #fff; }
 
 /* Theme toggle -- a plain pill button whose own label text swaps between
    "Dark mode"/"Light mode" (not a switch), matching /spm/'s own toggle. */

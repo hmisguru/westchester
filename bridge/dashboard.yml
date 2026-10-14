@@ -482,6 +482,94 @@ rows:
           GROUP BY indicator
           ORDER BY indicator
         type: table
+  - height: 450px
+    tab: Demographics
+    widgets:
+      - chart: pie
+        col: 12
+        id: age_pie
+        name: Age of People Served — Current Quarter
+        sql: |
+          SELECT
+            `set` AS age,
+            SUM(value) AS people_served
+          FROM `wcdashboard.performance_metrics`
+          WHERE category = 'Age'
+            AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+            AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
+            AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+            AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+          GROUP BY 1
+          ORDER BY 1
+        type: chart
+        label: age
+        value:
+          field: people_served
+          format: ",.0f"
+  - height: 400px
+    tab: Demographics
+    widgets:
+      - col: 12
+        columns:
+          - label: Indicator
+            name: indicator
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+          - align: right
+            label: Previous Quarter
+            name: previous_value
+            number: number
+          - align: right
+            label: Quarterly Change
+            name: qoq_change
+            number: ".1%"
+        id: age_qoq
+        name: Age of People Served
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              `set` AS indicator,
+              CASE `set`
+                WHEN '<1' THEN 1
+                WHEN '1 to 2' THEN 2
+                WHEN '3 to 5' THEN 3
+                WHEN '6 to 17' THEN 4
+                WHEN '17 year-olds who turned 18' THEN 5
+                WHEN '18 to 21' THEN 6
+                WHEN '22 to 24' THEN 7
+                WHEN '25 to 34' THEN 8
+                WHEN '35 to 44' THEN 9
+                WHEN '45 to 54' THEN 10
+                WHEN '55 to 64' THEN 11
+                WHEN '65 and Older' THEN 12
+                ELSE 13
+              END AS indicator_sort,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category = 'Age'
+              AND project_type IN ('ES,SH,TH', 'PSH', 'RRH')
+              AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+              AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+            GROUP BY 1, 2, 3
+          ), ranked AS (
+            SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM (SELECT DISTINCT date FROM scoped)
+          )
+          SELECT
+            indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change,
+            MIN(indicator_sort) AS indicator_sort
+          FROM scoped
+          JOIN ranked USING (date)
+          WHERE period_rank <= 2
+          GROUP BY indicator
+          ORDER BY indicator_sort
+        type: table
   - tab: System Flow
     widgets:
       - col: 12
@@ -826,6 +914,150 @@ rows:
         value:
           field: households
           format: ",.0f"
+  - height: 140px
+    tab: System Flow
+    widgets:
+      - col: 4
+        columns:
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+            hidden: true
+          - align: right
+            label: vs. Average
+            name: pct_of_average
+            number: ".1%"
+            format:
+              - { if: greater_than_or_equal, value: 1, backgroundColor: red, textColor: white, bold: true }
+              - { backgroundColor: green, textColor: white }
+          - label: Comparison
+            name: comparison_label
+          - align: right
+            label: 4-Quarter Average
+            name: rolling_avg_4q
+            number: number
+        id: established_trend
+        name: Established — Trend
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'System Engagement History%'
+              AND `set` IN (
+                'Households that have been continuously homeless since a prior reporting period',
+                'Households who have been continuously homeless since a prior reporting period'
+              )
+              AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
+            GROUP BY 1
+          ), ranked AS (
+            SELECT date, value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT
+            'Established households' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL)) AS rolling_avg_4q,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) AS pct_of_average,
+            CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
+          FROM ranked
+          WHERE period_rank <= 5
+        type: table
+      - col: 4
+        columns:
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+            hidden: true
+          - align: right
+            label: vs. Average
+            name: pct_of_average
+            number: ".1%"
+            format:
+              - { if: greater_than_or_equal, value: 1, backgroundColor: red, textColor: white, bold: true }
+              - { backgroundColor: green, textColor: white }
+          - label: Comparison
+            name: comparison_label
+          - align: right
+            label: 4-Quarter Average
+            name: rolling_avg_4q
+            number: number
+        id: new_trend
+        name: New — Trend
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'System Engagement History%'
+              AND `set` = 'Households experiencing homelessness for the first time this reporting period'
+              AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
+            GROUP BY 1
+          ), ranked AS (
+            SELECT date, value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT
+            'New households' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL)) AS rolling_avg_4q,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) AS pct_of_average,
+            CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
+          FROM ranked
+          WHERE period_rank <= 5
+        type: table
+      - col: 4
+        columns:
+          - align: right
+            label: Current Quarter
+            name: current_value
+            number: number
+            hidden: true
+          - align: right
+            label: vs. Average
+            name: pct_of_average
+            number: ".1%"
+            format:
+              - { if: greater_than_or_equal, value: 1, backgroundColor: red, textColor: white, bold: true }
+              - { backgroundColor: green, textColor: white }
+          - label: Comparison
+            name: comparison_label
+          - align: right
+            label: 4-Quarter Average
+            name: rolling_avg_4q
+            number: number
+        id: recurring_trend
+        name: Recurring — Trend
+        sql: |
+          WITH scoped AS (
+            SELECT
+              date,
+              SUM(value) AS value
+            FROM `wcdashboard.performance_metrics`
+            WHERE category LIKE 'System Engagement History%'
+              AND `set` IN (
+                'Households that re-engaged in the homeless system after a previous temporary or unknown destination',
+                'Households who re-engaged in the homeless system after a previous temporary or unknown destination'
+              )
+              AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
+            GROUP BY 1
+          ), ranked AS (
+            SELECT date, value, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+            FROM scoped
+          )
+          SELECT
+            'Recurring households' AS indicator,
+            MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+            AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL)) AS rolling_avg_4q,
+            SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) AS pct_of_average,
+            CASE WHEN SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)), AVG(IF(period_rank BETWEEN 2 AND 5, value, NULL))) >= 1 THEN 'above average' ELSE 'below average' END AS comparison_label
+          FROM ranked
+          WHERE period_rank <= 5
+        type: table
   - height: 360px
     tab: System Flow
     widgets:

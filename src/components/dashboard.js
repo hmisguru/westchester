@@ -9,9 +9,10 @@
 import * as Plot from "npm:@observablehq/plot";
 import {format as d3format} from "npm:d3-format";
 import {marked} from "npm:marked";
-import {html} from "npm:htl";
+import {html, svg} from "npm:htl";
 import * as Inputs from "npm:@observablehq/inputs";
 import {hierarchy, treemap as d3treemap} from "npm:d3-hierarchy";
+import {pie as d3pie, arc as d3arc} from "npm:d3-shape";
 import {resize} from "observablehq:stdlib";
 
 // Validated categorical palette (dataviz skill reference instance), assigned
@@ -29,6 +30,21 @@ export function widgetRows(dashboard, widget, filterValues) {
   if (!qid) return [];
   const {columns, rows} = dashboard.data[qid];
   return rows.map((r) => Object.fromEntries(columns.map((c, i) => [c, r[i]])));
+}
+
+// Finds a widget by name across every tab, not just the one currently
+// rendering -- used when a tile needs another tab's widget data, e.g. the
+// System Flow glossary's "Returned" tile pulling its trend pill from
+// "Returns After Permanent Placement vs. 4-Quarter Average", which lives
+// under Positive Outcomes.
+function findWidget(dashboard, name) {
+  for (const tab of dashboard.tabs) {
+    for (const row of tab.rows) {
+      const w = row.find((x) => x.name === name);
+      if (w) return w;
+    }
+  }
+  return null;
 }
 
 function numberFormat(spec) {
@@ -173,6 +189,106 @@ function renderPie(widget, rows) {
   }));
 }
 
+// Race and Ethnicity (Demographics tab) render as donuts instead -- every
+// other `chart: pie` widget on this dashboard stays renderPie's sorted-
+// horizontal-bars (lengths compare more accurately than angles), so this is
+// a deliberate override of two named widgets. The pinned @observablehq/plot
+// version has no arc/pie mark, so the wedges are hand-built with d3-shape's
+// pie()/arc() generators and emitted as raw SVG via htl's svg tag. No
+// in-wedge labels -- a center hole total, a <title>-per-wedge native
+// tooltip, and a legend list (swatch + label + value + percent) carry the
+// same information instead.
+const DONUT_WIDGET_NAMES = new Set(["Race of People Served — Current Quarter", "Ethnicity of People Served — Current Quarter"]);
+
+function renderDonut(widget, rows) {
+  if (!rows.length) return empty();
+  const label = widget.label, value = widget.value.field;
+  const fmt = numberFormat(widget.value.format);
+  const total = rows.reduce((s, d) => s + (d[value] ?? 0), 0);
+  const pct = d3format(".0%");
+  const sorted = [...rows].sort((a, b) => b[value] - a[value]);
+  const colors = SERIES.slice(0, sorted.length);
+
+  return resize((width) => {
+    const size = Math.min(width, 280);
+    const radius = size / 2 - 2;
+    const inner = radius * 0.62;
+    const arcs = d3pie().value((d) => d[value]).sort(null)(sorted);
+    const arcGen = d3arc().innerRadius(inner).outerRadius(radius);
+    const wedges = arcs.map((a, i) => svg`<path d=${arcGen(a)} fill=${colors[i]} stroke="var(--bridge-surface)" stroke-width="2"><title>${sorted[i][label]}: ${fmt(sorted[i][value])} (${pct(sorted[i][value] / total)})</title></path>`);
+    const chart = svg`<svg viewBox=${`0 0 ${size} ${size}`} width=${size} height=${size} role="img" aria-label=${`${widget.name}: ${sorted.map((d) => `${d[label]} ${pct(d[value] / total)}`).join(", ")}`}>
+      <g transform=${`translate(${size / 2},${size / 2})`}>${wedges}</g>
+      <text x=${size / 2} y=${size / 2 - 6} text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">${fmt(total)}</text>
+      <text x=${size / 2} y=${size / 2 + 14} text-anchor="middle" font-size="12" fill="var(--bridge-muted)">total</text>
+    </svg>`;
+    const legend = html`<ul class="bridge-donut-legend">${sorted.map((d, i) => html`<li><span class="bridge-donut-swatch" style=${`background:${colors[i]}`}></span>${d[label]} — ${fmt(d[value])} (${pct(d[value] / total)})</li>`)}</ul>`;
+    return html`<div class="bridge-donut">${chart}${legend}</div>`;
+  });
+}
+
+// Age (Demographics tab) renders as a stacked histogram instead of a pie --
+// x = age bracket, y = people served, color = household type stacked within
+// each bar. This widget's own SQL already scopes to whichever single
+// household type the page's Household type filter has selected, so getting
+// all three types on screen at once means pulling this same widget's
+// precomputed rows for each of the 3 household-type filter values directly
+// out of dashboard.results (all 16 filter combinations are already in
+// dashboard.json, so this needs no new query), not the single rows the
+// normal widgetRows() call in renderWidget would return for whatever's
+// currently selected -- special-cased ahead of renderWidget's normal rows/
+// dispatch logic entirely, since gating on !rows.length for only the
+// currently-selected combo would wrongly blank the chart whenever that one
+// combo happens to be zero.
+const AGE_HISTOGRAM_WIDGET_NAME = "Age of People Served — Current Quarter";
+const AGE_HOUSEHOLD_TYPES = ["Adults Only", "Families with Children", "Unaccompanied Minors"];
+// The dashboard's own age bracket names ("17 year-olds who turned 18") are
+// far too long to fit as 12 side-by-side x-axis labels even rotated --
+// display-only population-pyramid-style short forms for the x axis alone,
+// never touching dashboard.yml; the hover tip still shows each segment's
+// full original age-bracket name via an explicit Age channel.
+const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned 18", "18 to 21", "22 to 24", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 and Older"];
+const AGE_SHORT_LABELS = {
+  "<1": "<1", "1 to 2": "1–2", "3 to 5": "3–5", "6 to 17": "6–17",
+  "17 year-olds who turned 18": "17→18", "18 to 21": "18–21", "22 to 24": "22–24",
+  "25 to 34": "25–34", "35 to 44": "35–44", "45 to 54": "45–54",
+  "55 to 64": "55–64", "65 and Older": "65+"
+};
+
+function renderAgeHistogram(dashboard, widget, filterValues) {
+  const label = widget.label, value = widget.value.field;
+  const fmt = numberFormat(widget.value.format);
+  const projectValue = filterValues[1];
+  const data = AGE_HOUSEHOLD_TYPES.flatMap((householdType) =>
+    widgetRows(dashboard, widget, [householdType, projectValue]).map((r) => ({...r, household_type: householdType}))
+  );
+  if (!data.length) return empty();
+  const ageOrder = AGE_ORDER.filter((a) => data.some((d) => d[label] === a));
+  const chart = resize((width) => Plot.plot({
+    width,
+    height: 340,
+    marginLeft: 56,
+    marginBottom: 48,
+    x: {domain: ageOrder, label: "Age", tickFormat: (d) => AGE_SHORT_LABELS[d] ?? d, tickRotate: -35, padding: 0.3},
+    y: {grid: true, label: "People served", tickFormat: numberFormat(",.0f")},
+    color: colorScale(AGE_HOUSEHOLD_TYPES),
+    marks: [
+      Plot.barY(data, Plot.stackY({
+        x: label,
+        y: value,
+        fill: "household_type",
+        order: AGE_HOUSEHOLD_TYPES,
+        channels: {Age: label, "Household type": "household_type"},
+        tip: {format: {x: false, fill: false, Age: true, "Household type": true, y: fmt}}
+      })),
+      Plot.ruleY([0])
+    ]
+  }));
+  return html`<div>
+    <p class="bridge-chart-note">The <strong>Household type</strong> filter does not apply to this chart -- it always breaks out every household type.</p>
+    ${chart}
+  </div>`;
+}
+
 // System engagement treemap: d3-hierarchy computes the rectangle layout
 // (Plot has no hierarchical-layout mark of its own), Plot.rect draws it so
 // it stays visually/interactively consistent with the rest of this file
@@ -255,8 +371,9 @@ const COMPARE = {
   equal: (a, b) => a === b
 };
 // Fixed in both themes -- white text on a solid fill reads fine regardless
-// of page background, so these never need a dark variant.
-const STATUS_COLORS = {green: "#0a6e0a", red: "#b3261e"};
+// of page background, so these never need a dark variant. "neutral" is a
+// plain mid-gray for trendPill()'s "about the same" case below.
+const STATUS_COLORS = {green: "#0a6e0a", red: "#b3261e", neutral: "#52525b"};
 
 function styleFor(rules, v) {
   for (const rule of rules ?? []) {
@@ -294,22 +411,205 @@ function renderTable(widget, rows) {
   </table></div>`;
 }
 
+// One short phrase built from a "... vs. 4-Quarter Average" widget's own
+// one-row table (current_value/pct_of_average/comparison_label/
+// rolling_avg_4q), e.g. "▲ 5.0% above the 200 average". Within
+// +/-2% of average, the pill drops the number entirely for a plain "about
+// the same as" rather than asking the reader to parse a decimal percent as
+// negligible themselves, in a neutral ink pill. Beyond that threshold, the
+// arrow and color still encode direction and whether that's good or bad for
+// this measure -- color pulled from the widget's own pct_of_average column
+// `format` rule via styleFor(), so a widget where *below* average is green
+// (Established/New/Recurring/Returned) colors correctly without a
+// widget-specific special case here. Shared by renderTrendTile() below and
+// the System Flow glossary tiles.
+const NEGLIGIBLE_CHANGE = 0.02;
+function trendPill(trendWidget, trendRows) {
+  if (!trendRows?.length) return null;
+  const {pct_of_average, rolling_avg_4q} = trendRows[0];
+  if (pct_of_average == null) return null;
+  const avg = numberFormat("number")(rolling_avg_4q);
+  const change = pct_of_average - 1;
+  if (Math.abs(change) < NEGLIGIBLE_CHANGE) {
+    return html`<p class="bridge-exits-pill" style="background:${STATUS_COLORS.neutral}">≈ About the ${avg} average</p>`;
+  }
+  const above = change > 0;
+  const pct = d3format(".1%")(Math.abs(change));
+  const pctColumn = trendWidget?.columns?.find((c) => c.name === "pct_of_average");
+  const rule = styleFor(pctColumn?.format, pct_of_average);
+  const bg = STATUS_COLORS[rule?.backgroundColor] ?? rule?.backgroundColor ?? STATUS_COLORS[above ? "green" : "red"];
+  return html`<p class="bridge-exits-pill" style="background:${bg}">${above ? "▲" : "▼"} ${pct} ${above ? "above" : "below"} the ${avg} average</p>`;
+}
+
+// Restyles a "... vs. 4-Quarter Average" single-row table widget into a
+// plain-language tile (big number + trendPill()'s sentence below it)
+// instead of a 4-column table -- the underlying widget already carries
+// everything needed (current_value plus the trend columns), so this is
+// display-only, no new data.
+function renderTrendTile(widget, rows) {
+  if (!rows.length) return empty();
+  const value = numberFormat("number")(rows[0].current_value);
+  return html`<div class="bridge-metric">${value}</div>${trendPill(widget, rows)}`;
+}
+const TREND_TILE_WIDGET_NAMES = new Set(["Households Exiting to Permanent Housing vs. 4-Quarter Average"]);
+
+// Glossary of the 4 engagement states shown on the System Flow tab's
+// treemap and quarter-over-quarter table -- not a DAC widget, so it's a
+// hand-built component (like renderAbout) rather than something driven by
+// dashboard.yml. Labels match the chart's own labels (the SQL's own
+// CASE ... AS engagement_state in that YAML) exactly. Each state's
+// trendWidget points at a one-row "... — Trend" (or "... vs. 4-Quarter
+// Average") table that exists solely to feed that tile's pill -- see
+// PILL_ONLY_WIDGET_NAMES below, which keeps the 3 new ones off their own
+// visible card, and also hides "Returns After Permanent Placement vs.
+// 4-Quarter Average" from Positive Outcomes, since the Returned tile here
+// already shows that same figure. Per explicit instruction elsewhere on
+// this dashboard, *below* average is the positive direction for all 4
+// states -- fewer households stuck, newly homeless, recurring, or returning
+// is the improvement -- the opposite polarity from Positive Outcomes' own
+// exits tile, where *above* average (more exits to permanent housing) is
+// good; that polarity is already baked into each widget's own
+// pct_of_average column format rule in dashboard.yml, so trendPill() colors
+// each state correctly with no extra logic here.
+const ENGAGEMENT_STATES = [
+  {
+    label: "Established",
+    accent: "#2a78d6", bg: "#ebf2f9", border: "#b6cfed",
+    accentDark: "#3987e5", bgDark: "#312d58", borderDark: "#33457d",
+    definition: "Continuously homeless since a prior report period — doesn't fit the other three states.",
+    trendWidget: "Established — Trend"
+  },
+  {
+    label: "New",
+    accent: "#eb6834", bg: "#f9efeb", border: "#edc5b6",
+    accentDark: "#d95926", bgDark: "#4a2639", borderDark: "#703334",
+    definition: "First-time entry into the system this reporting period.",
+    trendWidget: "New — Trend"
+  },
+  {
+    label: "Recurring",
+    accent: "#1baf7a", bg: "#ebf9f4", border: "#b6edd9",
+    accentDark: "#199e70", bgDark: "#2b3145", borderDark: "#274d50",
+    definition: "Re-engaged with the system after a previous temporary or unknown-destination exit.",
+    trendWidget: "Recurring — Trend"
+  },
+  {
+    label: "Returned",
+    accent: "#eda100", bg: "#f9f5eb", border: "#eddbb6",
+    accentDark: "#c98500", bgDark: "#482d33", borderDark: "#694326",
+    definition: "Returned to homelessness this reporting period after a previous permanent housing placement.",
+    trendWidget: "Returns After Permanent Placement vs. 4-Quarter Average"
+  }
+];
+
+// households-per-state totals, keyed by ENGAGEMENT_STATES label, from the
+// treemap widget's own rows -- so a tile's stat matches whatever the chart
+// below it is currently showing, household-type filter included.
+function engagementTotals(rows) {
+  const fmt = numberFormat(",.0f");
+  const totals = new Map();
+  for (const r of rows) totals.set(r.engagement_state, (totals.get(r.engagement_state) ?? 0) + (r.households ?? 0));
+  return (label) => (totals.has(label) ? fmt(totals.get(label)) : null);
+}
+
+function renderEngagementLegend(dashboard, rows, filterValues) {
+  const totalFor = engagementTotals(rows);
+  return html`<div class="bridge-legend" aria-label="Engagement state definitions">${ENGAGEMENT_STATES.map((s) => {
+    const trendWidget = s.trendWidget ? findWidget(dashboard, s.trendWidget) : null;
+    const pill = trendWidget ? trendPill(trendWidget, widgetRows(dashboard, trendWidget, filterValues)) : null;
+    const total = totalFor(s.label);
+    const heading = total != null
+      ? html`<p class="bridge-legend-stat">${total} <span>${s.label} Households</span></p>`
+      : html`<p class="bridge-legend-title"><span class="bridge-legend-dot"></span>${s.label}</p>`;
+    return html`
+    <div class="bridge-legend-tile" style="--tile-bg:${s.bg};--tile-border:${s.border};--tile-accent:${s.accent};--tile-bg-dark:${s.bgDark};--tile-border-dark:${s.borderDark};--tile-accent-dark:${s.accentDark}">
+      ${heading}
+      ${pill}
+      <p>${s.definition}</p>
+    </div>
+  `;
+  })}</div>`;
+}
+
+// Established/New/Recurring — Trend exist solely to feed the System Flow
+// glossary tiles' pills (via findWidget() + trendPill() in
+// renderEngagementLegend) and should never also show up as their own
+// visible card. "Returns After Permanent Placement vs. 4-Quarter Average"
+// is also hidden here -- the Returned glossary tile above already shows
+// that same figure, so showing it again on Positive Outcomes would be
+// redundant (same reasoning as dropping the other 3).
+const PILL_ONLY_WIDGET_NAMES = new Set([
+  "Established — Trend",
+  "New — Trend",
+  "Recurring — Trend",
+  "Returns After Permanent Placement vs. 4-Quarter Average"
+]);
+
+function dropPillOnlyWidgets(rows) {
+  return rows.map((row) => row.filter((w) => !PILL_ONLY_WIDGET_NAMES.has(w.name))).filter((row) => row.length);
+}
+
+// dashboard.yml puts "Current Quarter" in its own full-width row at the top
+// of every tab, with a different row right after depending on the tab:
+// three tabs (System Flow, Length of Time, Positive Outcomes) follow it
+// with the "Project Type Filter Note" text widget; the other two (Overview,
+// Demographics) follow it with the two total-served tiles. Both cases are
+// merged into Current Quarter's row here, with each widget's width set via
+// a `col` override on a shallow copy. Current Quarter itself is a fixed
+// 4/12 on every tab (so it reads the same width wherever it appears); the
+// note takes the complementary 8/12 beside it, and the two served-count
+// tiles split the other 8/12 evenly with it (4/4/4).
+const CURRENT_QUARTER_SPAN = 4;
+function mergeQuarterTopRow(rows) {
+  const withCol = (w, col) => ({...w, col});
+  const merged = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const next = rows[i + 1];
+    const nextNames = next?.map((w) => w.name) ?? [];
+    if (row.length !== 1 || row[0].name !== "Current Quarter") {
+      merged.push(row);
+      continue;
+    }
+    if (next?.length === 1 && nextNames[0] === "Project Type Filter Note") {
+      merged.push([withCol(row[0], CURRENT_QUARTER_SPAN), withCol(next[0], 12 - CURRENT_QUARTER_SPAN)]);
+      i++;
+    } else if (next?.length === 2 && nextNames.includes("People served across program types") && nextNames.includes("Households served across program types")) {
+      merged.push([row[0], ...next].map((w) => withCol(w, CURRENT_QUARTER_SPAN)));
+      i++;
+    } else {
+      merged.push([withCol(row[0], CURRENT_QUARTER_SPAN)]);
+    }
+  }
+  return merged;
+}
+
 function renderWidget(dashboard, widget, filterValues) {
-  const rows = widgetRows(dashboard, widget, filterValues);
   let body;
-  if (widget.type === "text") body = renderText(widget);
-  else if (widget.type === "metric") body = renderMetric(widget, rows);
-  else if (widget.type === "table") body = renderTable(widget, rows);
-  else if (!rows.length) body = empty();
-  else if (widget.chart === "line") body = widget.name === LENGTH_OF_TIME_WIDGET_NAME ? renderLengthOfTimeChart(widget, rows) : renderLine(widget, rows);
-  else if (widget.chart === "bar") body = renderBar(widget, rows);
-  else if (widget.chart === "pie") body = renderPie(widget, rows);
-  else if (widget.chart === "treemap") body = renderTreemap(widget, rows);
-  else body = html`<p class="bridge-empty">Unsupported widget type: ${widget.chart ?? widget.type}</p>`;
+  // Special-cased ahead of the normal rows/dispatch logic below, not added
+  // as another widget.chart === "pie" branch -- this widget ignores the
+  // currently selected household-type filter entirely (it shows all three
+  // at once instead).
+  if (widget.name === AGE_HISTOGRAM_WIDGET_NAME) {
+    body = renderAgeHistogram(dashboard, widget, filterValues);
+  } else {
+    const rows = widgetRows(dashboard, widget, filterValues);
+    if (TREND_TILE_WIDGET_NAMES.has(widget.name)) body = renderTrendTile(widget, rows);
+    else if (widget.type === "text") body = renderText(widget);
+    else if (widget.type === "metric") body = renderMetric(widget, rows);
+    else if (widget.type === "table") body = renderTable(widget, rows);
+    else if (!rows.length) body = empty();
+    else if (widget.chart === "line") body = widget.name === LENGTH_OF_TIME_WIDGET_NAME ? renderLengthOfTimeChart(widget, rows) : renderLine(widget, rows);
+    else if (widget.chart === "bar") body = renderBar(widget, rows);
+    else if (widget.chart === "pie") body = DONUT_WIDGET_NAMES.has(widget.name) ? renderDonut(widget, rows) : renderPie(widget, rows);
+    else if (widget.chart === "treemap") body = renderTreemap(widget, rows);
+    else body = html`<p class="bridge-empty">Unsupported widget type: ${widget.chart ?? widget.type}</p>`;
+  }
 
   const isNote = widget.type === "text";
+  const isMetricLike = widget.type === "metric" || TREND_TILE_WIDGET_NAMES.has(widget.name);
   const span = widget.col ?? 12;
-  return html`<section class="bridge-card${isNote ? " bridge-note" : ""}${widget.type === "metric" ? " bridge-card-metric" : ""}" style="--span:${span}" data-widget=${widget.id}>
+  return html`<section class="bridge-card${isNote ? " bridge-note" : ""}${isMetricLike ? " bridge-card-metric" : ""}" style="--span:${span}" data-widget=${widget.id}>
     ${isNote ? null : html`<h3 class="bridge-card-title">${widget.name}</h3>`}
     ${body}
   </section>`;
@@ -318,9 +618,14 @@ function renderWidget(dashboard, widget, filterValues) {
 /** All rows of one tab, laid out on the dashboard's 12-column grid. */
 export function renderTab(dashboard, tabName, filterValues) {
   const tab = dashboard.tabs.find((t) => t.name === tabName) ?? dashboard.tabs[0];
-  return html`<div class="bridge-tab">${tab.rows.map((row) => html`
+  const rows = mergeQuarterTopRow(dropPillOnlyWidgets(tab.rows));
+  return html`<div class="bridge-tab">${rows.map((row) => {
+    const treemapWidget = row.find((w) => w.name === "System engagement by household type");
+    return html`
+    ${treemapWidget ? renderEngagementLegend(dashboard, widgetRows(dashboard, treemapWidget, filterValues), filterValues) : null}
     <div class="bridge-row">${row.map((w) => renderWidget(dashboard, w, filterValues))}</div>
-  `)}</div>`;
+  `;
+  })}</div>`;
 }
 
 // The dashboard's one untabbed note ("Dashboard Notes"), shown above the

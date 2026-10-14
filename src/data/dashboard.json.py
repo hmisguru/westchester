@@ -50,6 +50,47 @@ client = bigquery.Client(project=BQ_PROJECT_ID, credentials=credentials)
 # Widget keys passed through to the page as display config (never SQL).
 DISPLAY_KEYS = ["chart", "x", "y", "color", "stacked", "value", "label", "columns", "slices", "content"]
 
+# "DV Survivor Households" -- NOT part of dashboard.yml (never hand-edited;
+# see this module's own docstring), since the Priority households widget's
+# own dashboard.yml SQL only reads category = 'Summary' and has no concept
+# of this measure at all. Added here directly instead, as an extra row
+# merged onto that same widget's own per-combo table result (see the end of
+# main()), the same one-off-query-outside-the-YAML convention used for
+# other dashboards on this site. Copies that widget's own filter CASE
+# pattern and QoQ (date-ranked, current vs. previous) logic verbatim, just
+# scoped to the 'Domestic Violence Survivor Status' category: a household
+# counts if its `set` is anything other than "No history of domestic
+# violence reported".
+PRIORITY_HOUSEHOLDS_WIDGET_NAME = "Priority households — quarter-over-quarter"
+DV_SURVIVOR_INDICATOR = "DV Survivor Households"
+PRIORITY_HOUSEHOLDS_ORDER = ["Households age 55+", "Disabled households", "Veteran households", DV_SURVIVOR_INDICATOR]
+DV_SURVIVOR_SQL = """
+WITH scoped AS (
+  SELECT
+    date,
+    '""" + DV_SURVIVOR_INDICATOR + """' AS indicator,
+    SUM(value) AS value
+  FROM `wcdashboard.performance_metrics`
+  WHERE category = 'Domestic Violence Survivor Status'
+    AND `set` != 'No history of domestic violence reported'
+    AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
+    AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'PSH' THEN 'PSH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
+  GROUP BY 1, 2
+), ranked AS (
+  SELECT date, DENSE_RANK() OVER (ORDER BY date DESC) AS period_rank
+  FROM (SELECT DISTINCT date FROM scoped)
+)
+SELECT
+  indicator,
+  MAX(IF(period_rank = 1, value, NULL)) AS current_value,
+  MAX(IF(period_rank = 2, value, NULL)) AS previous_value,
+  SAFE_DIVIDE(MAX(IF(period_rank = 1, value, NULL)) - MAX(IF(period_rank = 2, value, NULL)), MAX(IF(period_rank = 2, value, NULL))) AS qoq_change
+FROM scoped
+JOIN ranked USING (date)
+WHERE period_rank <= 2
+GROUP BY indicator
+"""
+
 
 def json_value(v):
     if isinstance(v, Decimal):
@@ -125,7 +166,12 @@ def main():
 
     # Render every widget's SQL for every filter combination; run each
     # distinct query once.
-    queries, results = {}, {}
+    priority_wid = next(
+        (w["id"] for tab in tabs for row in tab["rows"] for w in row if w["name"] == PRIORITY_HOUSEHOLDS_WIDGET_NAME),
+        None,
+    )
+    dv_template = env.from_string(DV_SURVIVOR_SQL)
+    queries, results, dv_qids = {}, {}, {}
     for combo in combos:
         values = {f["name"]: v for f, v in zip(filters, combo)}
         key = "|".join(combo)
@@ -135,12 +181,32 @@ def main():
             qid = hashlib.sha1(sql.encode()).hexdigest()[:12]
             queries.setdefault(qid, sql)
             results[key][wid] = qid
+        if priority_wid:
+            dv_sql = dv_template.render(filters=values)
+            dv_qid = hashlib.sha1(dv_sql.encode()).hexdigest()[:12]
+            queries.setdefault(dv_qid, dv_sql)
+            dv_qids[key] = dv_qid
 
     print(f"{len(sql_templates)} widgets x {len(combos)} filter combinations = "
           f"{len(sql_templates) * len(combos)} widget results, {len(queries)} distinct queries",
           file=sys.stderr)
     with ThreadPoolExecutor(max_workers=8) as pool:
         data = dict(zip(queries, pool.map(run, queries.values())))
+
+    # Merge the DV Survivor Households row onto Priority households' own
+    # per-combo table result (see DV_SURVIVOR_SQL above for why this isn't
+    # just another dashboard.yml widget). augmented_qids guards against
+    # appending twice when two combos render identical SQL and share a qid.
+    augmented_qids = set()
+    for key, qid in dv_qids.items():
+        ph_qid = results[key].get(priority_wid)
+        if not ph_qid or ph_qid in augmented_qids:
+            continue
+        augmented_qids.add(ph_qid)
+        dv_rows = data[qid]["rows"]
+        dv_row = dv_rows[0] if dv_rows else [DV_SURVIVOR_INDICATOR, None, None, None]
+        data[ph_qid]["rows"].append(dv_row)
+        data[ph_qid]["rows"].sort(key=lambda r: PRIORITY_HOUSEHOLDS_ORDER.index(r[0]))
 
     json.dump(
         {
