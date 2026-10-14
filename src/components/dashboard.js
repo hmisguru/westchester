@@ -574,7 +574,7 @@ function mergeQuarterTopRow(rows) {
     if (next?.length === 1 && nextNames[0] === "Project Type Filter Note") {
       merged.push([withCol(row[0], CURRENT_QUARTER_SPAN), withCol(next[0], 12 - CURRENT_QUARTER_SPAN)]);
       i++;
-    } else if (next?.length === 2 && nextNames.includes("People served across program types") && nextNames.includes("Households served across program types")) {
+    } else if (next?.length === 2 && nextNames.includes("People Served in Interim Housing") && nextNames.includes("Households Served in Interim Housing")) {
       merged.push([row[0], ...next].map((w) => withCol(w, CURRENT_QUARTER_SPAN)));
       i++;
     } else {
@@ -583,6 +583,30 @@ function mergeQuarterTopRow(rows) {
   }
   return merged;
 }
+
+// Display-only renames, none of which touch dashboard.yml itself -- the
+// same TITLE_OVERRIDES convention used elsewhere on this site for a DAC
+// source's own label that reads better (or matches a sibling dashboard's
+// own wording) once rendered. Westchester's own dashboard.yml and the
+// sibling site's own source YAML were authored independently by each CoC's
+// own consultant, so a handful of tab/widget names differ in wording for
+// functionally identical content; these are the ones worth aligning.
+// "People Served/Households Served in Interim Housing" needed no override
+// here -- dashboard.yml itself was renamed to match (and its own SQL now
+// excludes PSH, per explicit request, so the name is accurate, not just
+// copied).
+const TAB_TITLE_OVERRIDES = {"System Flow": "System Engagement"};
+const WIDGET_TITLE_OVERRIDES = {
+  "Priority households — quarter-over-quarter": "Priority Households",
+  "Permanent-destination exits — quarter-over-quarter detail": "Exits to Permanent Destinations by Household Type",
+  // The tile itself (big number + trend pill) already states the
+  // comparison, so the card heading doesn't need to repeat "vs. 4-Quarter
+  // Average" -- matches the sibling dashboard's own shorter card title for
+  // its functionally equivalent (there, two-widget) tile.
+  "Households Exiting to Permanent Housing vs. 4-Quarter Average": "Households Exiting to Permanent Housing"
+};
+const displayTabName = (name) => TAB_TITLE_OVERRIDES[name] ?? name;
+const displayWidgetName = (name) => WIDGET_TITLE_OVERRIDES[name] ?? name;
 
 function renderWidget(dashboard, widget, filterValues) {
   let body;
@@ -610,7 +634,7 @@ function renderWidget(dashboard, widget, filterValues) {
   const isMetricLike = widget.type === "metric" || TREND_TILE_WIDGET_NAMES.has(widget.name);
   const span = widget.col ?? 12;
   return html`<section class="bridge-card${isNote ? " bridge-note" : ""}${isMetricLike ? " bridge-card-metric" : ""}" style="--span:${span}" data-widget=${widget.id}>
-    ${isNote ? null : html`<h3 class="bridge-card-title">${widget.name}</h3>`}
+    ${isNote ? null : html`<h3 class="bridge-card-title">${displayWidgetName(widget.name)}</h3>`}
     ${body}
   </section>`;
 }
@@ -670,7 +694,7 @@ export function dashboardInputs(dashboard, initial = {}) {
   const tabNames = dashboard.tabs.map((t) => t.name);
   const household = Inputs.select(householdFilter.options, {label: "Household type", value: match(householdFilter.options, initial.household) ?? householdFilter.default});
   const project = Inputs.select(projectFilter.options, {label: "Project type", value: match(projectFilter.options, initial.project) ?? projectFilter.default});
-  const tabs = Inputs.radio(tabNames, {value: match(tabNames, initial.tab) ?? tabNames[0]});
+  const tabs = Inputs.radio(tabNames, {value: match(tabNames, initial.tab) ?? tabNames[0], format: displayTabName});
   tabs.classList.add("bridge-tabs");
   return {household, project, tabs, controls: html`<div class="bridge-controls">${household}${project}</div>`};
 }
