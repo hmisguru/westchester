@@ -16,15 +16,15 @@ rows:
       - name: Dashboard Notes
         type: text
         content: |
-          This dashboard shows how our homeless system performs, analyzing how people move through the dedicated core housing projects.
+          This dashboard analyzes how people enter and flow through "interim housing" on their journey to stable, permanent housing. This dashboard DOES NOT include people in non-HMIS participating projects like Domestic Violence shelters.
 
-          This dashboard sources data from Westchester County's HMIS. Definitions and logic align with HUD's Longitudinal Systems Analysis. Program totals are not unduplicated across program types.
+          ### Interim Housing
 
-          **For the best experience, please view this dashboard on a desktop or laptop computer.**
+          Interim Housing is comprised of short-term Emergency Shelter and Safe Haven as well as medium-term Transitional Housing and time-limited subsidies known as Rapid Re-housing.
 
-          **Household Type filter:** Adults Only = households with no children present. Families with Children = at least one adult and one child. Unaccompanied Minors = households of children under 18 with no adult present.
+          ### Household Types
 
-          **Project Type filter:** ES/SH/TH = Emergency Shelter, Safe Haven, and Transitional Housing for persons experiencing homelessness. RRH = Rapid Rehousing with time-limited rental subsidy for formerly homeless persons.
+          Adults Only are households with no children present. Families with Children have at least one adult and one child. Unaccompanied Minors are households of children under 18 with no adult present.
         col: 12
   - tab: Overview
     widgets:
@@ -598,7 +598,7 @@ rows:
       - name: Project Type Filter Note
         id: system_flow_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 130px
     tab: System Flow
@@ -714,7 +714,7 @@ rows:
       - name: Project Type Filter Note
         id: length_of_time_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 360px
     tab: Length of Time
@@ -1178,7 +1178,7 @@ rows:
       - name: Project Type Filter Note
         id: positive_outcomes_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 140px
     tab: Positive Outcomes
