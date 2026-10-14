@@ -657,22 +657,15 @@ export function renderTab(dashboard, tabName, filterValues) {
 // it, matching this widget's own front-loaded structure in dashboard.yml.
 export function renderAbout(dashboard) {
   return html`<section class="bridge-about" aria-label="About this dashboard">${dashboard.notes.map((w) => {
-    const [intro, ...sections] = (w.content ?? "").split(/^\*\*([^*]+:)\*\*/m);
+    const [intro, ...sections] = (w.content ?? "").split(/^### /m);
     const block = (md, cls) => {
       const div = html`<div class=${cls}>`;
       div.innerHTML = marked.parse(md);
       return div;
     };
-    // dashboard.yml's own notes widget uses **Bold labels:** for its
-    // filter-definition paragraphs, so the intro/terms split works
-    // differently here than a "### "-heading-based note would: everything
-    // up to the first such bold label is the intro, and each bold label plus
-    // the text immediately after it becomes its own side-by-side term.
-    const terms = [];
-    for (let i = 0; i < sections.length; i += 2) terms.push(`**${sections[i]}**${sections[i + 1] ?? ""}`);
     return html`<div class="bridge-about-note">
       ${intro.trim() ? block(intro, "bridge-text bridge-about-intro") : null}
-      ${terms.length ? html`<div class="bridge-about-terms">${terms.map((t) => block(t, "bridge-text bridge-about-term"))}</div>` : null}
+      ${sections.length ? html`<div class="bridge-about-terms">${sections.map((sec) => block(`### ${sec}`, "bridge-text bridge-about-term"))}</div>` : null}
     </div>`;
   })}</section>`;
 }
