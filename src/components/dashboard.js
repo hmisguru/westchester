@@ -679,7 +679,8 @@ const match = (options, value) => (value == null ? undefined : options.find((o) 
  * The filter selects and the tab strip, starting from the dashboard's
  * defaults unless `initial` names a valid {tab, household, project}. Filter
  * values stay in the dashboard's own order (household, project) for result
- * lookups.
+ * lookups; the page shows Project type first, matching the sibling
+ * dashboard's own filter order.
  */
 export function dashboardInputs(dashboard, initial = {}) {
   const [householdFilter, projectFilter] = dashboard.filters;
@@ -688,7 +689,7 @@ export function dashboardInputs(dashboard, initial = {}) {
   const project = Inputs.select(projectFilter.options, {label: "Project type", value: match(projectFilter.options, initial.project) ?? projectFilter.default});
   const tabs = Inputs.radio(tabNames, {value: match(tabNames, initial.tab) ?? tabNames[0], format: displayTabName});
   tabs.classList.add("bridge-tabs");
-  return {household, project, tabs, controls: html`<div class="bridge-controls">${household}${project}</div>`};
+  return {household, project, tabs, controls: html`<div class="bridge-controls">${project}${household}</div>`};
 }
 
 const eastern = (iso, options) => new Date(iso).toLocaleString("en-US", {timeZone: "America/New_York", ...options});
