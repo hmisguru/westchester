@@ -598,7 +598,7 @@ rows:
       - name: Project Type Filter Note
         id: system_flow_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 130px
     tab: System Flow
@@ -714,7 +714,7 @@ rows:
       - name: Project Type Filter Note
         id: length_of_time_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 360px
     tab: Length of Time
@@ -1178,7 +1178,7 @@ rows:
       - name: Project Type Filter Note
         id: positive_outcomes_filter_note
         type: text
-        content: "**Note: The Project Type filter does not apply on this tab.** These metrics reflect the universe of people experiencing homelessness across Emergency Shelter/Safe Haven/Transitional Housing (ES/SH/TH) and Rapid Rehousing (RRH)."
+        content: "The **Project Type** filter does not apply on this tab. These metrics reflect the entire universe of households in interim housing."
         col: 12
   - height: 140px
     tab: Positive Outcomes
