@@ -51,7 +51,7 @@ rows:
       - col: 6
         id: people_served_total
         name: People Served in Interim Housing
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -60,7 +60,7 @@ rows:
       - col: 6
         id: households_served_total
         name: Households Served in Interim Housing
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -76,7 +76,7 @@ rows:
           WITH scoped AS (
             SELECT date, SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Summary'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary'
               AND `set` = 'Total Number of People Served'
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
               AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
@@ -101,7 +101,7 @@ rows:
           WITH scoped AS (
             SELECT date, SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Summary'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary'
               AND `set` = 'Total Number of Households Served'
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
               AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
@@ -134,7 +134,7 @@ rows:
             CASE WHEN project_type = 'ES,SH,TH' THEN 'ES/SH/TH' ELSE project_type END AS project_type,
             SUM(value) AS served
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Summary'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary'
             AND `set` = 'Total Number of People Served'
             AND project_type IN ('ES,SH,TH', 'RRH')
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -163,7 +163,7 @@ rows:
             CASE WHEN project_type = 'ES,SH,TH' THEN 'ES/SH/TH' ELSE project_type END AS project_type,
             SUM(value) AS served
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Summary'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary'
             AND `set` = 'Total Number of Households Served'
             AND project_type IN ('ES,SH,TH', 'RRH')
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -203,7 +203,7 @@ rows:
             END AS living_situation,
             SUM(value) AS people_served
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Prior Living Situation'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Prior Living Situation'
             AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -245,7 +245,7 @@ rows:
       - col: 6
         id: people_served_total_demographics
         name: People Served in Interim Housing
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary' AND `set` = 'Total Number of People Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -254,7 +254,7 @@ rows:
       - col: 6
         id: households_served_total_demographics
         name: Households Served in Interim Housing
-        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
+        sql: "SELECT SUM(value) AS value FROM `wcdashboard.performance_metrics` WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary' AND `set` = 'Total Number of Households Served' AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END) AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`) AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END) AND project_type != 'PSH'"
         type: metric
         value:
           field: value
@@ -287,7 +287,7 @@ rows:
               CASE `set` WHEN 'Total Number of Disabled Households' THEN 'Disabled households' WHEN 'Total Number of 55+ Households' THEN 'Households age 55+' WHEN 'Total Number of Veteran Households' THEN 'Veteran households' END AS indicator,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Summary'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary'
               AND `set` IN ('Total Number of Disabled Households', 'Total Number of 55+ Households', 'Total Number of Veteran Households')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
               AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
@@ -329,7 +329,7 @@ rows:
               END AS race,
               SUM(value) AS people_served
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Race and Ethnicity'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
               AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
@@ -367,7 +367,7 @@ rows:
             END AS ethnicity,
             SUM(value) AS people_served
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Race and Ethnicity'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
             AND `set` != 'Race: Not provided/missing/invalid responses'
             AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
@@ -408,7 +408,7 @@ rows:
               REGEXP_REPLACE(`set`, r', (non-)?Hispanic/Latina/o (\(single race selected\)|also selected|not selected)$', '') AS indicator,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Race and Ethnicity'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
               AND `set` NOT IN ('Race: Not provided/missing/invalid responses', 'Hispanic/Latina/o (no other category selected)')
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -464,7 +464,7 @@ rows:
               END AS indicator,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Race and Ethnicity'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Race and Ethnicity'
               AND `set` != 'Race: Not provided/missing/invalid responses'
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -497,7 +497,7 @@ rows:
             `set` AS age,
             SUM(value) AS people_served
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Age'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Age'
             AND project_type IN ('ES,SH,TH', 'RRH')
             AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
             AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
@@ -552,7 +552,7 @@ rows:
               END AS indicator_sort,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Age'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Age'
               AND project_type IN ('ES,SH,TH', 'RRH')
               AND (CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END = 'ALL' OR population_group = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END)
               AND (CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END = 'ALL' OR project_type = CASE '{{ filters.project_type }}' WHEN 'ES/SH/TH' THEN 'ES,SH,TH' WHEN 'RRH' THEN 'RRH' ELSE 'ALL' END)
@@ -625,7 +625,7 @@ rows:
           WITH scoped AS (
             SELECT date, value
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'System Engagement History%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
               AND `set` = 'UNIVERSE: Households experiencing any homelessness or RRH during the report period'
               AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
           ), ranked AS (
@@ -667,7 +667,7 @@ rows:
             END AS engagement,
             value AS households
           FROM `wcdashboard.performance_metrics`
-          WHERE category LIKE 'System Engagement History%'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
             AND `set` IN (
               'Households that have been continuously homeless since a prior reporting period',
               'Households who have been continuously homeless since a prior reporting period',
@@ -740,7 +740,7 @@ rows:
           FROM
             `wcdashboard.performance_metrics`
           WHERE
-            category LIKE 'Average Length of Time Homeless%'
+            date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'Average Length of Time Homeless%'
             AND `set` IN (
               'Average length of time served in Emergency Shelters and Safe Havens (days)',
               'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)',
@@ -801,7 +801,7 @@ rows:
               END AS measure,
               value AS days
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'Average Length of Time Homeless%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'Average Length of Time Homeless%'
               AND `set` IN (
                 'Average length of time served in Emergency Shelters and Safe Havens (days)',
                 'Average length of time served in Emergency Shelters, Safe Havens, and Transitional Housing (days)',
@@ -872,7 +872,7 @@ rows:
               END AS engagement_state,
               MAX(value) AS households
             FROM `wcdashboard.performance_metrics`
-            WHERE population_group = 'System Use'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND population_group = 'System Use'
               AND category LIKE 'System Engagement History%'
               AND `set` IN (
                 'Households who have been continuously homeless since a prior reporting period',
@@ -949,7 +949,7 @@ rows:
               date,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'System Engagement History%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
               AND `set` IN (
                 'Households that have been continuously homeless since a prior reporting period',
                 'Households who have been continuously homeless since a prior reporting period'
@@ -997,7 +997,7 @@ rows:
               date,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'System Engagement History%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
               AND `set` = 'Households experiencing homelessness for the first time this reporting period'
               AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
             GROUP BY 1
@@ -1042,7 +1042,7 @@ rows:
               date,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'System Engagement History%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
               AND `set` IN (
                 'Households that re-engaged in the homeless system after a previous temporary or unknown destination',
                 'Households who re-engaged in the homeless system after a previous temporary or unknown destination'
@@ -1097,7 +1097,7 @@ rows:
               END AS engagement_state,
               MAX(value) AS households
             FROM `wcdashboard.performance_metrics`
-            WHERE population_group = 'System Use'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND population_group = 'System Use'
               AND category LIKE 'System Engagement History%'
               AND `set` IN (
                 'Households who have been continuously homeless since a prior reporting period',
@@ -1213,7 +1213,7 @@ rows:
               date,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
               AND `set` = 'Households with a system exit to any permanent housing destination'
               AND project_type IN ('AO', 'AC', 'CO')
               AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
@@ -1251,7 +1251,7 @@ rows:
               `set` AS destination,
               SUM(value) AS households
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Destination'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Destination'
               AND LOWER(`set`) LIKE '%permanent%'
               AND date = (SELECT MAX(date) FROM `wcdashboard.performance_metrics`)
               AND ('{{ filters.household_type }}' = 'All Household Types' OR population_group = CASE '{{ filters.household_type }}'
@@ -1298,7 +1298,7 @@ rows:
               date,
               SUM(value) AS value
             FROM `wcdashboard.performance_metrics`
-            WHERE category LIKE 'System Engagement History%'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category LIKE 'System Engagement History%'
               AND `set` = 'Households who returned to homelessness this reporting period after a previous permanent housing placement'
               AND project_type = CASE '{{ filters.household_type }}' WHEN 'Adults Only' THEN 'AO' WHEN 'Families with Children' THEN 'AC' WHEN 'Unaccompanied Minors' THEN 'CO' ELSE 'ALL' END
             GROUP BY 1
@@ -1334,7 +1334,7 @@ rows:
             END AS household_type,
             value AS households
           FROM `wcdashboard.performance_metrics`
-          WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+          WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
             AND `set` = 'Households with a system exit to any permanent housing destination'
             AND project_type IN ('AO', 'AC', 'CO')
             AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
@@ -1386,7 +1386,7 @@ rows:
               END AS household_type,
               value AS households
             FROM `wcdashboard.performance_metrics`
-            WHERE category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
+            WHERE date >= DATE_DIFF(DATE '2024-01-01', DATE '1899-12-30', DAY) AND category = 'Summary Exit Outcomes for Households Served in Temporary Situations during the Report Period'
               AND `set` = 'Households with a system exit to any permanent housing destination'
               AND project_type IN ('AO', 'AC', 'CO')
               AND ('{{ filters.household_type }}' = 'All Household Types' OR project_type = CASE '{{ filters.household_type }}'
