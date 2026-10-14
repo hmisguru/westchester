@@ -774,6 +774,7 @@ rows:
             name: measure
           - label: Report quarter
             name: report_period
+            hidden: true
           - align: right
             label: Current days
             name: current_quarter_days
@@ -1359,8 +1360,6 @@ rows:
         columns:
           - label: Household type
             name: household_type
-          - label: Report quarter
-            name: report_period
           - align: right
             label: Current exits
             name: current_quarter_exits

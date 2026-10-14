@@ -44,5 +44,3 @@ display(renderTab(dashboard, tabValue, [householdValue, projectValue]));
 ```js
 display(renderFootnote(dashboard));
 ```
-
-Looking for just the headline numbers? See the <a href="../">KPI tiles</a>.
