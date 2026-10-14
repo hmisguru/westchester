@@ -50,6 +50,22 @@ client = bigquery.Client(project=BQ_PROJECT_ID, credentials=credentials)
 # Widget keys passed through to the page as display config (never SQL).
 DISPLAY_KEYS = ["chart", "x", "y", "color", "stacked", "value", "label", "columns", "slices", "content"]
 
+# Widgets hidden from this page, matched by their DAC `name` rather than
+# position so a refresh of dashboard.yml doesn't silently un-hide them.
+# Skipped entirely, not just hidden visually -- no layout entry and no SQL
+# template is built for it, so no query runs and no empty widget card
+# appears either. Mirrors the sibling dashboard's own HIDDEN_WIDGET_NAMES
+# convention, per explicit request to match its System Engagement tab
+# exactly: "Household system-engagement mix over time" is hidden there too
+# (it exists in that dashboard's own source YAML but was never shown on the
+# live page -- confirmed by reading its loader, not just its widget list);
+# "Quarter-over-quarter comparison" has no equivalent in that dashboard's
+# source at all.
+HIDDEN_WIDGET_NAMES = {
+    "Household system-engagement mix over time",
+    "Quarter-over-quarter comparison",
+}
+
 # "DV Survivor Households" -- NOT part of dashboard.yml (never hand-edited;
 # see this module's own docstring), since the Priority households widget's
 # own dashboard.yml SQL only reads category = 'Summary' and has no concept
@@ -146,6 +162,8 @@ def main():
     for ri, row in enumerate(dashboard["rows"]):
         widgets = []
         for wi, w in enumerate(row.get("widgets", [])):
+            if w.get("name") in HIDDEN_WIDGET_NAMES:
+                continue
             wid = f"r{ri}-w{wi}"
             widgets.append({
                 "id": wid,

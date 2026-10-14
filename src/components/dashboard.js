@@ -310,8 +310,7 @@ function renderTreemap(widget, rows) {
   const slices = widget.slices ?? {};
   const color = {
     domain: segments,
-    range: segments.map((s, i) => slices[s]?.color ?? SERIES[i % SERIES.length]),
-    legend: true
+    range: segments.map((s, i) => slices[s]?.color ?? SERIES[i % SERIES.length])
   };
   const HEADER = 22;
 
