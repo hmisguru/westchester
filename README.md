@@ -4,13 +4,12 @@ Embeddable KPIs for the Westchester County Continuum of Care (NY-604), built fro
 
 ## KPIs
 
-Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- five are official HUD System Performance Measures, two (`people-in-street-outreach`, `first-time-homeless-with-outreach`) are dashboard-only additions:
+Six KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- four are official HUD System Performance Measures, two (`people-in-street-outreach`, `first-time-homeless-with-outreach`) are dashboard-only additions:
 
 | id | Measure | KPI |
 |---|---|---|
 | `length-of-time-homeless` | 1a | Average length of time homeless (ES + Safe Haven) |
 | `returns-to-homelessness` | 2 | People returning to homelessness within 2 years of exiting to permanent housing |
-| `people-sheltered` | 3.2 | Unduplicated people in ES or TH |
 | `people-in-street-outreach` | Local 3.3 *(not a HUD measure)* | Unduplicated people with any Street Outreach, Emergency Shelter, or Transitional Housing enrollment |
 | `income-growth-stayers` | 4.3 | Stayers in CoC-funded projects whose total income increased year over year |
 | `first-time-homeless-with-outreach` | Local 5.3 *(not a HUD measure)* | People experiencing homelessness for the first time, with Street Outreach added to both the entry population and the prior-activity lookback -- replaces the plain HUD Measure 5.1 tile |
@@ -42,7 +41,7 @@ Common variations:
 
 ```js
 // Only some KPIs, in this order
-await KPIGrid(["people-sheltered", "first-time-homeless"])
+await KPIGrid(["length-of-time-homeless", "first-time-homeless-with-outreach"])
 
 // A single tile
 import {KPI} from "https://hmisguru.github.io/westchester/kpis.js";
@@ -51,7 +50,7 @@ await KPI("exits-to-permanent-housing")
 
 | Export | What it returns |
 |---|---|
-| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all eight by default), with one source line below it |
+| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all six by default), with one source line below it |
 | `KPI(id, options?)` | A single tile, with its own source line |
 | `data()` | The underlying numbers, for building your own display |
 
@@ -74,8 +73,8 @@ Works anywhere you can paste HTML, but the iframe needs a fixed height and uses 
   width="100%" height="630" style="border:0"></iframe>
 
 <!-- One KPI -->
-<iframe src="https://hmisguru.github.io/westchester/embed/people-sheltered"
-  title="People in shelter or transitional housing"
+<iframe src="https://hmisguru.github.io/westchester/embed/length-of-time-homeless"
+  title="Average length of time homeless"
   width="360" height="340" style="border:0"></iframe>
 ```
 

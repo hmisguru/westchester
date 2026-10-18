@@ -3,7 +3,6 @@
 const kpiIds = [
   "length-of-time-homeless",
   "returns-to-homelessness",
-  "people-sheltered",
   "people-in-street-outreach",
   "income-growth-stayers",
   "first-time-homeless-with-outreach",
