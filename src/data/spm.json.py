@@ -69,7 +69,6 @@ def build_kpis(results):
     m2_cur = pick(results["m2_cur"], "row_bucket", m2_label)
     m2_prev = pick(results["m2_prev"], "row_bucket", m2_label)
     m3 = pick(results["m3"], "bucket", "Total (Unduplicated)")
-    m5 = pick(results["m5"], "row_label", "Newly homeless (no prior activity)")
     m7_ph = results["m7_ph"][0]
     so_active = results["so_active"][0]
     m4_stayers_total = pick(results["m4"], "row_label", "Measure 4.3 — Total income (system stayers)")
@@ -155,23 +154,9 @@ def build_kpis(results):
             "universe": int(m4_stayers_total["current_fy_universe"]),
         },
         {
-            "id": "first-time-homeless",
-            "measure": "Measure 5.1",
-            "title": "People experiencing homelessness for the first time",
-            "value": m5["current_fy"],
-            "previous": m5["previous_fy"],
-            "format": "number",
-            "better": "lower",
-            "description": (
-                "People entering emergency shelter, Safe Haven, or transitional housing "
-                "with no homeless-system activity in the prior 24 months."
-            ),
-            "universe": None,
-        },
-        {
             "id": "first-time-homeless-with-outreach",
             "eyebrow": "Local Measure 5.3",
-            "title": "First-time homelessness, including Street Outreach",
+            "title": "People experiencing homelessness for the first time",
             "value": m5_3["current_fy"],
             "previous": m5_3["previous_fy"],
             "format": "number",
@@ -219,7 +204,6 @@ def main():
         "m2_prev": ("m2_returns.sql", prev_start),
         "m3": ("m3_sheltered.sql", cur_start),
         "m4": ("m4_income_growth.sql", cur_start),
-        "m5": ("m5_first_time.sql", cur_start),
         # Non-HUD dashboard addition -- see m5_3_first_time_so.sql's own header
         # comment and CLAUDE.md for why this isn't generated from wcspm.yml
         # like the HUD measures above.
