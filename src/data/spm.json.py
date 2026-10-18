@@ -68,7 +68,6 @@ def build_kpis(results):
     m2_label = "TOTAL Returns to Homelessness"
     m2_cur = pick(results["m2_cur"], "row_bucket", m2_label)
     m2_prev = pick(results["m2_prev"], "row_bucket", m2_label)
-    m3 = pick(results["m3"], "bucket", "Total (Unduplicated)")
     m7_ph = results["m7_ph"][0]
     so_active = results["so_active"][0]
     m4_stayers_total = pick(results["m4"], "row_label", "Measure 4.3 — Total income (system stayers)")
@@ -103,22 +102,6 @@ def build_kpis(results):
                 "and came back to shelter, outreach, or housing programs within 24 months."
             ),
             "universe": m2_cur["total_exited"],
-        },
-        {
-            "id": "people-sheltered",
-            "measure": "Measure 3.2",
-            "title": "People in shelter or transitional housing",
-            "value": m3["current_fy"],
-            "previous": m3["previous_fy"],
-            "format": "number",
-            # Shown as a neutral change (gray arrow, no Improved/Worsened), per
-            # explicit choice: fewer people sheltered isn't clearly better.
-            "better": None,
-            "description": (
-                "Unduplicated people who stayed in emergency shelter, Safe Haven, or "
-                "transitional housing at any point during the fiscal year."
-            ),
-            "universe": None,
         },
         {
             "id": "people-in-street-outreach",
@@ -202,7 +185,6 @@ def main():
         "m1_prev": ("m1_length_of_time.sql", prev_start),
         "m2_cur": ("m2_returns.sql", cur_start),
         "m2_prev": ("m2_returns.sql", prev_start),
-        "m3": ("m3_sheltered.sql", cur_start),
         "m4": ("m4_income_growth.sql", cur_start),
         # Non-HUD dashboard addition -- see m5_3_first_time_so.sql's own header
         # comment and CLAUDE.md for why this isn't generated from wcspm.yml

@@ -44,7 +44,7 @@ display(html`<pre><code>${`<div id="westchester-kpis"></div>
 
 The module exports:
 
-- `KPIGrid(ids?, options?)`: a responsive grid, all KPIs by default, or pass an array of ids such as `["people-sheltered", "first-time-homeless"]`.
+- `KPIGrid(ids?, options?)`: a responsive grid, all KPIs by default, or pass an array of ids such as `["length-of-time-homeless", "first-time-homeless-with-outreach"]`.
 - `KPI(id, options?)`: a single tile.
 - `data()`: the underlying numbers, for building your own display.
 
