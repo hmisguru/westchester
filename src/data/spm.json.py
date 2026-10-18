@@ -147,7 +147,6 @@ def build_kpis(results):
             "value": so_active["current_fy"],
             "previous": so_active["previous_fy"],
             "format": "number",
-            "unit": "people",
             # Neither direction is inherently better: fewer people found can
             # mean less homelessness, or just less outreach/shelter contact --
             # same reasoning as street-outreach-exits below.
