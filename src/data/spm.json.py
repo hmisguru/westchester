@@ -143,18 +143,19 @@ def build_kpis(results):
         {
             "id": "people-in-street-outreach",
             "eyebrow": "Local Measure 3.3",
-            "title": "People in Street Outreach",
+            "title": "People in Street Outreach, Emergency Shelter, or Transitional Housing",
             "value": so_active["current_fy"],
             "previous": so_active["previous_fy"],
             "format": "number",
             "unit": "people",
-            # Neither direction is inherently better: fewer people found in
-            # Street Outreach can mean less homelessness, or just less outreach
-            # contact -- same reasoning as street-outreach-exits below.
+            # Neither direction is inherently better: fewer people found can
+            # mean less homelessness, or just less outreach/shelter contact --
+            # same reasoning as street-outreach-exits below.
             "better": None,
             "description": (
-                "Unduplicated people with any Street Outreach contact during the fiscal "
-                "year. Not an official HUD System Performance Measure."
+                "Unduplicated people with any Street Outreach, Emergency Shelter, or "
+                "Transitional Housing enrollment during the fiscal year. Not an official "
+                "HUD System Performance Measure."
             ),
             "universe": None,
         },

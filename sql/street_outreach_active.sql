@@ -1,9 +1,16 @@
 -- Hand-written, NOT generated from wcspm.yml -- unlike every other file in this
--- directory, "People in Street Outreach" has no HUD SPM equivalent and isn't a
--- widget on the live DAC dashboard, so there's no source-of-truth widget to
--- extract this from. See CLAUDE.md's "People in Street Outreach (non-HUD
--- metric)" section for the full design rationale. Regenerate nothing -- edit
--- this file directly if the definition ever needs to change.
+-- directory, "People in Street Outreach, Emergency Shelter, or Transitional
+-- Housing" has no HUD SPM equivalent and isn't a widget on the live DAC
+-- dashboard, so there's no source-of-truth widget to extract this from. See
+-- CLAUDE.md's "People in Street Outreach, Emergency Shelter, or Transitional
+-- Housing (non-HUD metric)" section for the full design rationale and the
+-- live-confirmed FY2026 figure (4,030). Regenerate nothing -- edit this file
+-- directly if the definition ever needs to change.
+--
+-- ProjectType codes in this dataset: 0 and 1 are both Emergency Shelter
+-- (Entry/Exit and Night-by-Night tracking), 2 is Transitional Housing, 4 is
+-- Street Outreach -- confirmed against this CoC's own Project.csv values,
+-- which don't follow the usual HUD ProjectType numbering for ES/TH.
 WITH bounds AS (
   SELECT
     @report_start AS cur_start,
@@ -14,7 +21,7 @@ WITH bounds AS (
 qualifying_projects AS (
   SELECT p.ProjectID
   FROM wchmiscsv.Project p
-  WHERE p.ContinuumProject = 1 AND p.ProjectType = 4
+  WHERE p.ContinuumProject = 1 AND p.ProjectType IN (0, 1, 2, 4)
 ),
 periods AS (
   SELECT 'Previous FY' AS period, prev_start AS period_start, prev_end AS period_end FROM bounds
@@ -23,10 +30,13 @@ periods AS (
 ),
 so_active AS (
   -- No zero-length-enrollment exclusion here, unlike Metric 3.2's ee_based
-  -- (sql/m3_sheltered.sql): Street Outreach isn't residential, so a client can
-  -- legitimately be contacted as street homeless on a single day with no
-  -- multi-day span to speak of -- the same exception already applied to
-  -- Measure 2's return-match logic (sql/m2_returns.sql).
+  -- (sql/m3_sheltered.sql) -- kept as a single active-enrollment test across
+  -- all 4 project types for consistency with this measure's original
+  -- Street-Outreach-only definition (where a client can legitimately be
+  -- contacted as street homeless on a single day with no multi-day span to
+  -- speak of, the same exception already applied to Measure 2's return-match
+  -- logic in sql/m2_returns.sql), rather than mixing conventions between the
+  -- SO and ES/TH project types now folded in together.
   SELECT DISTINCT en.PersonalID, pe.period
   FROM wchmiscsv.Enrollment en
   JOIN qualifying_projects qp ON en.ProjectID = qp.ProjectID
