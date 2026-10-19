@@ -181,10 +181,9 @@ def build_kpis(results):
             "format": "percent",
             "better": "higher",
             "description": (
-                "People in permanent supportive housing, other permanent housing, or "
-                "rapid re-housing who remained housed or exited to another permanent "
-                "destination, as a percentage of everyone who moved in and either "
-                "stayed or exited during the fiscal year."
+                "Percentage of people in Permanent Supportive Housing or other PH "
+                "projects who remained housed or exited to another permanent "
+                "destination."
             ),
             "universe": int(m7b2_universe["current_fy"]),
         },
