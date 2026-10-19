@@ -18,7 +18,7 @@ Works anywhere you can paste HTML, including most website builders and CMSs.
 
 ```js
 display(html`<pre><code>${`<iframe src="${base}embed/exits-to-permanent-housing"
-  title="Exits to Permanent Destinations"
+  title="Exits to permanent destinations"
   width="360" height="340" style="border:0"></iframe>`}</code></pre>`);
 ```
 
