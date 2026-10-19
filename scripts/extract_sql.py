@@ -58,7 +58,7 @@ RENDERED_FILTER = f"AND p.ProjectName IN ('{PROJECT_PLACEHOLDER}')"
 PARAM_FILTER = "AND (@all_projects OR p.ProjectID IN UNNEST(@project_ids))"
 
 
-# The "Exits to permanent housing" KPI counts people who exited Street Outreach
+# The "Exits to Permanent Destinations" KPI counts people who exited Street Outreach
 # (Measure 7a.1) OR shelter/SH/TH/RRH (Measure 7b.1) to a permanent destination,
 # each person once. It's generated from those two extracted queries: each keeps
 # its own logic unchanged through its per-person `classified` CTE, and only the

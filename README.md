@@ -14,7 +14,7 @@ Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) c
 | `income-growth-stayers` | 4.3 | Stayers in CoC-funded projects whose total income increased year over year |
 | `first-time-homeless-with-outreach` | Local 5.3 *(not a HUD measure)* | People experiencing homelessness for the first time, with Street Outreach added to both the entry population and the prior-activity lookback -- replaces the plain HUD Measure 5.1 tile |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
-| `permanent-housing-retention` | 7b.2 | Percentage of PSH/OPH/RRH participants who stayed housed or exited to another permanent destination |
+| `permanent-housing-retention` | 7b.2 | Percentage of PSH/other PH participants (RRH excluded, per HUD's own spec) who stayed housed or exited to another permanent destination |
 
 There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester-dac` has no `Funder` table, so there's no funded-project subset to scope to.
 
