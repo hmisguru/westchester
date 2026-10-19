@@ -6,7 +6,8 @@ const kpiIds = [
   "people-in-street-outreach",
   "income-growth-stayers",
   "first-time-homeless-with-outreach",
-  "exits-to-permanent-housing"
+  "exits-to-permanent-housing",
+  "permanent-housing-retention"
 ];
 
 export default {
