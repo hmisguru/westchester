@@ -4,7 +4,7 @@ Embeddable KPIs for the Westchester County Continuum of Care (NY-604), built fro
 
 ## KPIs
 
-Six KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- four are official HUD System Performance Measures, two (`people-in-street-outreach`, `first-time-homeless-with-outreach`) are dashboard-only additions:
+Seven KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) compared with the year before -- five are official HUD System Performance Measures, two (`people-in-street-outreach`, `first-time-homeless-with-outreach`) are dashboard-only additions:
 
 | id | Measure | KPI |
 |---|---|---|
@@ -14,6 +14,7 @@ Six KPIs for the most recent complete federal fiscal year (Oct 1 – Sep 30) com
 | `income-growth-stayers` | 4.3 | Stayers in CoC-funded projects whose total income increased year over year |
 | `first-time-homeless-with-outreach` | Local 5.3 *(not a HUD measure)* | People experiencing homelessness for the first time, with Street Outreach added to both the entry population and the prior-activity lookback -- replaces the plain HUD Measure 5.1 tile |
 | `exits-to-permanent-housing` | 7a.1 + 7b.1 | People exiting Street Outreach or ES/TH/RRH to permanent housing, each person counted once |
+| `permanent-housing-retention` | 7b.2 | Percentage of PSH/OPH/RRH participants who stayed housed or exited to another permanent destination |
 
 There is no project-funding filter: every KPI covers the whole CoC. `hmisguru/westchester-dac` has no `Funder` table, so there's no funded-project subset to scope to.
 
@@ -50,7 +51,7 @@ await KPI("exits-to-permanent-housing")
 
 | Export | What it returns |
 |---|---|
-| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all six by default), with one source line below it |
+| `KPIGrid(ids?, options?)` | A responsive grid of tiles (all seven by default), with one source line below it |
 | `KPI(id, options?)` | A single tile, with its own source line |
 | `data()` | The underlying numbers, for building your own display |
 
