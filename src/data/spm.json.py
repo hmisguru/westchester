@@ -159,7 +159,7 @@ def build_kpis(results):
         {
             "id": "exits-to-permanent-housing",
             "measure": "Measures 7a.1 + 7b.1",
-            "title": "Exits to Permanent Destinations",
+            "title": "Exits to permanent destinations",
             "value": m7_ph["current_fy"],
             "previous": m7_ph["previous_fy"],
             "format": "number",
