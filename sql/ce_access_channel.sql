@@ -8,14 +8,11 @@
 -- directly if the definition changes.
 --
 -- Same report universe and @period_start/@period_end convention as
--- sql/ce_reach.sql: CEParticipation.AccessPoint = 1 projects, one calendar
--- month at a time.
+-- sql/ce_reach.sql: ProjectType = 14 projects, one calendar month at a time.
 WITH ce_projects AS (
-  SELECT DISTINCT cep.ProjectID
-  FROM wchmiscsv.CEParticipation cep
-  WHERE cep.AccessPoint = 1
-    AND cep.CEParticipationStatusStartDate <= @period_end
-    AND (cep.CEParticipationStatusEndDate IS NULL OR cep.CEParticipationStatusEndDate >= @period_start)
+  SELECT p.ProjectID
+  FROM wchmiscsv.Project p
+  WHERE p.ContinuumProject = 1 AND p.ProjectType = 14
 ),
 assessments AS (
   SELECT en.HouseholdID, en.ProjectID, a.PersonalID, a.AssessmentDate, a.AssessmentType

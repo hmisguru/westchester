@@ -8,18 +8,19 @@
 -- and why. Regenerate nothing -- edit this file directly if the definition
 -- changes.
 --
--- Report universe, per the spec: a project counts as Coordinated Entry if it
--- has a CEParticipation record with AccessPoint = 1 overlapping the period,
--- regardless of HMIS ProjectType -- NOT just ProjectType = 14.
+-- Report universe, per explicit request: records associated with
+-- enrollments in projects with ProjectType = 14 (HMIS's own Coordinated
+-- Entry project type) -- a deliberate departure from the CE APR spec's own
+-- universe (any project with a CEParticipation record where AccessPoint = 1
+-- overlapping the period, regardless of ProjectType), which this dashboard
+-- used until this change. See CLAUDE.md's Coordinated Entry section.
 --
 -- Takes @period_start/@period_end directly (one calendar month at a time),
 -- not an implicit "+1 year" window like sql/m*.sql's @report_start.
 WITH ce_projects AS (
-  SELECT DISTINCT cep.ProjectID
-  FROM wchmiscsv.CEParticipation cep
-  WHERE cep.AccessPoint = 1
-    AND cep.CEParticipationStatusStartDate <= @period_end
-    AND (cep.CEParticipationStatusEndDate IS NULL OR cep.CEParticipationStatusEndDate >= @period_start)
+  SELECT p.ProjectID
+  FROM wchmiscsv.Project p
+  WHERE p.ContinuumProject = 1 AND p.ProjectType = 14
 ),
 assessments AS (
   -- One row per CE assessment in the period, at a CE access point project.
