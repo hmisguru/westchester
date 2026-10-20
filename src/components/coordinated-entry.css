@@ -1,0 +1,72 @@
+/* Coordinated Entry dashboard styles (/coordinated-entry/), class prefix
+   "ce-" throughout, matching this page's own route. Colors/fonts match
+   kpi.js's and the other full-page dashboards' own county-government
+   palette -- deep forest green (#02372d) / white, accent green (#3dc372),
+   "degular"/"Sora" for headings and large numbers -- for visual consistency
+   with the rest of this site. Own class prefix and own --series- steps
+   (not shared with /bridge/'s dashboard.css) since this is a separate page
+   with its own light/dark toggle. */
+:root {
+  --ce-accent: #02372d; --ce-surface: #ffffff; --ce-border: #d4d3d6; --ce-muted: #6c6d74;
+  /* Same success/danger colors kpi.js's own tiles use site-wide. */
+  --ce-good: #3dc372; --ce-bad: #e44e56;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+}
+
+html[data-theme="dark"] {
+  --ce-accent: #3dc372;
+  --ce-surface: #1b231f;
+  --ce-border: #33423c;
+  --ce-muted: #a9abb3;
+  --ce-good: #3dc372; --ce-bad: #ff9e45;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  --theme-foreground: #dfdfd6;
+  --theme-background-a: #161616;
+  --theme-background-b: #161616;
+  --theme-foreground-focus: #3dc372;
+  color-scheme: dark;
+}
+
+#observablehq-main { max-width: 1280px; }
+.ce-header h1 { margin: 0.1em 0 0.2em; max-width: none; }
+.ce-eyebrow { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ce-accent); }
+.ce-lede { margin: 0 0 16px; color: var(--ce-muted); max-width: 70ch; }
+
+.ce-theme-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border: 1px solid var(--ce-border); border-radius: 999px; background: var(--ce-surface);
+  color: inherit; font: inherit; cursor: pointer;
+}
+
+.ce-slider-wrap { display: flex; align-items: center; gap: 10px; margin: 16px 0 20px; flex-wrap: wrap; }
+.ce-slider-text { font-weight: 600; }
+.ce-slider { flex: 1 1 240px; max-width: 420px; accent-color: var(--ce-accent); }
+.ce-slider-label { font-weight: 700; min-width: 7ch; }
+
+.ce-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.ce-row-metrics > .ce-card,
+.ce-row-two > .ce-card { grid-column: span 6; }
+.ce-card {
+  grid-column: span 12; min-width: 0; padding: 16px 20px;
+  background: var(--ce-surface); border: 1px solid var(--ce-border); border-radius: 12px;
+}
+.ce-card-metric { border-top: 4px solid var(--ce-accent); }
+.ce-card-title { margin: 0 0 10px; font-family: "degular", "Sora", system-ui, sans-serif; font-size: 15px; font-weight: 700; color: var(--ce-accent); max-width: none; }
+.ce-metric { font-family: "degular", "Sora", system-ui, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.1; color: #161616; }
+html[data-theme="dark"] .ce-metric { color: #ffffff; }
+.ce-change { margin-top: 6px; font-size: 14px; color: var(--ce-muted); }
+.ce-change-arrow { margin-right: 4px; }
+.ce-change-empty { font-style: italic; }
+.ce-change-status { font-weight: 700; margin-right: 4px; }
+.ce-change[data-status="improved"] .ce-change-arrow { color: var(--ce-good); }
+.ce-change[data-status="worsened"] .ce-change-arrow { color: var(--ce-bad); }
+.ce-change[data-status="unchanged"] .ce-change-arrow { color: var(--ce-muted); }
+.ce-empty { color: var(--ce-muted); font-style: italic; margin: 0; }
+.ce-footnote { margin-top: 20px; font-size: 13px; color: var(--ce-muted); }
+
+@media (max-width: 640px) {
+  .ce-row-metrics > .ce-card,
+  .ce-row-two > .ce-card { grid-column: span 12; }
+}
