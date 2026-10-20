@@ -22,14 +22,12 @@
 --     non-residential referral type (5, 6, 7, 8, 9).
 --
 -- Same report universe and @period_start/@period_end convention as every
--- other file in this directory: CEParticipation.AccessPoint = 1 projects,
--- one calendar month at a time.
+-- other file in this directory: ProjectType = 14 projects, one calendar
+-- month at a time.
 WITH ce_projects AS (
-  SELECT DISTINCT cep.ProjectID
-  FROM wchmiscsv.CEParticipation cep
-  WHERE cep.AccessPoint = 1
-    AND cep.CEParticipationStatusStartDate <= @period_end
-    AND (cep.CEParticipationStatusEndDate IS NULL OR cep.CEParticipationStatusEndDate >= @period_start)
+  SELECT p.ProjectID
+  FROM wchmiscsv.Project p
+  WHERE p.ContinuumProject = 1 AND p.ProjectType = 14
 ),
 events AS (
   SELECT ev.EventID, ev.Event, ev.ReferralResult, ev.ProbSolDivRRResult
