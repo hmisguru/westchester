@@ -1,9 +1,13 @@
 """Observable Framework data loader: Coordinated Entry dashboard.
 
 Slices so far: Reach (persons/households assessed, by household type),
-Access Channel (phone/virtual/in-person), Event Mix (the 18 CE Event types),
-and Referral Outcomes (successful/unsuccessful referrals, the Problem
-Solving/Diversion success rate, and the residential-referral success rate).
+Access Channel (phone/virtual/in-person), and Referral Outcomes (the Problem
+Solving/Diversion and residential-referral success rate tiles, plus a
+combined CE Events by Outcome chart -- RRH/PSH/Other PH openings only, each
+broken down by referral outcome). CE Events originally had its own Event
+Mix slice (sql/ce_event_mix.sql, all 18 Event types, by month); that was
+later merged into this combined chart per explicit request and the standalone
+file removed.
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -37,30 +41,12 @@ client = bigquery.Client(project=BQ_PROJECT_ID)
 
 HOUSEHOLD_TYPES = ["Without Children", "With Children and Adults", "With Only Children", "Unknown Household Type"]
 CHANNELS = ["Phone", "Virtual", "In-Person", "Unknown"]
-# The 18 Event (4.20.2) response codes, in the spec's own Q9d/Q10 order --
-# must match the (shortened, display-only) CASE labels in sql/ce_event_mix.sql
-# exactly.
-EVENT_TYPES = [
-    "Referral to Prevention Assistance project",
-    "Problem Solving/Diversion",
-    "Referral to CE Crisis Needs Assessment",
-    "Referral to CE Housing Needs Assessment",
-    "Referral to post-placement case mgmt",
-    "Referral to Street Outreach",
-    "Referral to Housing Navigation",
-    "Non-continuum services: ineligible",
-    "Non-continuum services: none available",
-    "Referral to ES bed opening",
-    "Referral to TH bed/unit opening",
-    "Referral to Joint TH-RRH opening",
-    "Referral to RRH opening",
-    "Referral to PSH opening",
-    "Referral to Other PH project",
-    "Referral to emergency assistance",
-    "Referral to Housing Voucher (EHV)",
-    "Referral to a Housing Stability Voucher",
-]
-REFERRAL_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"]
+# Per explicit request: only these 3 residential-placement events feed the
+# combined CE Events by Outcome chart -- Prevention Assistance was dropped
+# on a follow-up request ("irrelevant here"). Must match the CASE labels in
+# sql/ce_referral_outcomes.sql's own placement_outcomes CTE exactly.
+PLACEMENT_EVENTS = ["Referral to RRH opening", "Referral to PSH opening", "Referral to Other PH project"]
+PLACEMENT_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"]
 
 
 def query(sql, params=()):
@@ -90,11 +76,10 @@ def rate(numerator_label, denominator_label, by_label):
     return round(numerator / denominator * 100, 1) if denominator else None
 
 
-def build_month(period_start, period_end, reach_rows, channel_rows, event_rows, outcome_rows):
+def build_month(period_start, period_end, reach_rows, channel_rows, outcome_rows):
     reach_by_label = {row["row_label"]: row for row in reach_rows}
     total = reach_by_label.get("Total", {"persons": 0, "households": 0})
     channel_by_label = {row["row_label"]: row for row in channel_rows}
-    event_by_label = {row["row_label"]: row for row in event_rows}
     outcome_by_label = {row["row_label"]: row for row in outcome_rows}
     return {
         "label": period_start.strftime("%b %Y"),
@@ -114,13 +99,10 @@ def build_month(period_start, period_end, reach_rows, channel_rows, event_rows, 
             {"channel": c, "households": channel_by_label.get(c, {}).get("households", 0)}
             for c in CHANNELS
         ],
-        "by_event": [
-            {"event": e, "events": event_by_label.get(e, {}).get("events", 0)}
-            for e in EVENT_TYPES
-        ],
-        "by_outcome": [
-            {"outcome": o, "events": outcome_by_label.get(o, {}).get("events", 0)}
-            for o in REFERRAL_OUTCOMES
+        "by_placement_outcome": [
+            {"event": e, "outcome": o, "events": outcome_by_label.get(f"{e} | {o}", {}).get("events", 0)}
+            for e in PLACEMENT_EVENTS
+            for o in PLACEMENT_OUTCOMES
         ],
         "psd_rate": rate("PSD Successful", "PSD Total", outcome_by_label),
         "psd_total": outcome_by_label.get("PSD Total", {}).get("events", 0),
@@ -148,7 +130,6 @@ def main():
         for filename in (
             "ce_reach.sql",
             "ce_access_channel.sql",
-            "ce_event_mix.sql",
             "ce_referral_outcomes.sql",
         )
     }
@@ -161,7 +142,6 @@ def main():
             *periods[ym],
             results[(ym, "ce_reach.sql")],
             results[(ym, "ce_access_channel.sql")],
-            results[(ym, "ce_event_mix.sql")],
             results[(ym, "ce_referral_outcomes.sql")],
         )
         for ym in months
