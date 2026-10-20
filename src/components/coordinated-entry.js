@@ -23,6 +23,9 @@ const SERIES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
 
 const integer = new Intl.NumberFormat("en-US", {maximumFractionDigits: 0});
 
+// Must match CHART_OUTCOMES in src/data/coordinated-entry.json.py exactly.
+const CHART_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"];
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -62,76 +65,6 @@ export function renderReachTiles(doc, monthIndex) {
   const wrap = el("div", "ce-row ce-row-metrics");
   wrap.append(renderStatTile("Persons with a CE Assessment", month, prevMonth, "persons"));
   wrap.append(renderStatTile("Households with a CE Assessment", month, prevMonth, "households"));
-  return wrap;
-}
-
-const oneDecimal = new Intl.NumberFormat("en-US", {minimumFractionDigits: 1, maximumFractionDigits: 1});
-
-/**
- * A percentage stat tile, better: "higher" (unlike renderStatTile's reach
- * tiles, a successful-referral rate genuinely is better when it's up) --
- * Improved/Worsened labeled, same convention kpi.js's own statusOf() uses
- * site-wide. Handles a null rate (the month's own denominator was zero --
- * e.g. no Problem Solving/Diversion events that month) as an explicit empty
- * state rather than showing a misleading 0%.
- */
-function renderRateTile(label, month, prevMonth, rateField, totalField, noDataMessage) {
-  const tile = el("div", "ce-card ce-card-metric");
-  tile.append(el("h3", "ce-card-title", label));
-  const rate = month[rateField];
-  if (rate == null) {
-    tile.append(el("div", "ce-metric", "—"));
-    tile.append(el("div", "ce-change ce-change-empty", noDataMessage));
-    return tile;
-  }
-  tile.append(el("div", "ce-metric", `${oneDecimal.format(rate)}%`));
-  const prevRate = prevMonth?.[rateField];
-  if (prevRate != null) {
-    const diff = rate - prevRate;
-    const change = el("div", "ce-change");
-    const epsilon = 0.05;
-    const status = Math.abs(diff) < epsilon ? "unchanged" : diff > 0 ? "improved" : "worsened";
-    const arrow = status === "unchanged" ? "●" : status === "improved" ? "▲" : "▼";
-    change.dataset.status = status;
-    change.append(el("span", "ce-change-arrow", arrow));
-    const statusLabel = {improved: "Improved", worsened: "Worsened", unchanged: "No change"}[status];
-    change.append(el("span", "ce-change-status", statusLabel));
-    change.append(
-      document.createTextNode(` ${oneDecimal.format(Math.abs(diff))} pts than ${prevMonth.label}`)
-    );
-    tile.append(change);
-  } else if (prevMonth) {
-    tile.append(el("div", "ce-change ce-change-empty", `No referrals in ${prevMonth.label} to compare against.`));
-  } else {
-    tile.append(el("div", "ce-change ce-change-empty", "First month of FY -- no prior month to compare."));
-  }
-  return tile;
-}
-
-export function renderOutcomeRateTiles(doc, monthIndex) {
-  const month = doc.months[monthIndex];
-  const prevMonth = monthIndex > 0 ? doc.months[monthIndex - 1] : null;
-  const wrap = el("div", "ce-row ce-row-metrics");
-  wrap.append(
-    renderRateTile(
-      "Problem Solving/Diversion Success Rate",
-      month,
-      prevMonth,
-      "psd_rate",
-      "psd_total",
-      "No Problem Solving/Diversion events recorded this month."
-    )
-  );
-  wrap.append(
-    renderRateTile(
-      "Referral to Residential Success Rate",
-      month,
-      prevMonth,
-      "residential_rate",
-      "residential_total",
-      "No residential referrals recorded this month."
-    )
-  );
   return wrap;
 }
 
@@ -205,119 +138,195 @@ export function renderAccessChannelChart(doc, monthIndex) {
   );
 }
 
-const OTHER_EVENT_LABEL = "Other";
-
-/**
- * CE Events, stacked by month across the whole fiscal year -- raw event
- * occurrences, not deduplicated by household (see sql/ce_event_mix.sql's own
- * header comment). Only the top 7 event types by FY-wide total get their own
- * stack segment and legend entry; everything else folds into "Other" --
- * the dataviz skill's own non-negotiable ("a 9th series is never a generated
- * hue; it folds into 'Other'") applies directly here, since the 8-color
- * validated palette can't give each of the 18 Event codes its own identity
- * without reusing hues. "Other" gets a neutral gray (var(--ce-muted)), not a
- * 9th palette color, so it reads as a catch-all rather than a real category.
- */
-/**
- * Shared plotting logic for every "stacked by month across the FY" chart on
- * this page (CE Events, Referral Outcomes): a stacked Plot.barY (same
- * Plot.barY(Plot.stackY(...)) pattern bridge.js's own renderAgeHistogram
- * uses in the sibling hmisguru/baltimore repo), with the selected month
- * highlighted by the same dashed rule renderTrend()'s line chart uses.
- *
- * No x-axis title: Plot auto-synthesizes one from the x channel's own field
- * name ("month") if label isn't explicitly set to null (not just omitted) --
- * the tick labels are already month names, so no title is needed.
- */
-function renderStackedByMonth(rows, months, selected, categoryField, valueField, domain, range, yLabel) {
-  return resize((width) =>
-    Plot.plot({
-      width,
-      height: 320,
-      marginBottom: 40,
-      x: {label: null, tickRotate: -35, domain: months.map((m) => m.label)},
-      y: {label: yLabel, grid: true, nice: true},
-      color: {domain, range, legend: true},
-      marks: [
-        Plot.ruleY([0]),
-        Plot.barY(
-          rows,
-          Plot.stackY({
-            x: "month",
-            y: valueField,
-            fill: categoryField,
-            order: domain,
-            title: (d) => `${d[categoryField]}: ${integer.format(d[valueField])} (${d.month})`,
-          })
-        ),
-        Plot.ruleX([selected.label], {stroke: "currentColor", strokeOpacity: 0.4, strokeDasharray: "4,3"}),
-      ],
-    })
-  );
-}
-
-export function renderEventMixChart(doc, monthIndex) {
-  const months = doc.months;
-  const selected = months[monthIndex];
-
-  const totals = new Map();
-  for (const m of months) {
-    for (const e of m.by_event) {
-      totals.set(e.event, (totals.get(e.event) ?? 0) + e.events);
-    }
-  }
-  const grandTotal = [...totals.values()].reduce((s, v) => s + v, 0);
-
-  const card = el("div", "ce-card");
-  card.append(el("h3", "ce-card-title", `CE Events by Month -- ${doc.fiscal_year.label}`));
-  if (!grandTotal) {
-    card.append(el("p", "ce-empty", "No CE events recorded this fiscal year."));
-    return card;
-  }
-
-  const topEvents = [...totals.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 7)
-    .map(([event]) => event);
-  const domain = [...topEvents, OTHER_EVENT_LABEL];
-  const range = [...SERIES.slice(0, topEvents.length), "var(--ce-muted)"];
-
-  const rows = months.flatMap((m) => {
-    const byEvent = new Map(m.by_event.map((e) => [e.event, e.events]));
-    const other = [...byEvent.entries()]
-      .filter(([event]) => !topEvents.includes(event))
-      .reduce((s, [, v]) => s + v, 0);
-    return [
-      ...topEvents.map((event) => ({month: m.label, event, events: byEvent.get(event) ?? 0})),
-      {month: m.label, event: OTHER_EVENT_LABEL, events: other},
-    ];
-  });
-
-  card.append(renderStackedByMonth(rows, months, selected, "event", "events", domain, range, "CE Events"));
-  return card;
-}
-
 // Successful/Unsuccessful/No-result -- only 4 fixed categories, all of
-// which fit the validated palette directly, so (unlike Event Mix's 18) no
-// top-K-plus-"Other" folding is needed here.
+// which fit the validated palette directly, so no top-K-plus-"Other"
+// folding is needed here.
 const OUTCOME_COLORS = SERIES.slice(0, 4);
 
-export function renderReferralOutcomesChart(doc, monthIndex) {
-  const months = doc.months;
-  const selected = months[monthIndex];
-  const domain = months[0].by_outcome.map((o) => o.outcome);
+// Display-only short forms for the x-axis tick labels, since a rotated full
+// label ("Referral to Prevention Assistance project", 43 chars) climbs far
+// enough up its own diagonal to be painted over by the bars above it --
+// confirmed live via getBoundingClientRect() on the rendered SVG, not
+// guessed. Shortening the labels (every category here is a referral, so the
+// repeated "Referral to" prefix carries no information on this axis) lets
+// the chart drop rotation entirely; the full name still appears in the
+// legend and the per-segment hover tooltip.
+const SHORT_EVENT_LABELS = {
+  "Referral to Prevention Assistance project": "Prevention Assistance",
+  "Referral to RRH opening": "RRH opening",
+  "Referral to PSH opening": "PSH opening",
+  "Referral to Other PH project": "Other PH project",
+};
 
-  const grandTotal = months.reduce((s, m) => s + m.by_outcome.reduce((s2, o) => s2 + o.events, 0), 0);
+/**
+ * CE Events by Outcome, per explicit request to combine what were
+ * previously two separate "stacked by month" charts (CE Events, Referral
+ * Outcomes) into one: each bar is now a CE event rather than a month, each
+ * stacked by referral outcome. Whole-FY totals (summed across all 12
+ * months), not filtered by the slider -- this chart's x-axis is no longer
+ * months, so there's no "selected month" to highlight.
+ *
+ * Scoped to 4 events, per explicit request (RRH/PSH/Other PH openings, plus
+ * Prevention Assistance, added back on a follow-up after initially being
+ * dropped) -- see sql/ce_referral_outcomes.sql's own event_outcomes CTE.
+ */
+export function renderEventOutcomesChart(doc) {
+  const totals = new Map();
+  for (const m of doc.months) {
+    for (const row of m.by_event_outcome) {
+      const key = `${row.event}|${row.outcome}`;
+      totals.set(key, (totals.get(key) ?? 0) + row.events);
+    }
+  }
+  const eventTotals = new Map();
+  for (const row of [...totals.entries()].map(([key, events]) => ({event: key.split("|")[0], events}))) {
+    eventTotals.set(row.event, (eventTotals.get(row.event) ?? 0) + row.events);
+  }
+  const grandTotal = [...eventTotals.values()].reduce((s, v) => s + v, 0);
+
   const card = el("div", "ce-card");
-  card.append(el("h3", "ce-card-title", `Referral Outcomes by Month -- ${doc.fiscal_year.label}`));
+  card.append(el("h3", "ce-card-title", `CE Events by Outcome -- ${doc.fiscal_year.label}`));
   if (!grandTotal) {
-    card.append(el("p", "ce-empty", "No CE referrals recorded this fiscal year."));
+    card.append(el("p", "ce-empty", "No referrals recorded this fiscal year for these events."));
     return card;
   }
 
-  const rows = months.flatMap((m) => m.by_outcome.map((o) => ({month: m.label, outcome: o.outcome, events: o.events})));
-  card.append(renderStackedByMonth(rows, months, selected, "outcome", "events", domain, OUTCOME_COLORS, "Referrals"));
+  const eventDomain = [...eventTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([event]) => SHORT_EVENT_LABELS[event] ?? event);
+  const outcomeDomain = CHART_OUTCOMES;
+  const rows = [...totals.entries()].map(([key, events]) => {
+    const [event, outcome] = key.split("|");
+    return {event, shortEvent: SHORT_EVENT_LABELS[event] ?? event, outcome, events};
+  });
+
+  card.append(
+    resize((width) =>
+      Plot.plot({
+        width,
+        height: 320,
+        marginBottom: 40,
+        x: {label: null, domain: eventDomain},
+        y: {label: "Referrals", grid: true, nice: true},
+        color: {domain: outcomeDomain, range: OUTCOME_COLORS, legend: true},
+        marks: [
+          Plot.ruleY([0]),
+          Plot.barY(
+            rows,
+            Plot.stackY({
+              x: "shortEvent",
+              y: "events",
+              fill: "outcome",
+              order: outcomeDomain,
+              title: (d) => `${d.event} -- ${d.outcome}: ${integer.format(d.events)}`,
+            })
+          ),
+        ],
+      })
+    )
+  );
   return card;
+}
+
+/**
+ * One manually-built legend row (swatch + label per outcome), shared above
+ * a facet grid instead of repeating Plot's own per-chart legend 4 times --
+ * the facets all share the same color domain, so one legend communicates
+ * it for all of them.
+ */
+function renderOutcomeLegend() {
+  const legend = el("div", "ce-outcome-legend");
+  CHART_OUTCOMES.forEach((outcome, i) => {
+    const item = el("span", "ce-outcome-legend-item");
+    const swatch = el("span", "ce-outcome-legend-swatch");
+    swatch.style.background = OUTCOME_COLORS[i];
+    item.append(swatch, document.createTextNode(outcome));
+    legend.append(item);
+  });
+  return legend;
+}
+
+/**
+ * CE Events by Outcome, Over Time -- per explicit follow-up request to add
+ * back the monthly dimension renderEventOutcomesChart() above gives up (it
+ * sums the whole FY so each event gets exactly one bar). This one facets by
+ * event instead: a 2x2 grid of small stacked-bar-by-month panels (one per
+ * event, matching renderEventOutcomesChart()'s own sort-by-FY-total order),
+ * each stacked by outcome -- i.e. the same stacking shape every other
+ * monthly-trend chart on this page uses, just repeated per event instead of
+ * collapsed into one combined chart. Complements, doesn't replace, the
+ * whole-FY chart above: that one answers "which events/outcomes matter most
+ * overall," this one answers "how is each event trending."
+ *
+ * A 2x2 grid (not 4 full-width stacked rows) to manage vertical space, per
+ * explicit request -- reuses the .ce-row-two layout (2 cards per row) the
+ * Household Type/Access Channel pair already uses. Month labels are
+ * short-form ("Oct", not "Oct 2025") since the fiscal year is already
+ * stated in this section's own title and each panel is half-width.
+ */
+export function renderEventOutcomesByMonth(doc) {
+  const months = doc.months;
+  const eventTotals = new Map();
+  for (const m of months) {
+    for (const row of m.by_event_outcome) {
+      eventTotals.set(row.event, (eventTotals.get(row.event) ?? 0) + row.events);
+    }
+  }
+  const grandTotal = [...eventTotals.values()].reduce((s, v) => s + v, 0);
+
+  // A plain section wrapper, not a .ce-card -- the 4 facet panels below are
+  // each their own real .ce-card, so wrapping them in another card would
+  // just nest a border inside a border.
+  const section = el("div", "ce-facet-section");
+  section.append(el("h3", "ce-card-title", `CE Events by Outcome, Over Time -- ${doc.fiscal_year.label}`));
+  if (!grandTotal) {
+    section.append(el("p", "ce-empty", "No referrals recorded this fiscal year for these events."));
+    return section;
+  }
+  section.append(renderOutcomeLegend());
+
+  const eventOrder = [...eventTotals.entries()].sort((a, b) => b[1] - a[1]).map(([event]) => event);
+  const grid = el("div", "ce-row ce-row-two");
+
+  for (const event of eventOrder) {
+    const rows = months.flatMap((m) =>
+      m.by_event_outcome
+        .filter((r) => r.event === event)
+        .map((r) => ({month: m.label, shortMonth: m.label.split(" ")[0], outcome: r.outcome, events: r.events}))
+    );
+
+    const panel = el("div", "ce-card");
+    panel.append(el("h4", "ce-card-title", SHORT_EVENT_LABELS[event] ?? event));
+    panel.append(
+      resize((width) =>
+        Plot.plot({
+          width,
+          height: 200,
+          marginBottom: 36,
+          x: {label: null, tickRotate: -35, domain: months.map((m) => m.label.split(" ")[0])},
+          y: {label: "Referrals", grid: true, nice: true},
+          color: {domain: CHART_OUTCOMES, range: OUTCOME_COLORS},
+          marks: [
+            Plot.ruleY([0]),
+            Plot.barY(
+              rows,
+              Plot.stackY({
+                x: "shortMonth",
+                y: "events",
+                fill: "outcome",
+                order: CHART_OUTCOMES,
+                title: (d) => `${d.outcome} (${d.month}): ${integer.format(d.events)}`,
+              })
+            ),
+          ],
+        })
+      )
+    );
+    grid.append(panel);
+  }
+
+  section.append(grid);
+  return section;
 }
 
 /** The 12-month FY trend, with the slider's selected month highlighted. */

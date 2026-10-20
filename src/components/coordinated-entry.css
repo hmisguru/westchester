@@ -8,8 +8,6 @@
    with its own light/dark toggle. */
 :root {
   --ce-accent: #02372d; --ce-surface: #ffffff; --ce-border: #d4d3d6; --ce-muted: #6c6d74;
-  /* Same success/danger colors kpi.js's own tiles use site-wide. */
-  --ce-good: #3dc372; --ce-bad: #e44e56;
   --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
   --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
 }
@@ -19,7 +17,6 @@ html[data-theme="dark"] {
   --ce-surface: #1b231f;
   --ce-border: #33423c;
   --ce-muted: #a9abb3;
-  --ce-good: #3dc372; --ce-bad: #ff9e45;
   --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
   --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
   --theme-foreground: #dfdfd6;
@@ -59,12 +56,13 @@ html[data-theme="dark"] .ce-metric { color: #ffffff; }
 .ce-change { margin-top: 6px; font-size: 14px; color: var(--ce-muted); }
 .ce-change-arrow { margin-right: 4px; }
 .ce-change-empty { font-style: italic; }
-.ce-change-status { font-weight: 700; margin-right: 4px; }
-.ce-change[data-status="improved"] .ce-change-arrow { color: var(--ce-good); }
-.ce-change[data-status="worsened"] .ce-change-arrow { color: var(--ce-bad); }
-.ce-change[data-status="unchanged"] .ce-change-arrow { color: var(--ce-muted); }
 .ce-empty { color: var(--ce-muted); font-style: italic; margin: 0; }
 .ce-footnote { margin-top: 20px; font-size: 13px; color: var(--ce-muted); }
+
+.ce-facet-section { margin-bottom: 16px; }
+.ce-outcome-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; font-size: 13px; color: var(--ce-muted); }
+.ce-outcome-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.ce-outcome-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
 
 @media (max-width: 640px) {
   .ce-row-metrics > .ce-card,
