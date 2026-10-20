@@ -1,8 +1,9 @@
 """Observable Framework data loader: Coordinated Entry dashboard.
 
 Slices so far: Reach (persons/households assessed, by household type),
-Access Channel (phone/virtual/in-person), and Event Mix (the 18 CE Event
-types).
+Access Channel (phone/virtual/in-person), Event Mix (the 18 CE Event types),
+and Referral Outcomes (successful/unsuccessful referrals, the Problem
+Solving/Diversion success rate, and the residential-referral success rate).
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -59,6 +60,7 @@ EVENT_TYPES = [
     "Referral to Housing Voucher (EHV)",
     "Referral to a Housing Stability Voucher",
 ]
+REFERRAL_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"]
 
 
 def query(sql, params=()):
@@ -80,11 +82,20 @@ def run_sql(filename, period_start, period_end):
     ])
 
 
-def build_month(period_start, period_end, reach_rows, channel_rows, event_rows):
+def rate(numerator_label, denominator_label, by_label):
+    """A percentage (0-100) from two sql/ce_referral_outcomes.sql count rows,
+    or None if the denominator is zero (nothing to rate that month)."""
+    numerator = by_label.get(numerator_label, {}).get("events", 0)
+    denominator = by_label.get(denominator_label, {}).get("events", 0)
+    return round(numerator / denominator * 100, 1) if denominator else None
+
+
+def build_month(period_start, period_end, reach_rows, channel_rows, event_rows, outcome_rows):
     reach_by_label = {row["row_label"]: row for row in reach_rows}
     total = reach_by_label.get("Total", {"persons": 0, "households": 0})
     channel_by_label = {row["row_label"]: row for row in channel_rows}
     event_by_label = {row["row_label"]: row for row in event_rows}
+    outcome_by_label = {row["row_label"]: row for row in outcome_rows}
     return {
         "label": period_start.strftime("%b %Y"),
         "start": period_start.isoformat(),
@@ -107,6 +118,14 @@ def build_month(period_start, period_end, reach_rows, channel_rows, event_rows):
             {"event": e, "events": event_by_label.get(e, {}).get("events", 0)}
             for e in EVENT_TYPES
         ],
+        "by_outcome": [
+            {"outcome": o, "events": outcome_by_label.get(o, {}).get("events", 0)}
+            for o in REFERRAL_OUTCOMES
+        ],
+        "psd_rate": rate("PSD Successful", "PSD Total", outcome_by_label),
+        "psd_total": outcome_by_label.get("PSD Total", {}).get("events", 0),
+        "residential_rate": rate("Residential Successful", "Residential Total", outcome_by_label),
+        "residential_total": outcome_by_label.get("Residential Total", {}).get("events", 0),
     }
 
 
@@ -126,7 +145,12 @@ def main():
     jobs = {
         (ym, filename): (filename, *periods[ym])
         for ym in months
-        for filename in ("ce_reach.sql", "ce_access_channel.sql", "ce_event_mix.sql")
+        for filename in (
+            "ce_reach.sql",
+            "ce_access_channel.sql",
+            "ce_event_mix.sql",
+            "ce_referral_outcomes.sql",
+        )
     }
     with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
         futures = {key: pool.submit(run_sql, filename, start, end) for key, (filename, start, end) in jobs.items()}
@@ -138,6 +162,7 @@ def main():
             results[(ym, "ce_reach.sql")],
             results[(ym, "ce_access_channel.sql")],
             results[(ym, "ce_event_mix.sql")],
+            results[(ym, "ce_referral_outcomes.sql")],
         )
         for ym in months
     ]
