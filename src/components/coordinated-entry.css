@@ -66,6 +66,11 @@ html[data-theme="dark"] .ce-metric { color: #ffffff; }
 .ce-empty { color: var(--ce-muted); font-style: italic; margin: 0; }
 .ce-footnote { margin-top: 20px; font-size: 13px; color: var(--ce-muted); }
 
+.ce-facet-section { margin-bottom: 16px; }
+.ce-outcome-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; font-size: 13px; color: var(--ce-muted); }
+.ce-outcome-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.ce-outcome-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
 @media (max-width: 640px) {
   .ce-row-metrics > .ce-card,
   .ce-row-two > .ce-card { grid-column: span 12; }

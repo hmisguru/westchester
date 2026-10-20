@@ -292,6 +292,107 @@ export function renderEventOutcomesChart(doc) {
   return card;
 }
 
+/**
+ * One manually-built legend row (swatch + label per outcome), shared above
+ * a facet grid instead of repeating Plot's own per-chart legend 4 times --
+ * the facets all share the same color domain, so one legend communicates
+ * it for all of them.
+ */
+function renderOutcomeLegend() {
+  const legend = el("div", "ce-outcome-legend");
+  CHART_OUTCOMES.forEach((outcome, i) => {
+    const item = el("span", "ce-outcome-legend-item");
+    const swatch = el("span", "ce-outcome-legend-swatch");
+    swatch.style.background = OUTCOME_COLORS[i];
+    item.append(swatch, document.createTextNode(outcome));
+    legend.append(item);
+  });
+  return legend;
+}
+
+/**
+ * CE Events by Outcome, Over Time -- per explicit follow-up request to add
+ * back the monthly dimension renderEventOutcomesChart() above gives up (it
+ * sums the whole FY so each event gets exactly one bar). This one facets by
+ * event instead: a 2x2 grid of small stacked-bar-by-month panels (one per
+ * event, matching renderEventOutcomesChart()'s own sort-by-FY-total order),
+ * each stacked by outcome -- i.e. the same stacking shape every other
+ * monthly-trend chart on this page uses, just repeated per event instead of
+ * collapsed into one combined chart. Complements, doesn't replace, the
+ * whole-FY chart above: that one answers "which events/outcomes matter most
+ * overall," this one answers "how is each event trending."
+ *
+ * A 2x2 grid (not 4 full-width stacked rows) to manage vertical space, per
+ * explicit request -- reuses the .ce-row-two layout (2 cards per row) the
+ * Household Type/Access Channel pair already uses. Month labels are
+ * short-form ("Oct", not "Oct 2025") since the fiscal year is already
+ * stated in this section's own title and each panel is half-width.
+ */
+export function renderEventOutcomesByMonth(doc) {
+  const months = doc.months;
+  const eventTotals = new Map();
+  for (const m of months) {
+    for (const row of m.by_event_outcome) {
+      eventTotals.set(row.event, (eventTotals.get(row.event) ?? 0) + row.events);
+    }
+  }
+  const grandTotal = [...eventTotals.values()].reduce((s, v) => s + v, 0);
+
+  // A plain section wrapper, not a .ce-card -- the 4 facet panels below are
+  // each their own real .ce-card, so wrapping them in another card would
+  // just nest a border inside a border.
+  const section = el("div", "ce-facet-section");
+  section.append(el("h3", "ce-card-title", `CE Events by Outcome, Over Time -- ${doc.fiscal_year.label}`));
+  if (!grandTotal) {
+    section.append(el("p", "ce-empty", "No referrals recorded this fiscal year for these events."));
+    return section;
+  }
+  section.append(renderOutcomeLegend());
+
+  const eventOrder = [...eventTotals.entries()].sort((a, b) => b[1] - a[1]).map(([event]) => event);
+  const grid = el("div", "ce-row ce-row-two");
+
+  for (const event of eventOrder) {
+    const rows = months.flatMap((m) =>
+      m.by_event_outcome
+        .filter((r) => r.event === event)
+        .map((r) => ({month: m.label, shortMonth: m.label.split(" ")[0], outcome: r.outcome, events: r.events}))
+    );
+
+    const panel = el("div", "ce-card");
+    panel.append(el("h4", "ce-card-title", SHORT_EVENT_LABELS[event] ?? event));
+    panel.append(
+      resize((width) =>
+        Plot.plot({
+          width,
+          height: 200,
+          marginBottom: 36,
+          x: {label: null, tickRotate: -35, domain: months.map((m) => m.label.split(" ")[0])},
+          y: {label: "Referrals", grid: true, nice: true},
+          color: {domain: CHART_OUTCOMES, range: OUTCOME_COLORS},
+          marks: [
+            Plot.ruleY([0]),
+            Plot.barY(
+              rows,
+              Plot.stackY({
+                x: "shortMonth",
+                y: "events",
+                fill: "outcome",
+                order: CHART_OUTCOMES,
+                title: (d) => `${d.outcome} (${d.month}): ${integer.format(d.events)}`,
+              })
+            ),
+          ],
+        })
+      )
+    );
+    grid.append(panel);
+  }
+
+  section.append(grid);
+  return section;
+}
+
 /** The 12-month FY trend, with the slider's selected month highlighted. */
 export function renderTrend(doc, monthIndex) {
   const months = doc.months;

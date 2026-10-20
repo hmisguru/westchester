@@ -6,7 +6,7 @@ toc: false
 <link rel="stylesheet" href="../components/coordinated-entry.css">
 
 ```js
-import {renderAccessChannelChart, renderEventOutcomesChart, renderFootnote, renderHouseholdTypeChart, renderMonthSlider, renderReachTiles, renderResidentialRateTile, renderThemeToggle, renderTrend} from "../components/coordinated-entry.js";
+import {renderAccessChannelChart, renderEventOutcomesByMonth, renderEventOutcomesChart, renderFootnote, renderHouseholdTypeChart, renderMonthSlider, renderReachTiles, renderResidentialRateTile, renderThemeToggle, renderTrend} from "../components/coordinated-entry.js";
 const doc = FileAttachment("../data/coordinated-entry.json").json();
 ```
 
@@ -48,6 +48,10 @@ display(renderResidentialRateTile(doc, monthIndex));
 
 ```js
 display(renderEventOutcomesChart(doc));
+```
+
+```js
+display(renderEventOutcomesByMonth(doc));
 ```
 
 ```js
