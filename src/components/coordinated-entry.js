@@ -71,10 +71,23 @@ const pct = new Intl.NumberFormat("en-US", {style: "percent", maximumFractionDig
  * A sorted-horizontal-bars breakdown chart (lengths compare more accurately
  * than angles -- same reasoning /bridge/'s own renderPie uses), shared by
  * every "mix for the selected month" chart on this page.
+ *
+ * @param {boolean} [hideZero=false]  drop zero-count rows instead of showing
+ *   them as empty bars -- off by default (every fixed-size category, e.g.
+ *   the 4 household types, stays visible every month for comparability), on
+ *   for wide-domain charts like the 18-category Event Mix, where most
+ *   categories are legitimately zero most months and showing all of them
+ *   would bury the ones that matter under a wall of empty bars.
  */
-function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage) {
-  const sorted = [...rows].sort((a, b) => b[valueField] - a[valueField]);
+function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage, {hideZero = false} = {}) {
+  const filtered = hideZero ? rows.filter((d) => d[valueField] > 0) : rows;
+  const sorted = [...filtered].sort((a, b) => b[valueField] - a[valueField]);
   const total = sorted.reduce((s, d) => s + d[valueField], 0);
+  // Reserve enough left margin for the longest label actually being shown
+  // (e.g. Event Mix's "Referral to CE Housing Needs Assessment") rather than
+  // a single fixed width -- a cap tuned for the 4-category charts clipped
+  // the longer Event Mix labels, confirmed live.
+  const longestLabel = Math.max(...sorted.map((d) => String(d[labelField]).length));
 
   const card = el("div", "ce-card");
   card.append(el("h3", "ce-card-title", title));
@@ -87,7 +100,7 @@ function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage)
       Plot.plot({
         width,
         height: 40 + sorted.length * 36,
-        marginLeft: Math.min(200, width * 0.4),
+        marginLeft: Math.min(20 + longestLabel * 6.2, width * 0.45),
         marginRight: 90,
         x: {axis: null},
         y: {domain: sorted.map((d) => d[labelField]), label: null, tickSize: 0},
@@ -127,6 +140,23 @@ export function renderAccessChannelChart(doc, monthIndex) {
     "channel",
     "households",
     "No CE assessments recorded this month."
+  );
+}
+
+// Raw event occurrences, not deduplicated by household -- see
+// sql/ce_event_mix.sql's own header comment. hideZero: true since most of
+// the 18 event types are legitimately zero in any given month (e.g. a
+// Housing Stability Voucher referral is rare), and showing all 18 every
+// month would bury the ones that actually happened under empty bars.
+export function renderEventMixChart(doc, monthIndex) {
+  const month = doc.months[monthIndex];
+  return renderSortedBarChart(
+    `CE Events -- ${month.label}`,
+    month.by_event,
+    "event",
+    "events",
+    "No CE events recorded this month.",
+    {hideZero: true}
   );
 }
 

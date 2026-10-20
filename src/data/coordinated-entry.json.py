@@ -1,7 +1,8 @@
 """Observable Framework data loader: Coordinated Entry dashboard.
 
-Slices so far: Reach (persons/households assessed, by household type) and
-Access Channel (phone/virtual/in-person).
+Slices so far: Reach (persons/households assessed, by household type),
+Access Channel (phone/virtual/in-person), and Event Mix (the 18 CE Event
+types).
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -35,6 +36,29 @@ client = bigquery.Client(project=BQ_PROJECT_ID)
 
 HOUSEHOLD_TYPES = ["Without Children", "With Children and Adults", "With Only Children", "Unknown Household Type"]
 CHANNELS = ["Phone", "Virtual", "In-Person", "Unknown"]
+# The 18 Event (4.20.2) response codes, in the spec's own Q9d/Q10 order --
+# must match the (shortened, display-only) CASE labels in sql/ce_event_mix.sql
+# exactly.
+EVENT_TYPES = [
+    "Referral to Prevention Assistance project",
+    "Problem Solving/Diversion",
+    "Referral to CE Crisis Needs Assessment",
+    "Referral to CE Housing Needs Assessment",
+    "Referral to post-placement case mgmt",
+    "Referral to Street Outreach",
+    "Referral to Housing Navigation",
+    "Non-continuum services: ineligible",
+    "Non-continuum services: none available",
+    "Referral to ES bed opening",
+    "Referral to TH bed/unit opening",
+    "Referral to Joint TH-RRH opening",
+    "Referral to RRH opening",
+    "Referral to PSH opening",
+    "Referral to Other PH project",
+    "Referral to emergency assistance",
+    "Referral to Housing Voucher (EHV)",
+    "Referral to a Housing Stability Voucher",
+]
 
 
 def query(sql, params=()):
@@ -56,10 +80,11 @@ def run_sql(filename, period_start, period_end):
     ])
 
 
-def build_month(period_start, period_end, reach_rows, channel_rows):
+def build_month(period_start, period_end, reach_rows, channel_rows, event_rows):
     reach_by_label = {row["row_label"]: row for row in reach_rows}
     total = reach_by_label.get("Total", {"persons": 0, "households": 0})
     channel_by_label = {row["row_label"]: row for row in channel_rows}
+    event_by_label = {row["row_label"]: row for row in event_rows}
     return {
         "label": period_start.strftime("%b %Y"),
         "start": period_start.isoformat(),
@@ -77,6 +102,10 @@ def build_month(period_start, period_end, reach_rows, channel_rows):
         "by_channel": [
             {"channel": c, "households": channel_by_label.get(c, {}).get("households", 0)}
             for c in CHANNELS
+        ],
+        "by_event": [
+            {"event": e, "events": event_by_label.get(e, {}).get("events", 0)}
+            for e in EVENT_TYPES
         ],
     }
 
@@ -97,14 +126,19 @@ def main():
     jobs = {
         (ym, filename): (filename, *periods[ym])
         for ym in months
-        for filename in ("ce_reach.sql", "ce_access_channel.sql")
+        for filename in ("ce_reach.sql", "ce_access_channel.sql", "ce_event_mix.sql")
     }
     with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
         futures = {key: pool.submit(run_sql, filename, start, end) for key, (filename, start, end) in jobs.items()}
         results = {key: future.result() for key, future in futures.items()}
 
     monthly = [
-        build_month(*periods[ym], results[(ym, "ce_reach.sql")], results[(ym, "ce_access_channel.sql")])
+        build_month(
+            *periods[ym],
+            results[(ym, "ce_reach.sql")],
+            results[(ym, "ce_access_channel.sql")],
+            results[(ym, "ce_event_mix.sql")],
+        )
         for ym in months
     ]
     monthly.sort(key=lambda m: m["start"])
