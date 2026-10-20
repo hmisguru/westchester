@@ -6,7 +6,7 @@ toc: false
 <link rel="stylesheet" href="../components/coordinated-entry.css">
 
 ```js
-import {renderAccessChannelChart, renderEventOutcomesByMonth, renderEventOutcomesChart, renderFootnote, renderHouseholdTypeChart, renderMonthSlider, renderReachTiles, renderResidentialRateTile, renderThemeToggle, renderTrend} from "../components/coordinated-entry.js";
+import {renderAccessChannelChart, renderEventOutcomesByMonth, renderEventOutcomesChart, renderFootnote, renderHouseholdTypeChart, renderMonthSlider, renderReachTiles, renderThemeToggle, renderTrend} from "../components/coordinated-entry.js";
 const doc = FileAttachment("../data/coordinated-entry.json").json();
 ```
 
@@ -40,10 +40,6 @@ const breakdownRow = document.createElement("div");
 breakdownRow.className = "ce-row ce-row-two";
 breakdownRow.append(renderHouseholdTypeChart(doc, monthIndex), renderAccessChannelChart(doc, monthIndex));
 display(breakdownRow);
-```
-
-```js
-display(renderResidentialRateTile(doc, monthIndex));
 ```
 
 ```js

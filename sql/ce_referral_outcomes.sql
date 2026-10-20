@@ -7,15 +7,6 @@
 -- Event-type groupings, per the spec's own Q9d row list (confirmed by
 -- reading the spec directly), except where noted below as a deliberate
 -- departure:
---   * Residential-referral universe (Q9d row 23's own formula: "[total
---     successful] / [sum of totals in rows 7 through 12, 14 and 15]"): ES
---     bed opening (10), TH bed/unit opening (11), Joint TH-RRH opening (12),
---     RRH opening (13), PSH opening (14), Other PH project (15), Emergency
---     Housing Voucher (17), and Housing Stability Voucher (18) --
---     deliberately excludes emergency assistance/flex fund (16, row 13 in
---     the spec's own table, not a residential placement) and every
---     non-residential referral type (5, 6, 7, 8, 9). Feeds the Referral to
---     Residential Success Rate tile.
 --   * Chart event set, per explicit request (and a follow-up correction):
 --     RRH opening (13), PSH opening (14), Other PH project (15), and
 --     Prevention Assistance (1) -- a deliberate departure from the spec's
@@ -25,7 +16,10 @@
 --
 -- Problem Solving/Diversion (Event.ProbSolDivRRResult, 4.20.A) is
 -- deliberately NOT computed here -- its own rate tile was removed per
--- explicit request; see CLAUDE.md's Coordinated Entry section.
+-- explicit request; see CLAUDE.md's Coordinated Entry section. The
+-- Residential Success Rate tile (Q9d row 23's own formula) was likewise
+-- removed per explicit request -- this file no longer computes any rate at
+-- all, just the event x outcome breakdown below.
 --
 -- Same report universe and @period_start/@period_end convention as every
 -- other file in this directory: ProjectType = 14 projects, one calendar
@@ -42,9 +36,6 @@ events AS (
   JOIN ce_projects cp ON en.ProjectID = cp.ProjectID
   WHERE ev.EventDate >= @period_start AND ev.EventDate <= @period_end
     AND (en.EnrollmentCoC = 'NY-604' OR en.EnrollmentCoC IS NULL)
-),
-residential_referrals AS (
-  SELECT * FROM events WHERE Event IN (10, 11, 12, 13, 14, 15, 17, 18)
 ),
 event_outcomes AS (
   -- Labels match sql/ce_event_mix.sql's own (now-deleted) shortened CASE
@@ -73,10 +64,6 @@ event_outcomes AS (
 -- below, not the bare integers the HUD response codes are numbered with. A
 -- blank string is treated the same as NULL for "no result recorded", since
 -- a blank CSV cell can load as either depending on the export.
-SELECT 'Residential Successful' AS row_label, COUNT(*) AS events FROM residential_referrals WHERE ReferralResult = '1'
-UNION ALL
-SELECT 'Residential Total', COUNT(*) FROM residential_referrals
-UNION ALL
 -- One row per (event, outcome) combo actually present this month -- the
 -- loader zero-fills any of the 4 x 4 = 16 combos missing here.
 SELECT CONCAT(event_label, ' | ', outcome_label) AS row_label, COUNT(*) AS events

@@ -1,14 +1,15 @@
 """Observable Framework data loader: Coordinated Entry dashboard.
 
 Slices so far: Reach (persons/households assessed, by household type),
-Access Channel (phone/virtual/in-person), and Referral Outcomes (the
-residential-referral success rate tile, plus a combined CE Events by
-Outcome chart -- RRH/PSH/Other PH openings and Prevention Assistance, each
-broken down by referral outcome). CE Events originally had its own Event
-Mix slice (sql/ce_event_mix.sql, all 18 Event types, by month); that was
-later merged into this combined chart per explicit request and the standalone
-file removed. The Problem Solving/Diversion success rate tile was also
-removed per explicit request.
+Access Channel (phone/virtual/in-person), and Referral Outcomes (a combined
+CE Events by Outcome chart -- RRH/PSH/Other PH openings and Prevention
+Assistance, each broken down by referral outcome). CE Events originally had
+its own Event Mix slice (sql/ce_event_mix.sql, all 18 Event types, by
+month); that was later merged into this combined chart per explicit request
+and the standalone file removed. The Problem Solving/Diversion and
+Residential Success Rate tiles were also removed per explicit request --
+this loader computes no rate at all anymore, just the event x outcome
+breakdown.
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -73,14 +74,6 @@ def run_sql(filename, period_start, period_end):
     ])
 
 
-def rate(numerator_label, denominator_label, by_label):
-    """A percentage (0-100) from two sql/ce_referral_outcomes.sql count rows,
-    or None if the denominator is zero (nothing to rate that month)."""
-    numerator = by_label.get(numerator_label, {}).get("events", 0)
-    denominator = by_label.get(denominator_label, {}).get("events", 0)
-    return round(numerator / denominator * 100, 1) if denominator else None
-
-
 def build_month(period_start, period_end, reach_rows, channel_rows, outcome_rows):
     reach_by_label = {row["row_label"]: row for row in reach_rows}
     total = reach_by_label.get("Total", {"persons": 0, "households": 0})
@@ -109,8 +102,6 @@ def build_month(period_start, period_end, reach_rows, channel_rows, outcome_rows
             for e in CHART_EVENTS
             for o in CHART_OUTCOMES
         ],
-        "residential_rate": rate("Residential Successful", "Residential Total", outcome_by_label),
-        "residential_total": outcome_by_label.get("Residential Total", {}).get("events", 0),
     }
 
 
