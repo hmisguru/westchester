@@ -48,18 +48,25 @@ residential_referrals AS (
 problem_solving AS (
   SELECT * FROM events WHERE Event = 2
 )
-SELECT 'Successful' AS row_label, COUNT(*) AS events FROM referrals WHERE ReferralResult = 1
+-- ReferralResult/ProbSolDivRRResult are STRING columns in this dataset (not
+-- INT64, confirmed against westchester-dac/refresh_hmis_data.sql's own LOAD
+-- DATA schema after a live build failed on this: "No matching signature for
+-- operator = for argument types: STRING, INT64") -- compared against string
+-- literals below, not the bare integers the HUD response codes are numbered
+-- with. A blank string is treated the same as NULL for "no result recorded",
+-- since a blank CSV cell can load as either depending on the export.
+SELECT 'Successful' AS row_label, COUNT(*) AS events FROM referrals WHERE ReferralResult = '1'
 UNION ALL
-SELECT 'Unsuccessful: client rejected', COUNT(*) FROM referrals WHERE ReferralResult = 2
+SELECT 'Unsuccessful: client rejected', COUNT(*) FROM referrals WHERE ReferralResult = '2'
 UNION ALL
-SELECT 'Unsuccessful: provider rejected', COUNT(*) FROM referrals WHERE ReferralResult = 3
+SELECT 'Unsuccessful: provider rejected', COUNT(*) FROM referrals WHERE ReferralResult = '3'
 UNION ALL
-SELECT 'No result recorded', COUNT(*) FROM referrals WHERE ReferralResult IS NULL
+SELECT 'No result recorded', COUNT(*) FROM referrals WHERE ReferralResult IS NULL OR ReferralResult = ''
 UNION ALL
-SELECT 'Residential Successful', COUNT(*) FROM residential_referrals WHERE ReferralResult = 1
+SELECT 'Residential Successful', COUNT(*) FROM residential_referrals WHERE ReferralResult = '1'
 UNION ALL
 SELECT 'Residential Total', COUNT(*) FROM residential_referrals
 UNION ALL
-SELECT 'PSD Successful', COUNT(*) FROM problem_solving WHERE ProbSolDivRRResult = 1
+SELECT 'PSD Successful', COUNT(*) FROM problem_solving WHERE ProbSolDivRRResult = '1'
 UNION ALL
 SELECT 'PSD Total', COUNT(*) FROM problem_solving
