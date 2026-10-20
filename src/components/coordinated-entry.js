@@ -1,4 +1,4 @@
-// Coordinated Entry dashboard (/coordinated-entry/), Slice 1: Reach.
+// Coordinated Entry dashboard (/coordinated-entry/).
 //
 // Unlike every other full-page dashboard on this site (/bridge/, /spm/),
 // this one has no DAC YAML behind it -- see src/data/coordinated-entry.json.py
@@ -71,17 +71,9 @@ const pct = new Intl.NumberFormat("en-US", {style: "percent", maximumFractionDig
  * A sorted-horizontal-bars breakdown chart (lengths compare more accurately
  * than angles -- same reasoning /bridge/'s own renderPie uses), shared by
  * every "mix for the selected month" chart on this page.
- *
- * @param {boolean} [hideZero=false]  drop zero-count rows instead of showing
- *   them as empty bars -- off by default (every fixed-size category, e.g.
- *   the 4 household types, stays visible every month for comparability), on
- *   for wide-domain charts like the 18-category Event Mix, where most
- *   categories are legitimately zero most months and showing all of them
- *   would bury the ones that matter under a wall of empty bars.
  */
-function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage, {hideZero = false} = {}) {
-  const filtered = hideZero ? rows.filter((d) => d[valueField] > 0) : rows;
-  const sorted = [...filtered].sort((a, b) => b[valueField] - a[valueField]);
+function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage) {
+  const sorted = [...rows].sort((a, b) => b[valueField] - a[valueField]);
   const total = sorted.reduce((s, d) => s + d[valueField], 0);
   // Reserve enough left margin for the longest label actually being shown
   // (e.g. Event Mix's "Referral to CE Housing Needs Assessment") rather than
@@ -143,21 +135,83 @@ export function renderAccessChannelChart(doc, monthIndex) {
   );
 }
 
-// Raw event occurrences, not deduplicated by household -- see
-// sql/ce_event_mix.sql's own header comment. hideZero: true since most of
-// the 18 event types are legitimately zero in any given month (e.g. a
-// Housing Stability Voucher referral is rare), and showing all 18 every
-// month would bury the ones that actually happened under empty bars.
+const OTHER_EVENT_LABEL = "Other";
+
+/**
+ * CE Events, stacked by month across the whole fiscal year -- raw event
+ * occurrences, not deduplicated by household (see sql/ce_event_mix.sql's own
+ * header comment). Only the top 7 event types by FY-wide total get their own
+ * stack segment and legend entry; everything else folds into "Other" --
+ * the dataviz skill's own non-negotiable ("a 9th series is never a generated
+ * hue; it folds into 'Other'") applies directly here, since the 8-color
+ * validated palette can't give each of the 18 Event codes its own identity
+ * without reusing hues. "Other" gets a neutral gray (var(--ce-muted)), not a
+ * 9th palette color, so it reads as a catch-all rather than a real category.
+ */
 export function renderEventMixChart(doc, monthIndex) {
-  const month = doc.months[monthIndex];
-  return renderSortedBarChart(
-    `CE Events -- ${month.label}`,
-    month.by_event,
-    "event",
-    "events",
-    "No CE events recorded this month.",
-    {hideZero: true}
+  const months = doc.months;
+  const selected = months[monthIndex];
+
+  const totals = new Map();
+  for (const m of months) {
+    for (const e of m.by_event) {
+      totals.set(e.event, (totals.get(e.event) ?? 0) + e.events);
+    }
+  }
+  const grandTotal = [...totals.values()].reduce((s, v) => s + v, 0);
+
+  const card = el("div", "ce-card");
+  card.append(el("h3", "ce-card-title", `CE Events by Month -- ${doc.fiscal_year.label}`));
+  if (!grandTotal) {
+    card.append(el("p", "ce-empty", "No CE events recorded this fiscal year."));
+    return card;
+  }
+
+  const topEvents = [...totals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 7)
+    .map(([event]) => event);
+  const domain = [...topEvents, OTHER_EVENT_LABEL];
+  const range = [...SERIES.slice(0, topEvents.length), "var(--ce-muted)"];
+
+  const rows = months.flatMap((m) => {
+    const byEvent = new Map(m.by_event.map((e) => [e.event, e.events]));
+    const other = [...byEvent.entries()]
+      .filter(([event]) => !topEvents.includes(event))
+      .reduce((s, [, v]) => s + v, 0);
+    return [
+      ...topEvents.map((event) => ({month: m.label, event, events: byEvent.get(event) ?? 0})),
+      {month: m.label, event: OTHER_EVENT_LABEL, events: other},
+    ];
+  });
+
+  card.append(
+    resize((width) =>
+      Plot.plot({
+        width,
+        height: 320,
+        marginBottom: 40,
+        x: {label: null, tickRotate: -35, domain: months.map((m) => m.label)},
+        y: {label: "CE Events", grid: true, nice: true},
+        color: {domain, range, legend: true},
+        marks: [
+          Plot.ruleY([0]),
+          Plot.barY(
+            rows,
+            Plot.stackY({
+              x: "month",
+              y: "events",
+              fill: "event",
+              order: domain,
+              title: (d) => `${d.event}: ${integer.format(d.events)} (${d.month})`,
+            })
+          ),
+          Plot.ruleX([selected.label], {stroke: "currentColor", strokeOpacity: 0.4, strokeDasharray: "4,3"}),
+        ],
+      })
+    )
   );
+  return card;
 }
 
 /** The 12-month FY trend, with the slider's selected month highlighted. */
