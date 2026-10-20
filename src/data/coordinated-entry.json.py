@@ -1,13 +1,14 @@
 """Observable Framework data loader: Coordinated Entry dashboard.
 
 Slices so far: Reach (persons/households assessed, by household type),
-Access Channel (phone/virtual/in-person), and Referral Outcomes (the Problem
-Solving/Diversion and residential-referral success rate tiles, plus a
-combined CE Events by Outcome chart -- RRH/PSH/Other PH openings only, each
+Access Channel (phone/virtual/in-person), and Referral Outcomes (the
+residential-referral success rate tile, plus a combined CE Events by
+Outcome chart -- RRH/PSH/Other PH openings and Prevention Assistance, each
 broken down by referral outcome). CE Events originally had its own Event
 Mix slice (sql/ce_event_mix.sql, all 18 Event types, by month); that was
 later merged into this combined chart per explicit request and the standalone
-file removed.
+file removed. The Problem Solving/Diversion success rate tile was also
+removed per explicit request.
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -41,12 +42,16 @@ client = bigquery.Client(project=BQ_PROJECT_ID)
 
 HOUSEHOLD_TYPES = ["Without Children", "With Children and Adults", "With Only Children", "Unknown Household Type"]
 CHANNELS = ["Phone", "Virtual", "In-Person", "Unknown"]
-# Per explicit request: only these 3 residential-placement events feed the
-# combined CE Events by Outcome chart -- Prevention Assistance was dropped
-# on a follow-up request ("irrelevant here"). Must match the CASE labels in
-# sql/ce_referral_outcomes.sql's own placement_outcomes CTE exactly.
-PLACEMENT_EVENTS = ["Referral to RRH opening", "Referral to PSH opening", "Referral to Other PH project"]
-PLACEMENT_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"]
+# Per explicit request: these 4 events feed the combined CE Events by
+# Outcome chart. Must match the CASE labels in sql/ce_referral_outcomes.sql's
+# own event_outcomes CTE exactly.
+CHART_EVENTS = [
+    "Referral to Prevention Assistance project",
+    "Referral to RRH opening",
+    "Referral to PSH opening",
+    "Referral to Other PH project",
+]
+CHART_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"]
 
 
 def query(sql, params=()):
@@ -99,13 +104,11 @@ def build_month(period_start, period_end, reach_rows, channel_rows, outcome_rows
             {"channel": c, "households": channel_by_label.get(c, {}).get("households", 0)}
             for c in CHANNELS
         ],
-        "by_placement_outcome": [
+        "by_event_outcome": [
             {"event": e, "outcome": o, "events": outcome_by_label.get(f"{e} | {o}", {}).get("events", 0)}
-            for e in PLACEMENT_EVENTS
-            for o in PLACEMENT_OUTCOMES
+            for e in CHART_EVENTS
+            for o in CHART_OUTCOMES
         ],
-        "psd_rate": rate("PSD Successful", "PSD Total", outcome_by_label),
-        "psd_total": outcome_by_label.get("PSD Total", {}).get("events", 0),
         "residential_rate": rate("Residential Successful", "Residential Total", outcome_by_label),
         "residential_total": outcome_by_label.get("Residential Total", {}).get("events", 0),
     }

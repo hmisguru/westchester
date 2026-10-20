@@ -23,8 +23,8 @@ const SERIES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
 
 const integer = new Intl.NumberFormat("en-US", {maximumFractionDigits: 0});
 
-// Must match PLACEMENT_OUTCOMES in src/data/coordinated-entry.json.py exactly.
-const PLACEMENT_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"];
+// Must match CHART_OUTCOMES in src/data/coordinated-entry.json.py exactly.
+const CHART_OUTCOMES = ["Successful", "Unsuccessful: client rejected", "Unsuccessful: provider rejected", "No result recorded"];
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -75,8 +75,8 @@ const oneDecimal = new Intl.NumberFormat("en-US", {minimumFractionDigits: 1, max
  * tiles, a successful-referral rate genuinely is better when it's up) --
  * Improved/Worsened labeled, same convention kpi.js's own statusOf() uses
  * site-wide. Handles a null rate (the month's own denominator was zero --
- * e.g. no Problem Solving/Diversion events that month) as an explicit empty
- * state rather than showing a misleading 0%.
+ * e.g. no residential referrals that month) as an explicit empty state
+ * rather than showing a misleading 0%.
  */
 function renderRateTile(label, month, prevMonth, rateField, totalField, noDataMessage) {
   const tile = el("div", "ce-card ce-card-metric");
@@ -111,20 +111,14 @@ function renderRateTile(label, month, prevMonth, rateField, totalField, noDataMe
   return tile;
 }
 
-export function renderOutcomeRateTiles(doc, monthIndex) {
+// Problem Solving/Diversion Success Rate was removed per explicit request
+// (its own rate tile, not just a display tweak) -- see
+// sql/ce_referral_outcomes.sql's own header comment for what's still
+// computed here vs. not.
+export function renderResidentialRateTile(doc, monthIndex) {
   const month = doc.months[monthIndex];
   const prevMonth = monthIndex > 0 ? doc.months[monthIndex - 1] : null;
   const wrap = el("div", "ce-row ce-row-metrics");
-  wrap.append(
-    renderRateTile(
-      "Problem Solving/Diversion Success Rate",
-      month,
-      prevMonth,
-      "psd_rate",
-      "psd_total",
-      "No Problem Solving/Diversion events recorded this month."
-    )
-  );
   wrap.append(
     renderRateTile(
       "Referral to Residential Success Rate",
@@ -213,6 +207,21 @@ export function renderAccessChannelChart(doc, monthIndex) {
 // folding is needed here.
 const OUTCOME_COLORS = SERIES.slice(0, 4);
 
+// Display-only short forms for the x-axis tick labels, since a rotated full
+// label ("Referral to Prevention Assistance project", 43 chars) climbs far
+// enough up its own diagonal to be painted over by the bars above it --
+// confirmed live via getBoundingClientRect() on the rendered SVG, not
+// guessed. Shortening the labels (every category here is a referral, so the
+// repeated "Referral to" prefix carries no information on this axis) lets
+// the chart drop rotation entirely; the full name still appears in the
+// legend and the per-segment hover tooltip.
+const SHORT_EVENT_LABELS = {
+  "Referral to Prevention Assistance project": "Prevention Assistance",
+  "Referral to RRH opening": "RRH opening",
+  "Referral to PSH opening": "PSH opening",
+  "Referral to Other PH project": "Other PH project",
+};
+
 /**
  * CE Events by Outcome, per explicit request to combine what were
  * previously two separate "stacked by month" charts (CE Events, Referral
@@ -221,16 +230,14 @@ const OUTCOME_COLORS = SERIES.slice(0, 4);
  * months), not filtered by the slider -- this chart's x-axis is no longer
  * months, so there's no "selected month" to highlight.
  *
- * Scoped to exactly 3 events -- RRH/PSH/Other PH openings -- per explicit
- * request; Prevention Assistance was deliberately dropped on a follow-up
- * ("irrelevant here"), since it's a referral to a prevention program, not a
- * residential placement, and doesn't belong in this outcome comparison. See
- * sql/ce_referral_outcomes.sql's own placement_outcomes CTE.
+ * Scoped to 4 events, per explicit request (RRH/PSH/Other PH openings, plus
+ * Prevention Assistance, added back on a follow-up after initially being
+ * dropped) -- see sql/ce_referral_outcomes.sql's own event_outcomes CTE.
  */
-export function renderPlacementOutcomesChart(doc) {
+export function renderEventOutcomesChart(doc) {
   const totals = new Map();
   for (const m of doc.months) {
-    for (const row of m.by_placement_outcome) {
+    for (const row of m.by_event_outcome) {
       const key = `${row.event}|${row.outcome}`;
       totals.set(key, (totals.get(key) ?? 0) + row.events);
     }
@@ -248,11 +255,13 @@ export function renderPlacementOutcomesChart(doc) {
     return card;
   }
 
-  const eventDomain = [...eventTotals.entries()].sort((a, b) => b[1] - a[1]).map(([event]) => event);
-  const outcomeDomain = PLACEMENT_OUTCOMES;
+  const eventDomain = [...eventTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([event]) => SHORT_EVENT_LABELS[event] ?? event);
+  const outcomeDomain = CHART_OUTCOMES;
   const rows = [...totals.entries()].map(([key, events]) => {
     const [event, outcome] = key.split("|");
-    return {event, outcome, events};
+    return {event, shortEvent: SHORT_EVENT_LABELS[event] ?? event, outcome, events};
   });
 
   card.append(
@@ -260,8 +269,8 @@ export function renderPlacementOutcomesChart(doc) {
       Plot.plot({
         width,
         height: 320,
-        marginBottom: 56,
-        x: {label: null, tickRotate: -20, domain: eventDomain},
+        marginBottom: 40,
+        x: {label: null, domain: eventDomain},
         y: {label: "Referrals", grid: true, nice: true},
         color: {domain: outcomeDomain, range: OUTCOME_COLORS, legend: true},
         marks: [
@@ -269,7 +278,7 @@ export function renderPlacementOutcomesChart(doc) {
           Plot.barY(
             rows,
             Plot.stackY({
-              x: "event",
+              x: "shortEvent",
               y: "events",
               fill: "outcome",
               order: outcomeDomain,
