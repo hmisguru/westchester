@@ -1,4 +1,7 @@
-"""Observable Framework data loader: Coordinated Entry dashboard, Slice 1 (Reach).
+"""Observable Framework data loader: Coordinated Entry dashboard.
+
+Slices so far: Reach (persons/households assessed, by household type) and
+Access Channel (phone/virtual/in-person).
 
 Unlike spm.json.py/dashboard.json.py, this has no DAC YAML source -- the SQL in
 sql/ce_*.sql is hand-written against wchmiscsv's own CE data elements
@@ -31,6 +34,7 @@ SQL_DIR = Path(__file__).resolve().parents[2] / "sql"
 client = bigquery.Client(project=BQ_PROJECT_ID)
 
 HOUSEHOLD_TYPES = ["Without Children", "With Children and Adults", "With Only Children", "Unknown Household Type"]
+CHANNELS = ["Phone", "Virtual", "In-Person", "Unknown"]
 
 
 def query(sql, params=()):
@@ -44,15 +48,18 @@ def fiscal_year_months(end_year):
     return months
 
 
-def run_reach(year, month):
-    period_start = date(year, month, 1)
-    period_end = date(year, month, monthrange(year, month)[1])
-    rows = query((SQL_DIR / "ce_reach.sql").read_text(), [
+def run_sql(filename, period_start, period_end):
+    """Run one sql/ce_*.sql file for one calendar month."""
+    return query((SQL_DIR / filename).read_text(), [
         bigquery.ScalarQueryParameter("period_start", "DATE", period_start),
         bigquery.ScalarQueryParameter("period_end", "DATE", period_end),
     ])
-    by_label = {row["row_label"]: row for row in rows}
-    total = by_label.get("Total", {"persons": 0, "households": 0})
+
+
+def build_month(period_start, period_end, reach_rows, channel_rows):
+    reach_by_label = {row["row_label"]: row for row in reach_rows}
+    total = reach_by_label.get("Total", {"persons": 0, "households": 0})
+    channel_by_label = {row["row_label"]: row for row in channel_rows}
     return {
         "label": period_start.strftime("%b %Y"),
         "start": period_start.isoformat(),
@@ -62,10 +69,14 @@ def run_reach(year, month):
         "by_household_type": [
             {
                 "household_type": t,
-                "persons": by_label.get(t, {}).get("persons", 0),
-                "households": by_label.get(t, {}).get("households", 0),
+                "persons": reach_by_label.get(t, {}).get("persons", 0),
+                "households": reach_by_label.get(t, {}).get("households", 0),
             }
             for t in HOUSEHOLD_TYPES
+        ],
+        "by_channel": [
+            {"channel": c, "households": channel_by_label.get(c, {}).get("households", 0)}
+            for c in CHANNELS
         ],
     }
 
@@ -76,11 +87,26 @@ def main():
     fy_start, fy_end = date(fy_end_year - 1, 10, 1), date(fy_end_year, 9, 30)
     months = fiscal_year_months(fy_end_year)
 
-    with ThreadPoolExecutor(max_workers=len(months)) as pool:
-        futures = [pool.submit(run_reach, year, month) for year, month in months]
-        monthly = [f.result() for f in futures]
-    # ThreadPoolExecutor preserves submission order, but make the chronological
-    # ordering explicit rather than relying on that.
+    # One flat jobs dict across every (month, sql file) pair -- same pattern
+    # spm.json.py uses -- rather than nested per-slice thread pools, so adding
+    # a future slice's own sql/ce_*.sql file is a one-line addition here.
+    periods = {
+        (year, month): (date(year, month, 1), date(year, month, monthrange(year, month)[1]))
+        for year, month in months
+    }
+    jobs = {
+        (ym, filename): (filename, *periods[ym])
+        for ym in months
+        for filename in ("ce_reach.sql", "ce_access_channel.sql")
+    }
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        futures = {key: pool.submit(run_sql, filename, start, end) for key, (filename, start, end) in jobs.items()}
+        results = {key: future.result() for key, future in futures.items()}
+
+    monthly = [
+        build_month(*periods[ym], results[(ym, "ce_reach.sql")], results[(ym, "ce_access_channel.sql")])
+        for ym in months
+    ]
     monthly.sort(key=lambda m: m["start"])
 
     json.dump(

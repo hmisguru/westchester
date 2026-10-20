@@ -65,16 +65,21 @@ export function renderReachTiles(doc, monthIndex) {
   return wrap;
 }
 
-export function renderHouseholdTypeChart(doc, monthIndex) {
-  const rows = doc.months[monthIndex].by_household_type;
-  const sorted = [...rows].sort((a, b) => b.persons - a.persons);
-  const total = sorted.reduce((s, d) => s + d.persons, 0);
-  const pct = new Intl.NumberFormat("en-US", {style: "percent", maximumFractionDigits: 0});
+const pct = new Intl.NumberFormat("en-US", {style: "percent", maximumFractionDigits: 0});
+
+/**
+ * A sorted-horizontal-bars breakdown chart (lengths compare more accurately
+ * than angles -- same reasoning /bridge/'s own renderPie uses), shared by
+ * every "mix for the selected month" chart on this page.
+ */
+function renderSortedBarChart(title, rows, labelField, valueField, emptyMessage) {
+  const sorted = [...rows].sort((a, b) => b[valueField] - a[valueField]);
+  const total = sorted.reduce((s, d) => s + d[valueField], 0);
 
   const card = el("div", "ce-card");
-  card.append(el("h3", "ce-card-title", `Household Type -- ${doc.months[monthIndex].label}`));
+  card.append(el("h3", "ce-card-title", title));
   if (!total) {
-    card.append(el("p", "ce-empty", "No CE assessments recorded this month."));
+    card.append(el("p", "ce-empty", emptyMessage));
     return card;
   }
   card.append(
@@ -85,13 +90,13 @@ export function renderHouseholdTypeChart(doc, monthIndex) {
         marginLeft: Math.min(200, width * 0.4),
         marginRight: 90,
         x: {axis: null},
-        y: {domain: sorted.map((d) => d.household_type), label: null, tickSize: 0},
+        y: {domain: sorted.map((d) => d[labelField]), label: null, tickSize: 0},
         marks: [
-          Plot.barX(sorted, {y: "household_type", x: "persons", fill: SERIES[0], rx: 2, insetTop: 6, insetBottom: 6}),
+          Plot.barX(sorted, {y: labelField, x: valueField, fill: SERIES[0], rx: 2, insetTop: 6, insetBottom: 6}),
           Plot.text(sorted, {
-            y: "household_type",
-            x: "persons",
-            text: (d) => `${integer.format(d.persons)} (${pct.format(d.persons / total)})`,
+            y: labelField,
+            x: valueField,
+            text: (d) => `${integer.format(d[valueField])} (${pct.format(d[valueField] / total)})`,
             textAnchor: "start",
             dx: 6,
             fill: "currentColor",
@@ -101,6 +106,28 @@ export function renderHouseholdTypeChart(doc, monthIndex) {
     )
   );
   return card;
+}
+
+export function renderHouseholdTypeChart(doc, monthIndex) {
+  const month = doc.months[monthIndex];
+  return renderSortedBarChart(
+    `Household Type -- ${month.label}`,
+    month.by_household_type,
+    "household_type",
+    "persons",
+    "No CE assessments recorded this month."
+  );
+}
+
+export function renderAccessChannelChart(doc, monthIndex) {
+  const month = doc.months[monthIndex];
+  return renderSortedBarChart(
+    `Access Channel -- ${month.label}`,
+    month.by_channel,
+    "channel",
+    "households",
+    "No CE assessments recorded this month."
+  );
 }
 
 /** The 12-month FY trend, with the slider's selected month highlighted. */

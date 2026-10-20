@@ -43,7 +43,8 @@ html[data-theme="dark"] {
 .ce-slider-label { font-weight: 700; min-width: 7ch; }
 
 .ce-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
-.ce-row-metrics > .ce-card { grid-column: span 6; }
+.ce-row-metrics > .ce-card,
+.ce-row-two > .ce-card { grid-column: span 6; }
 .ce-card {
   grid-column: span 12; min-width: 0; padding: 16px 20px;
   background: var(--ce-surface); border: 1px solid var(--ce-border); border-radius: 12px;
@@ -59,5 +60,6 @@ html[data-theme="dark"] .ce-metric { color: #ffffff; }
 .ce-footnote { margin-top: 20px; font-size: 13px; color: var(--ce-muted); }
 
 @media (max-width: 640px) {
-  .ce-row-metrics > .ce-card { grid-column: span 12; }
+  .ce-row-metrics > .ce-card,
+  .ce-row-two > .ce-card { grid-column: span 12; }
 }
