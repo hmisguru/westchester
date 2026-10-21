@@ -105,6 +105,38 @@ function renderLine(widget, rows) {
   }));
 }
 
+// "Exits to permanent destinations over time" (Positive Outcomes tab) renders
+// as a stacked area chart instead of dashboard.yml's own separate colored
+// lines, per explicit request -- same Plot.stackY shape renderBar() already
+// uses elsewhere on this dashboard, just with Plot.areaY instead of
+// Plot.barY, so the three household types read as parts of one system-wide
+// total over time rather than three lines to compare by eye. A 2px
+// theme-background stroke on each band (same token renderLine()'s own dot
+// uses) gives the stacked areas a visible seam, matching the "2px surface
+// gap between stacked fills" convention this site's other stacked charts
+// (renderBar's own bars) already follow.
+const EXITS_TREND_WIDGET_NAME = "Exits to permanent destinations over time";
+
+function renderExitsTrendChart(widget, rows) {
+  const x = widget.x.field, y = widget.y.field, color = widget.color.field;
+  const fmt = numberFormat(widget.y.format);
+  const order = uniq(rows, color);
+  return resize((width) => Plot.plot({
+    width,
+    height: 320,
+    marginLeft: 56,
+    marginBottom: 48,
+    x: {type: "point", domain: uniq(rows, x), label: widget.x.title ?? null, padding: 0.3, tickRotate: -35},
+    y: {grid: true, zero: true, label: widget.y.title ?? null, tickFormat: fmt},
+    color: colorScale(order),
+    marks: [
+      Plot.ruleY([0]),
+      Plot.areaY(rows, Plot.stackY({x, y, fill: color, order, stroke: "var(--theme-background)", strokeWidth: 2})),
+      Plot.tip(rows, Plot.pointer({x, y, stroke: color, channels: {[widget.y.title ?? y]: y}, format: {y: false, stroke: true, x: true, [widget.y.title ?? y]: fmt}}))
+    ]
+  }));
+}
+
 // "Average days in the system over time" shows 3 increasingly inclusive
 // definitions of length of stay (ES/SH Only -> + TH -> + days searching for
 // permanent housing) as separate colored lines in dashboard.yml itself.
@@ -622,7 +654,7 @@ function renderWidget(dashboard, widget, filterValues) {
     else if (widget.type === "metric") body = renderMetric(widget, rows);
     else if (widget.type === "table") body = renderTable(widget, rows);
     else if (!rows.length) body = empty();
-    else if (widget.chart === "line") body = widget.name === LENGTH_OF_TIME_WIDGET_NAME ? renderLengthOfTimeChart(widget, rows) : renderLine(widget, rows);
+    else if (widget.chart === "line") body = widget.name === LENGTH_OF_TIME_WIDGET_NAME ? renderLengthOfTimeChart(widget, rows) : widget.name === EXITS_TREND_WIDGET_NAME ? renderExitsTrendChart(widget, rows) : renderLine(widget, rows);
     else if (widget.chart === "bar") body = renderBar(widget, rows);
     else if (widget.chart === "pie") body = DONUT_WIDGET_NAMES.has(widget.name) ? renderDonut(widget, rows) : renderPie(widget, rows);
     else if (widget.chart === "treemap") body = renderTreemap(widget, rows);
