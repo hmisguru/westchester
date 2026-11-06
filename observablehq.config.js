@@ -30,11 +30,17 @@ export default {
   // Set explicitly: when unset, Framework adds its own "Built with Observable" footer.
   footer: "Source: Westchester County Continuum of Care (NY-604) HMIS.",
   // Stable, unhashed URLs for embedding: the importable module, the raw JSON,
-  // and one iframe page per KPI plus one for the full grid.
+  // and one iframe page per KPI plus one for the full grid. "/embed/spm" and
+  // "/data/spm-dashboard.json" are the same pattern for the full System
+  // Performance Dashboard (all 9 wcspm.yml widgets, not just the 5 KPI
+  // tiles) -- no JS module for it, since a 9-table dashboard doesn't fit the
+  // single-tile-component shape KPI()/KPIGrid() render.
   dynamicPaths: [
     "/kpis.js",
     "/data/spm.json",
     "/embed/all",
+    "/embed/spm",
+    "/data/spm-dashboard.json",
     ...kpiIds.map((id) => `/embed/${id}`)
   ]
 };
