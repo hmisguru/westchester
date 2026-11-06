@@ -46,7 +46,7 @@ These figures come from the CoC's HMIS. Five tiles follow HUD's System Performan
 
 </details>
 
-Want every HUD measure, not just these? See the [full System Performance Dashboard](./spm/) (HUD measures only -- the dashboard-only tile above isn't on that page). Want to put these tiles on another website? See the [embedding guide](./embedding).
+Want every HUD measure, not just these? See the [full System Performance Dashboard](./spm/) (HUD measures only -- the dashboard-only tile above isn't on that page). Want to put these tiles -- or the full dashboard -- on another website? See the [embedding guide](./embedding).
 
 <style>
 /* Framework's own default h1 max-width (640px, with text-wrap: balance) wraps
