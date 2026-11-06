@@ -65,3 +65,25 @@ display(html`<pre><code>${`${base}data/spm.json`}</code></pre>`);
 ```js
 display(Inputs.table(spm.kpis.map((d) => ({id: d.id, measure: d.measure, title: d.title, definition: d.description})), {layout: "auto", rows: 12}));
 ```
+
+# Embedding the full System Performance Dashboard
+
+The [full dashboard](./spm/) shows every HUD System Performance Measure (all 9 widgets), not just the 5 summarized above as KPI tiles. It has its own, narrower embedding surface — no JS module, since a 9-table dashboard doesn't fit a single-tile component.
+
+## Iframe
+
+```js
+display(html`<pre><code>${`<iframe src="${base}embed/spm"
+  title="Westchester CoC System Performance Dashboard"
+  width="900" height="1400" style="border:0"></iframe>`}</code></pre>`);
+```
+
+Give it a generous height — it's 9 tables stacked, not one tile; adjust to taste depending on how much of it you want visible without scrolling. Light by default. Add `?theme=dark`, or `?theme=auto` to follow the viewer's system setting.
+
+## Raw JSON
+
+```js
+display(html`<pre><code>${`${base}data/spm-dashboard.json`}</code></pre>`);
+```
+
+Every widget's rows, columns, and the current/previous fiscal year this build covers — the same data the iframe above renders.
