@@ -521,7 +521,7 @@ const ENGAGEMENT_STATES = [
     label: "Recurring",
     accent: "#1baf7a", bg: "#ebf9f4", border: "#b6edd9",
     accentDark: "#199e70", bgDark: "#2b3145", borderDark: "#274d50",
-    definition: "Re-engaged with the system after a previous temporary or unknown-destination exit.",
+    definition: "Re-engaged with the system after a period of inactivity or previous discharge to non-permanent housing (i.e. shelter, hospital, etc).",
     trendWidget: "Recurring — Trend"
   },
   {
