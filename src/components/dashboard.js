@@ -528,7 +528,7 @@ const ENGAGEMENT_STATES = [
     label: "Returned",
     accent: "#eda100", bg: "#f9f5eb", border: "#eddbb6",
     accentDark: "#c98500", bgDark: "#482d33", borderDark: "#694326",
-    definition: "Returned to homelessness this reporting period after a previous permanent housing placement.",
+    definition: "Returned to homelessness this reporting period after a previous discharge to permanent housing.",
     trendWidget: "Returns After Permanent Placement vs. 4-Quarter Average"
   }
 ];
