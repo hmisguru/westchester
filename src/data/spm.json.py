@@ -87,7 +87,7 @@ def build_kpis(results):
             "format": "days",
             "better": "lower",
             "description": (
-                "Average number of nights people in emergency shelter or Safe Haven had "
+                "Average number of nights people in Emergency Shelter or Safe Haven had "
                 "spent homeless, counting back from their last stay in the fiscal year."
             ),
             "universe": m1_cur["universe_persons"],
@@ -102,7 +102,7 @@ def build_kpis(results):
             "unit": "people",
             "better": "lower",
             "description": (
-                "People who exited to permanent housing two years before the fiscal year "
+                "People who exited to Permanent Housing two years before the fiscal year "
                 "and came back to shelter, outreach, or housing programs within 24 months."
             ),
             "universe": m2_cur["total_exited"],
@@ -134,9 +134,9 @@ def build_kpis(results):
             "unit": "people",
             "better": "higher",
             "description": (
-                "Adult clients who stayed at least a year in CoC Program-funded transitional, "
-                "Safe Haven, or permanent housing programs and saw their total income increase "
-                "from one annual assessment to the next."
+                "Adult clients who stayed at least a year in CoC Program-funded Transitional "
+                "Housing, Safe Haven, or Permanent Housing programs and saw their total income "
+                "increase from one annual assessment to the next."
             ),
             "universe": int(m4_stayers_total["current_fy_universe"]),
         },
@@ -149,7 +149,7 @@ def build_kpis(results):
             "format": "number",
             "better": "lower",
             "description": (
-                "People entering emergency shelter, Safe Haven, transitional housing, or "
+                "People entering Emergency Shelter, Safe Haven, Transitional Housing, or "
                 "Street Outreach with no homeless-system activity (including Street "
                 "Outreach contact) in the prior 24 months. Not an official HUD System "
                 "Performance Measure."
@@ -166,9 +166,9 @@ def build_kpis(results):
             "unit": "people",
             "better": "higher",
             "description": (
-                "People leaving Street Outreach, shelter, Safe Haven, transitional "
-                "housing, or rapid re-housing who moved into some form of stable, "
-                "permanent housing."
+                "People leaving Street Outreach, Emergency Shelter, Safe Haven, "
+                "Transitional Housing, or Rapid Re-housing who moved into some form of "
+                "stable, Permanent Housing."
             ),
             "universe": None,
         },
