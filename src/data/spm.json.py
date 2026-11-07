@@ -102,7 +102,7 @@ def build_kpis(results):
             "unit": "people",
             "better": "lower",
             "description": (
-                "People who exited to Permanent Housing two years before the fiscal year "
+                "People who exited to permanent housing two years before the fiscal year "
                 "and came back to shelter, outreach, or housing programs within 24 months."
             ),
             "universe": m2_cur["total_exited"],
@@ -168,7 +168,7 @@ def build_kpis(results):
             "description": (
                 "People leaving Street Outreach, Emergency Shelter, Safe Haven, "
                 "Transitional Housing, or Rapid Re-housing who moved into some form of "
-                "stable, Permanent Housing."
+                "stable, permanent housing."
             ),
             "universe": None,
         },
