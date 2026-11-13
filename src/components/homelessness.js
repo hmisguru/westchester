@@ -31,7 +31,7 @@ const SERIES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
 const integer = d3format(",~f");
 
 const PROJECT_TYPE_ORDER = ["Street Outreach", "Emergency Shelter", "Transitional Housing"];
-const LIVING_SITUATION_ORDER = ["Street", "Emergency Shelter / Transitional Housing", "Family or Friends", "Institutional Setting", "Permanent Setting", "Other"];
+const LIVING_SITUATION_ORDER = ["Street", "Emergency & Temporary", "Friends & Family", "Institutional Setting", "Permanent Setting", "Other"];
 
 function empty() {
   return html`<p class="hl-empty">No data for this selection.</p>`;
@@ -175,16 +175,45 @@ function renderFlowChart(rows) {
 // each Project Type node's own still-enrolled share as a muted,
 // non-flowing cap on that same node -- see that function's own comment.
 const SANKEY_LIVING_SITUATION_ORDER = LIVING_SITUATION_ORDER;
-const SANKEY_EXIT_ORDER = ["Homeless", "Institutional", "Temporary Housing", "Permanent Housing", "Other", "Unknown"];
+const SANKEY_EXIT_ORDER = ["Homeless", "Emergency & Temporary", "Institutional", "Permanent", "Other", "Unknown"];
 // Display-only short forms for node labels, never touching
 // sql/homeless_sankey.sql -- same abbreviate-for-the-axis-only convention
-// AGE_SHORT_LABELS uses below. Exit Outcome's own names are all short
-// enough to show in full already.
+// AGE_SHORT_LABELS uses below. "Emergency & Temporary" (both sides) and
+// "Friends & Family" (left) are short enough to show in full already, so
+// only the two names that still read better abbreviated keep an entry
+// here.
 const SANKEY_SHORT_LABELS = {
-  "Emergency Shelter / Transitional Housing": "ES / TH / SH",
-  "Family or Friends": "Family/Friends",
   "Institutional Setting": "Institutional",
   "Permanent Setting": "Permanent"
+};
+// Explicit cross-column color lookup for the left (Prior Living Situation)
+// and right (Exit Outcome) stages, per explicit request that matching
+// bucket names on the two sides share a color -- replaces the fully
+// positional SERIES[ORDER.indexOf(name)] assignment sankeyGraph() used to
+// give each column independently, which gave e.g. "Family or Friends" and
+// "Temporary Housing" unrelated colors from their own column's position
+// even once their definitions were realigned. Only names that are now
+// identical, or identical after SANKEY_SHORT_LABELS' own display
+// abbreviation, get a shared color: "Emergency & Temporary" (exact match
+// both sides), "Institutional Setting"/"Institutional" and "Permanent
+// Setting"/"Permanent" (short-label pairs), and "Other" (exact match).
+// "Street" (left) and "Homeless" (right) both resolve to HUD code 116 but
+// keep their own distinct labels and were deliberately NOT paired here --
+// the request was to match by name, not by underlying code. "Friends &
+// Family" (left-only) and "Unknown" (right-only) get their own slots.
+// Project Type (column 1) is unaffected -- still purely positional via
+// PROJECT_TYPE_ORDER, as before.
+const SANKEY_SIDE_COLORS = {
+  "Street": SERIES[0],
+  "Emergency & Temporary": SERIES[1],
+  "Friends & Family": SERIES[2],
+  "Institutional Setting": SERIES[3],
+  "Institutional": SERIES[3],
+  "Permanent Setting": SERIES[4],
+  "Permanent": SERIES[4],
+  "Other": SERIES[5],
+  "Homeless": SERIES[6],
+  "Unknown": SERIES[7]
 };
 
 /** Builds the {nodes, links} graph d3-sankey expects from one widget's
@@ -201,9 +230,9 @@ function sankeyGraph(rows) {
   const projectNames = PROJECT_TYPE_ORDER.filter((n) => situationRows.some((r) => r.target === n));
   const exitNames = SANKEY_EXIT_ORDER.filter((n) => exitRows.some((r) => r.target === n));
   const nodes = [
-    ...livingNames.map((name) => ({id: nodeId("situation", name), name, column: 0, color: SERIES[SANKEY_LIVING_SITUATION_ORDER.indexOf(name) % SERIES.length]})),
+    ...livingNames.map((name) => ({id: nodeId("situation", name), name, column: 0, color: SANKEY_SIDE_COLORS[name]})),
     ...projectNames.map((name) => ({id: nodeId("project", name), name, column: 1, color: SERIES[PROJECT_TYPE_ORDER.indexOf(name) % SERIES.length]})),
-    ...exitNames.map((name) => ({id: nodeId("exit", name), name, column: 2, color: SERIES[SANKEY_EXIT_ORDER.indexOf(name) % SERIES.length]}))
+    ...exitNames.map((name) => ({id: nodeId("exit", name), name, column: 2, color: SANKEY_SIDE_COLORS[name]}))
   ];
   const links = [
     ...situationRows.map((r) => ({source: nodeId("situation", r.source), target: nodeId("project", r.target), value: r.persons})),
