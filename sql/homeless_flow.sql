@@ -56,7 +56,14 @@
 --
 -- The trend line is the ordinary-least-squares fit over a 0-based month
 -- index the source widget's own query already uses (COVAR_SAMP/VAR_SAMP),
--- copied verbatim.
+-- copied verbatim -- except the fit itself excludes the most recent
+-- month (see the `stats` CTE's own comment below for why): its own
+-- outflow is routinely undercounted by HMIS exit-reporting lag, and left
+-- in would let one likely-incomplete data point single-handedly flip the
+-- trend line's direction, confirmed live against real data. The trend
+-- line still extends through that last month (extrapolated from the
+-- 11-month fit), so the gap between the trend and that month's own bar
+-- is visible rather than hidden.
 WITH export_info AS (
   SELECT MAX(ExportEndDate) AS export_end FROM wchmiscsv.Export
 ),
@@ -178,12 +185,27 @@ indexed AS (
   FROM flow_calc
 ),
 stats AS (
+  -- Excludes the most recent month (MAX(x_idx), the 12th trailing month)
+  -- from the trend FIT -- confirmed live against real data that its own
+  -- outflow_count is routinely less than half of every other month's,
+  -- an HMIS exit-reporting-lag artifact (case managers log exit paperwork
+  -- with a delay, so the most recent complete month before any export is
+  -- systematically undercounted on exits) rather than a real swing. Left
+  -- in that one month's own outflow/net_flow uncorrected for the bars
+  -- (still shown as reported, not hidden), but excluded here so this one
+  -- likely-incomplete data point can't single-handedly flip the trend
+  -- line's own direction -- confirmed live this was happening: the
+  -- 12-month fit came out sloping up (+4.5/month) while the 11-month fit
+  -- (this CTE's own version) slopes down (-4.3/month), consistent with
+  -- the "People/Households Active, Over Time" charts' own declining trend
+  -- over the same general period.
   SELECT
     COVAR_SAMP(x_idx, net_flow) AS covar_xy,
     VAR_SAMP(x_idx) AS var_x,
     AVG(x_idx) AS mean_x,
     AVG(net_flow) AS mean_y
   FROM indexed
+  WHERE x_idx < (SELECT MAX(x_idx) FROM indexed)
 )
 SELECT
   FORMAT_DATE('%b %Y', i.month_start) AS period,
