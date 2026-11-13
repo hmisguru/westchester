@@ -19,6 +19,7 @@ import {format as d3format} from "npm:d3-format";
 import {html, svg} from "npm:htl";
 import * as Inputs from "npm:@observablehq/inputs";
 import {pie as d3pie, arc as d3arc} from "npm:d3-shape";
+import {sankey as d3sankey, sankeyLinkHorizontal as d3sankeyLinkHorizontal} from "npm:d3-sankey";
 import {resize} from "observablehq:stdlib";
 
 // Validated categorical palette (dataviz skill reference instance), same
@@ -175,6 +176,111 @@ function renderLivingSituationChart(rows) {
   // performance.js's own .cpm-chart wrapper uses for this identical
   // rotated-label-crowding situation.
   return html`<div class="hl-chart-wrap">${chart}</div>`;
+}
+
+// "Client Flow: Prior Living Situation -> Project Type -> Exit Outcome" --
+// a 3-stage Sankey over the same Active Clients population as every other
+// Overview chart, per explicit request. The pinned @observablehq/plot
+// version has no Sankey mark (the same "Plot can't draw this layout"
+// situation this file's own renderDonut() is already in for pie/arc), so
+// node/link geometry comes from the npm:d3-sankey layout generator and is
+// emitted as raw SVG via htl's svg tag, same hand-built-SVG technique as
+// renderDonut().
+//
+// sql/homeless_sankey.sql's own header explains the two load-bearing design
+// choices: a 'Still Enrolled' node in the third stage (so every active
+// client -- not just those who've already exited -- has somewhere to flow,
+// keeping each Project Type node's total flow-in equal to its flow-out),
+// and leaving the page's own Project Type filter in effect here (selecting
+// a single project type collapses the middle stage to one node, same as
+// every other Overview chart on this page).
+const SANKEY_LIVING_SITUATION_ORDER = LIVING_SITUATION_ORDER;
+const SANKEY_EXIT_ORDER = ["Still Enrolled", "Homeless", "Institutional", "Temporary Housing", "Permanent Housing", "Other", "Unknown"];
+// Display-only short forms for node labels, never touching
+// sql/homeless_sankey.sql -- same abbreviate-for-the-axis-only convention
+// AGE_SHORT_LABELS uses below. Exit Outcome's own names are all short
+// enough to show in full already.
+const SANKEY_SHORT_LABELS = {
+  "Emergency Shelter / Transitional Housing": "ES / TH / SH",
+  "Family or Friends": "Family/Friends",
+  "Institutional Setting": "Institutional",
+  "Permanent Setting": "Permanent"
+};
+
+/** Builds the {nodes, links} graph d3-sankey expects from one widget's
+ * long-format link rows (stage, source, target, persons), prefixing every
+ * node id by its own column -- 'situation'/'project'/'exit' both have an
+ * "Other" category, and without the prefix d3-sankey's own nodeId lookup
+ * would silently merge those two distinct categories into a single node
+ * sitting between all three stages. */
+function sankeyGraph(rows) {
+  const situationRows = rows.filter((r) => r.stage === "situation");
+  const exitRows = rows.filter((r) => r.stage === "exit");
+  const nodeId = (column, name) => `${column}:${name}`;
+  const livingNames = SANKEY_LIVING_SITUATION_ORDER.filter((n) => situationRows.some((r) => r.source === n));
+  const projectNames = PROJECT_TYPE_ORDER.filter((n) => situationRows.some((r) => r.target === n));
+  const exitNames = SANKEY_EXIT_ORDER.filter((n) => exitRows.some((r) => r.target === n));
+  const nodes = [
+    ...livingNames.map((name) => ({id: nodeId("situation", name), name, column: 0, color: SERIES[SANKEY_LIVING_SITUATION_ORDER.indexOf(name) % SERIES.length]})),
+    ...projectNames.map((name) => ({id: nodeId("project", name), name, column: 1, color: SERIES[PROJECT_TYPE_ORDER.indexOf(name) % SERIES.length]})),
+    ...exitNames.map((name) => ({id: nodeId("exit", name), name, column: 2, color: SERIES[SANKEY_EXIT_ORDER.indexOf(name) % SERIES.length]}))
+  ];
+  const links = [
+    ...situationRows.map((r) => ({source: nodeId("situation", r.source), target: nodeId("project", r.target), value: r.persons})),
+    ...exitRows.map((r) => ({source: nodeId("project", r.source), target: nodeId("exit", r.target), value: r.persons}))
+  ];
+  return {nodes, links};
+}
+
+// Below this width, the fixed left/right label margins (110px + 130px)
+// leave too little room for the plot itself -- confirmed live at a 380px
+// viewport, where node labels from the left and right columns overlapped
+// into unreadable mush. Rather than shrinking the margins (which would
+// just clip the labels instead), the chart keeps this minimum width and
+// sits in a horizontally-scrollable wrapper below it -- same "keep the
+// natural size, let the container scroll" fallback the sibling baltimore
+// repo's own winter-shelter.js calendar heatmap uses for an identical
+// can't-compress-further chart shape.
+const SANKEY_MIN_WIDTH = 560;
+
+function renderSankeyChart(rows) {
+  if (!rows.length) return empty();
+  const fmt = integer;
+  const marginTop = 28, marginBottom = 10, marginLeft = 110, marginRight = 130, height = 440;
+  const chart = resize((containerWidth) => {
+    const width = Math.max(containerWidth, SANKEY_MIN_WIDTH);
+    const {nodes, links} = sankeyGraph(rows);
+    const layout = d3sankey()
+      .nodeId((d) => d.id)
+      .nodeSort(null)
+      .linkSort(null)
+      .nodeWidth(14)
+      .nodePadding(10)
+      .extent([[marginLeft, marginTop], [width - marginRight, height - marginBottom]])
+      ({nodes: nodes.map((d) => ({...d})), links: links.map((d) => ({...d}))});
+    const linkPath = d3sankeyLinkHorizontal();
+    const linkEls = layout.links.map((l) => svg`<path d=${linkPath(l)} fill="none" stroke=${l.source.color} stroke-opacity="0.35" stroke-width=${Math.max(1, l.width)}><title>${l.source.name} → ${l.target.name}: ${fmt(l.value)} people</title></path>`);
+    const nodeEls = layout.nodes.map((n) => svg`<rect x=${n.x0} y=${n.y0} width=${n.x1 - n.x0} height=${Math.max(1, n.y1 - n.y0)} fill=${n.color} rx="2"><title>${n.name}: ${fmt(n.value)} people</title></rect>`);
+    // Column 0 labels sit to the right of their node, column 2 to the
+    // left, same inside/outside convention most Sankey examples use. The
+    // middle column (Project Type, usually just 1-3 wide nodes) instead
+    // gets its label centered above the node -- a side label there would
+    // either collide with the links flowing into the node from the left
+    // or need as much dead space as the left/right columns use, for only
+    // up to 3 labels.
+    const labelEls = layout.nodes.map((n) => {
+      const display = SANKEY_SHORT_LABELS[n.name] ?? n.name;
+      if (n.column === 0) return svg`<text x=${n.x1 + 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" font-size="12" fill="currentColor">${display}</text>`;
+      if (n.column === 2) return svg`<text x=${n.x0 - 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="end" font-size="12" fill="currentColor">${display}</text>`;
+      return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="12" fill="currentColor">${display}</text>`;
+    });
+    return svg`<svg viewBox=${`0 0 ${width} ${height}`} width=${width} height=${height} role="img" aria-label="Prior living situation flowing into project type, flowing into exit outcome">
+      ${linkEls}
+      ${nodeEls}
+      ${labelEls}
+    </svg>`;
+  });
+  return html`<div class="hl-chart-wrap"><div class="hl-sankey-scroll">${chart}</div></div>`;
 }
 
 // Demographics tab -- Priority Households table, Race/Ethnicity/Age pies
@@ -445,6 +551,13 @@ const OVERVIEW_CARDS = [
     type: "chart",
     render: (doc, fv) => renderLivingSituationChart(widgetRows(doc, "living_situation", fv)),
     description: "Where each person was staying immediately before their current enrollment, for the recent fiscal year only, grouped into 6 categories from HUD's own Prior Living Situation response options. \"Other\" is the largest category in practice -- a Street Outreach contact in particular often leaves this question unanswered -- which reflects how the question gets answered in the field, not a problem with this chart."
+  },
+  {
+    id: "flow-sankey",
+    name: "Client Flow: Prior Living Situation → Project Type → Exit Outcome",
+    type: "chart",
+    render: (doc, fv) => renderSankeyChart(widgetRows(doc, "sankey", fv)),
+    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment, which project type they were active in, and -- for their own representative enrollment, the same one used for Prior Living Situation above -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet flow into a 7th node, Still Enrolled, rather than being left out -- without it, the flow leaving each Project Type node would be smaller than the flow entering it, since \"active\" includes people still enrolled as well as those who've already left. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
   }
 ];
 
