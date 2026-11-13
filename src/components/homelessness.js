@@ -242,6 +242,15 @@ function sankeyGraph(rows) {
 // repo's own winter-shelter.js calendar heatmap uses for an identical
 // can't-compress-further chart shape.
 const SANKEY_MIN_WIDTH = 560;
+// Project Type's own column is widened well past d3-sankey's own uniform
+// 14px nodeWidth, per explicit request, so each project type's name can
+// sit inside its own block instead of floating above it -- the column has
+// at most 3 nodes (vs. up to 7 in the other two columns), so it's the one
+// column with room to spare. Sized for the longest name ("Transitional
+// Housing") at the inside-label font-size below; confirmed live via
+// getBoundingClientRect() that the rendered text stays within the box at
+// this width, not just eyeballed.
+const PROJECT_NODE_WIDTH = 160;
 
 function renderSankeyChart(rows) {
   if (!rows.length) return empty();
@@ -258,18 +267,35 @@ function renderSankeyChart(rows) {
       .nodePadding(10)
       .extent([[marginLeft, marginTop], [width - marginRight, height - marginBottom]])
       ({nodes: nodes.map((d) => ({...d})), links: links.map((d) => ({...d}))});
+    // Re-center each Project Type node on its own column's existing
+    // midpoint, but PROJECT_NODE_WIDTH wide instead of the layout's own
+    // 14px -- mutating x0/x1 directly after layout (rather than passing a
+    // per-column nodeWidth, which d3-sankey's generator doesn't support)
+    // still keeps every link's own path correct, since sankeyLinkHorizontal
+    // reads each link's source.x1/target.x0 live off these same node
+    // objects when the paths are generated just below.
+    for (const n of layout.nodes) {
+      if (n.column !== 1) continue;
+      const midX = (n.x0 + n.x1) / 2;
+      n.x0 = midX - PROJECT_NODE_WIDTH / 2;
+      n.x1 = midX + PROJECT_NODE_WIDTH / 2;
+    }
     const linkPath = d3sankeyLinkHorizontal();
     const linkEls = layout.links.map((l) => svg`<path d=${linkPath(l)} fill="none" stroke=${l.source.color} stroke-opacity="0.35" stroke-width=${Math.max(1, l.width)}><title>${l.source.name} → ${l.target.name}: ${fmt(l.value)} people</title></path>`);
     const nodeEls = layout.nodes.map((n) => svg`<rect x=${n.x0} y=${n.y0} width=${n.x1 - n.x0} height=${Math.max(1, n.y1 - n.y0)} fill=${n.color} rx="2"><title>${n.name}: ${fmt(n.value)} people</title></rect>`);
     // Column 0 labels sit to the right of their node, column 2 to the
-    // left, same inside/outside convention most Sankey examples use. The
-    // middle column (Project Type, usually just 1-3 wide nodes) instead
-    // gets its label centered above the node -- a side label there would
-    // either collide with the links flowing into the node from the left
-    // or need as much dead space as the left/right columns use, for only
-    // up to 3 labels.
+    // left, same inside/outside convention most Sankey examples use.
+    // Column 1 (Project Type) instead gets its label centered INSIDE its
+    // own now-wide block, in white for contrast against the node's own
+    // fill color (all 3 Project Type colors are mid-to-dark tones in both
+    // themes, confirmed live) -- except when a filter narrows a node's own
+    // flow enough that its block is too short to hold a line of text
+    // (under 18px tall), where the label falls back to the same
+    // centered-above placement every node used before this change, rather
+    // than letting the text overflow a tiny box.
     const labelEls = layout.nodes.map((n) => {
       const display = SANKEY_SHORT_LABELS[n.name] ?? n.name;
+      if (n.column === 1 && n.y1 - n.y0 >= 18) return svg`<text x=${(n.x0 + n.x1) / 2} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">${display}</text>`;
       if (n.column === 0) return svg`<text x=${n.x1 + 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" font-size="12" fill="currentColor">${display}</text>`;
       if (n.column === 2) return svg`<text x=${n.x0 - 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="end" font-size="12" fill="currentColor">${display}</text>`;
       return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="12" fill="currentColor">${display}</text>`;
