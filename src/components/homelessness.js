@@ -295,9 +295,27 @@ function renderSankeyChart(rows) {
     // than letting the text overflow a tiny box.
     const labelEls = layout.nodes.map((n) => {
       const display = SANKEY_SHORT_LABELS[n.name] ?? n.name;
+      // Project Type's own node.value is each project type's own total
+      // flow, which can (and, in the "All Project Types" combo, does) sum
+      // to more than the People Active reach tile's own total -- a person
+      // active in more than one project type this FY counts once in EACH
+      // project type's own node here (same rep CTE partitioning as
+      // sql/homeless_trend.sql's own lines), not once overall.
+      if (n.column === 1 && n.y1 - n.y0 >= 26) {
+        const midX = (n.x0 + n.x1) / 2, midY = (n.y0 + n.y1) / 2;
+        return svg`<g>
+          <text x=${midX} y=${midY - 3} text-anchor="middle" font-size="11" font-weight="600" fill="#fff">${display}</text>
+          <text x=${midX} y=${midY + 9} text-anchor="middle" font-size="10" fill="#fff" fill-opacity="0.85">${fmt(n.value)} people</text>
+        </g>`;
+      }
       if (n.column === 1 && n.y1 - n.y0 >= 18) return svg`<text x=${(n.x0 + n.x1) / 2} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">${display}</text>`;
       if (n.column === 0) return svg`<text x=${n.x1 + 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" font-size="12" fill="currentColor">${display}</text>`;
       if (n.column === 2) return svg`<text x=${n.x0 - 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="end" font-size="12" fill="currentColor">${display}</text>`;
+      // Reached only by a column 1 node too short (< 18px) even for its
+      // single-line label above -- still worth the count here, just
+      // folded into one line since there's no block to put a second line
+      // inside of.
+      if (n.column === 1) return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="11" fill="currentColor">${display} (${fmt(n.value)})</text>`;
       return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="12" fill="currentColor">${display}</text>`;
     });
     return svg`<svg viewBox=${`0 0 ${width} ${height}`} width=${width} height=${height} role="img" aria-label="Prior living situation flowing into project type, flowing into exit outcome">
