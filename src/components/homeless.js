@@ -148,6 +148,31 @@ function renderLivingSituationChart(rows) {
 // unlike bridge/dashboard.yml's own two-separate-queries-per-dimension shape.
 const PRIORITY_HOUSEHOLDS_ORDER = ["Households age 55+", "Disabled households", "Veteran households", "DV Survivor Households"];
 const RACE_ORDER = ["AI/AN or Indigenous", "Asian", "Black/African-American", "MENA", "NH/Pacific Islander", "White", "Multiple Races"];
+// Fixed per-category color map for the Race donut, rather than the default
+// positional SERIES[i] assignment renderDonut() uses elsewhere -- the
+// validated palette has two green steps (--series-3, a teal green, and
+// --series-6, a pure green), and RACE_ORDER's own list order happened to
+// land this CoC's two largest categories, Black/African-American and
+// White, on those two greens, confirmed live (both read as shades of the
+// same hue in the donut). Black/African-American and White get the
+// palette's blue/orange pair instead -- maximally distinct, and the same
+// pair ETHNICITY_ORDER's own positional assignment already uses for
+// Hispanic/Non-Hispanic, so it's a proven-legible combination on this
+// page, not a new untested one. The remaining 5 categories keep
+// SERIES' own order (including both greens), which only risks a repeat
+// clash if two of those five smaller categories both become among the
+// largest two -- much less likely than the original pairing. Still a
+// fixed, per-category mapping (never assigned by current rank), so color
+// still follows the entity, not its size, across every filter selection.
+const RACE_COLORS = {
+  "Black/African-American": SERIES[0],
+  "White": SERIES[1],
+  "AI/AN or Indigenous": SERIES[2],
+  "MENA": SERIES[3],
+  "NH/Pacific Islander": SERIES[4],
+  "Multiple Races": SERIES[5],
+  "Asian": SERIES[6]
+};
 const ETHNICITY_ORDER = ["Hispanic", "Non-Hispanic"];
 const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned 18", "18 to 21", "22 to 24", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 and Older"];
 
@@ -162,7 +187,7 @@ const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned
  * carry the same information instead. Filters to Current FY rows first --
  * this dashboard's pies/donuts are always a current-year snapshot, with the
  * QoQ table beside them carrying the previous-year comparison. */
-function renderDonut(rows, labelField, valueField, order) {
+function renderDonut(rows, labelField, valueField, order, colorMap) {
   const current = rows.filter((r) => r.period === "Current FY");
   if (!current.length) return empty();
   const fmt = integer;
@@ -171,7 +196,10 @@ function renderDonut(rows, labelField, valueField, order) {
     ? order.filter((o) => current.some((r) => r[labelField] === o)).map((o) => current.find((r) => r[labelField] === o))
     : [...current].sort((a, b) => b[valueField] - a[valueField]);
   const total = sorted.reduce((s, d) => s + (d[valueField] ?? 0), 0);
-  const colors = SERIES.slice(0, sorted.length);
+  // A category's color comes from colorMap when given (a fixed per-entity
+  // assignment, e.g. RACE_COLORS), falling back to the default positional
+  // SERIES[i] assignment every other chart on this page uses.
+  const colors = sorted.map((d, i) => colorMap?.[d[labelField]] ?? SERIES[i % SERIES.length]);
 
   return resize((width) => {
     const size = Math.min(width, 280);
@@ -302,7 +330,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Race of People Served — Current Fiscal Year",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER),
+    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS),
     description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Active — it excludes anyone who left every race box blank or answered don't know/refused/data not collected."
   },
   {
