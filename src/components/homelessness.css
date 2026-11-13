@@ -68,6 +68,11 @@ html[data-theme="dark"] .hl-metric { color: #ffffff; }
    "About this data" toggle right below it never crowd each other even
    after the Plot-level clip is already fixed. */
 .hl-chart-wrap { margin-bottom: 14px; }
+/* Sankey keeps a fixed minimum pixel width (SANKEY_MIN_WIDTH in
+   homelessness.js) rather than squeezing its node labels into
+   illegibility on a narrow viewport -- this horizontal-scroll fallback is
+   what lets it do that without overflowing the card. */
+.hl-sankey-scroll { overflow-x: auto; }
 .hl-donut { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; }
 .hl-donut-legend { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .hl-donut-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }

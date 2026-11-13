@@ -55,6 +55,7 @@ QUERY_FILES = {
     "reach": "homeless_reach.sql",
     "trend": "homeless_trend.sql",
     "living_situation": "homeless_living_situation.sql",
+    "sankey": "homeless_sankey.sql",
     # Demographics tab
     "priority_households": "homeless_priority_households.sql",
     "race": "homeless_race.sql",
