@@ -302,7 +302,7 @@ function renderQoqTable(rows, labelField, valueField, order, indicatorHeader = "
   const fmt = integer;
   const pct = d3format("+.1%");
   return html`<div class="hl-table-wrap"><table class="hl-table">
-    <thead><tr><th scope="col">${indicatorHeader}</th><th scope="col" style="text-align:right">Current FY</th><th scope="col" style="text-align:right">Previous FY</th><th scope="col" style="text-align:right">Change</th></tr></thead>
+    <thead><tr><th scope="col">${indicatorHeader}</th><th scope="col" style="text-align:right">Recent FY</th><th scope="col" style="text-align:right">Previous FY</th><th scope="col" style="text-align:right">Change</th></tr></thead>
     <tbody>${labels.map((label) => {
       const cur = byLabel.get(label)["Current FY"];
       const prev = byLabel.get(label)["Previous FY"];
@@ -323,11 +323,11 @@ const DEMOGRAPHICS_CARDS = [
     name: "Priority Households",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "priority_households", fv), "indicator", "households", PRIORITY_HOUSEHOLDS_ORDER),
-    description: "4 household-level flags, current fiscal year vs. the previous one: a household counts under Households age 55+ if any member is 55 or older, Disabled households if any member's most recent disability response on file is Yes, Veteran households if any member is a veteran, and DV Survivor Households if any member's most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing). A household can count under more than one row, so the 4 figures don't sum to the total households active."
+    description: "4 household-level flags, recent fiscal year vs. the previous one: a household counts under Households age 55+ if any member is 55 or older, Disabled households if any member's most recent disability response on file is Yes, Veteran households if any member is a veteran, and DV Survivor Households if any member's most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing). A household can count under more than one row, so the 4 figures don't sum to the total households active."
   },
   {
     id: "race-pie",
-    name: "Race of People Served — Current Fiscal Year",
+    name: "Race of People Served — Recent Fiscal Year",
     type: "chart",
     span: 6,
     render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS),
@@ -335,7 +335,7 @@ const DEMOGRAPHICS_CARDS = [
   },
   {
     id: "ethnicity-pie",
-    name: "Ethnicity of People Served — Current Fiscal Year",
+    name: "Ethnicity of People Served — Recent Fiscal Year",
     type: "chart",
     span: 6,
     render: (doc, fv) => renderDonut(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER),
@@ -346,18 +346,18 @@ const DEMOGRAPHICS_CARDS = [
     name: "Race of People Served",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER),
-    description: "The same Race breakdown as the pie above, current fiscal year vs. the previous one."
+    description: "The same Race breakdown as the pie above, recent fiscal year vs. the previous one."
   },
   {
     id: "ethnicity-qoq",
     name: "Ethnicity of People Served",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER),
-    description: "The same Ethnicity breakdown as the pie above, current fiscal year vs. the previous one."
+    description: "The same Ethnicity breakdown as the pie above, recent fiscal year vs. the previous one."
   },
   {
     id: "age-pie",
-    name: "Age of People Served — Current Fiscal Year",
+    name: "Age of People Served — Recent Fiscal Year",
     type: "chart",
     render: (doc, fv) => renderAgeHistogram(doc, fv),
     description: "Age as of the fiscal year's own start and end dates (not a single point-in-time snapshot), bucketed the same way bridge/dashboard.yml's own Age widget is, including the \"17 year-olds who turned 18\" transition bucket for anyone who had a birthday into adulthood during the year. Shown as a stacked histogram, color = household type, so the age mix within each household type is visible at once -- this is why the chart always shows every household type regardless of the page's own Household type filter."
@@ -367,7 +367,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Age of People Served",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "age", fv), "age_bucket", "persons", AGE_ORDER),
-    description: "The same Age breakdown as the pie above, current fiscal year vs. the previous one."
+    description: "The same Age breakdown as the pie above, recent fiscal year vs. the previous one."
   }
 ];
 
@@ -405,7 +405,7 @@ const OVERVIEW_CARDS = [
     name: "Prior Living Situation by Project Type",
     type: "chart",
     render: (doc, fv) => renderLivingSituationChart(widgetRows(doc, "living_situation", fv)),
-    description: "Where each person was staying immediately before their current enrollment, for the current fiscal year only, grouped into 6 categories from HUD's own Prior Living Situation response options. \"Other\" is the largest category in practice -- a Street Outreach contact in particular often leaves this question unanswered -- which reflects how the question gets answered in the field, not a problem with this chart."
+    description: "Where each person was staying immediately before their current enrollment, for the recent fiscal year only, grouped into 6 categories from HUD's own Prior Living Situation response options. \"Other\" is the largest category in practice -- a Street Outreach contact in particular often leaves this question unanswered -- which reflects how the question gets answered in the field, not a problem with this chart."
   }
 ];
 
@@ -433,20 +433,27 @@ function renderCards(doc, cards, filterValues) {
   return html`<div class="hl-row">${cards.map((card) => renderCard(doc, card, filterValues))}</div>`;
 }
 
-/** "Current Fiscal Year: FY2026" full-width tile at the top of both tabs,
+/** "Recent Fiscal Year: FY2026" full-width tile at the top of both tabs,
  * the same role bridge/dashboard.yml's own "Current Quarter" tile plays
  * there -- the metric text itself is the date range (not a separate
  * label/value pair), the card title names which fiscal year it is. Doesn't
  * depend on the page's filters, so it's rendered once per tab ahead of
  * that tab's own filtered cards rather than living in OVERVIEW_CARDS/
  * DEMOGRAPHICS_CARDS (whose render(doc, fv) signature implies a filtered
- * result). No description -- a date range needs no "About this data". */
+ * result). No description -- a date range needs no "About this data".
+ * "Recent" rather than "Current", per explicit request, everywhere this
+ * period is named on the page -- the FY in question is the most recently
+ * COMPLETE fiscal year as of the HMIS export (see homeless_reach.sql's own
+ * header comment), not the fiscal year underway right now, so "Recent"
+ * reads more accurately than "Current". The underlying data/period key
+ * stays "Current FY" throughout the SQL/loader/JS (an internal identifier,
+ * not shown to a visitor) -- only user-facing text changed. */
 function renderFiscalYearCard(doc) {
   const fy = doc.fiscal_year;
   const range = `${calendarDate(fy.start)} – ${calendarDate(fy.end)}`;
   return html`<div class="hl-row">
     <section class="hl-card hl-card-metric" style="--span:12" data-widget="fiscal-year">
-      <h3 class="hl-card-title">Current Fiscal Year: ${fy.label}</h3>
+      <h3 class="hl-card-title">Recent Fiscal Year: ${fy.label}</h3>
       <div class="hl-metric">${range}</div>
     </section>
   </div>`;
@@ -491,11 +498,11 @@ const eastern = (iso, options) => new Date(iso).toLocaleString("en-US", {timeZon
 // the calendar date shown always matches the date string exactly.
 const calendarDate = (isoDate) => new Date(isoDate + "T00:00:00Z").toLocaleString("en-US", {timeZone: "UTC", dateStyle: "medium"});
 
-/** "Current FY: FY2026 (Oct 1, 2025 - Sep 30, 2026) · Dashboard refreshed ...", in Eastern time. */
+/** "Recent FY: FY2026 (Oct 1, 2025 - Sep 30, 2026) · Dashboard refreshed ...", in Eastern time. */
 export function renderFootnote(doc) {
   const fy = doc.fiscal_year;
   const range = `${calendarDate(fy.start)} – ${calendarDate(fy.end)}`;
-  return html`<p class="hl-footnote">Current fiscal year: ${fy.label} (${range}) · Dashboard refreshed ${eastern(doc.generated, {dateStyle: "medium", timeStyle: "short"})}.</p>`;
+  return html`<p class="hl-footnote">Recent fiscal year: ${fy.label} (${range}) · Dashboard refreshed ${eastern(doc.generated, {dateStyle: "medium", timeStyle: "short"})}.</p>`;
 }
 
 /** A short intro panel above the filters, matching the plain-box shape
