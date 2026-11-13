@@ -1,0 +1,109 @@
+/* Homeless dashboard styles (/homeless/), class prefix "hl-" throughout,
+   matching this page's own route. Same county-government palette as every
+   other dashboard on this site (dashboard.css/kpi.js/spm-dashboard.css --
+   deep forest green #02372d / white, accent green #3dc372, "degular"/"Sora"
+   for headings and large numbers), under its own class prefix/custom
+   property namespace since this isn't an embeddable module and isn't the
+   Bridge dashboard. */
+:root {
+  --hl-accent: #02372d; --hl-surface: #ffffff; --hl-border: #d4d3d6; --hl-muted: #6c6d74;
+  --hl-note-bg: #f0f5f3; --hl-note-border: #d4e3dd;
+  /* Validated categorical palette (dataviz skill reference instance, light
+     steps) -- same values as dashboard.css's own --series-1..8, referenced
+     by SERIES in homeless.js. Never raw hex in chart code, so the
+     html[data-theme="dark"] block below can swap every chart's colors with
+     no re-render. */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+}
+
+html[data-theme="dark"] {
+  --hl-accent: #3dc372;
+  --hl-surface: #1b231f;
+  --hl-border: #33423c;
+  --hl-muted: #a9abb3;
+  --hl-note-bg: #02372d;
+  --hl-note-border: #41675d;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  --theme-foreground: #dfdfd6;
+  --theme-background-a: #161616;
+  --theme-background-b: #161616;
+  --theme-foreground-focus: #3dc372;
+  color-scheme: dark;
+}
+#observablehq-main { max-width: 1280px; }
+.hl-header h1 { margin: 0.1em 0 0.2em; max-width: none; }
+.hl-eyebrow { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--hl-accent); }
+.hl-lede { margin: 0 0 16px; color: var(--hl-muted); max-width: 70ch; }
+.hl-controls { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-bottom: 8px; }
+.hl-controls form { width: auto; }
+.hl-controls label { font-weight: 600; }
+.hl-tabs { width: 100% !important; max-width: none !important; margin: 8px 0 20px; border-bottom: 2px solid var(--hl-border); }
+.hl-tabs > div { display: flex; flex-wrap: wrap; gap: 0; }
+.hl-tabs label { position: relative; margin: 0; padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--hl-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.hl-tabs label:has(input:checked) { color: var(--hl-accent); border-bottom-color: var(--hl-accent); }
+.hl-tabs label:has(input:focus-visible) { outline: 2px solid var(--hl-accent); outline-offset: -2px; border-radius: 4px; }
+.hl-tabs input { position: absolute; opacity: 0; pointer-events: none; }
+.hl-table-wrap { overflow-x: auto; }
+.hl-table { width: 100%; max-width: none; font-size: 14px; border-collapse: collapse; }
+.hl-table th { vertical-align: bottom; font-size: 13px; padding: 4px 8px; border-bottom: 1px solid var(--hl-border); text-align: left; }
+.hl-table td { padding: 4px 8px; border-bottom: 1px solid #e5e5e7; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .hl-table td { border-bottom-color: #33423c; }
+.hl-table tbody tr:last-child td { border-bottom: 0; }
+.hl-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.hl-card { grid-column: span var(--span); min-width: 0; padding: 16px 20px; background: var(--hl-surface); border: 1px solid var(--hl-border); border-radius: 12px; }
+.hl-card-metric { border-top: 4px solid var(--hl-accent); }
+.hl-card-title { margin: 0 0 10px; font-family: "degular", "Sora", system-ui, sans-serif; font-size: 15px; font-weight: 700; color: var(--hl-accent); max-width: none; }
+.hl-metric { font-family: "degular", "Sora", system-ui, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.1; color: #161616; }
+html[data-theme="dark"] .hl-metric { color: #ffffff; }
+.hl-metric-note { margin: 10px 0 0; font-size: 13px; color: var(--hl-muted); }
+.hl-metric-note strong { color: inherit; font-weight: 700; }
+.hl-empty { color: var(--hl-muted); font-style: italic; margin: 0; }
+.hl-chart-note { margin: 0 0 10px; font-size: 12px; color: var(--hl-muted); }
+.hl-donut { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; }
+.hl-donut-legend { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.hl-donut-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.hl-about { margin: 0 0 20px; padding: 16px 20px; background: var(--hl-note-bg); border: 1px solid var(--hl-note-border); border-left: 4px solid var(--hl-accent); border-radius: 12px; }
+.hl-about p { max-width: none; margin: 0; font-size: 15px; }
+.hl-footnote { font-size: 13px; color: var(--hl-muted); max-width: none; }
+
+/* Collapsible "About this data" -- dashboard-collapsible-description skill
+   convention, same .X-card-details shape Inventory's own retrofit uses.
+   Dark theme from the start here (unlike that skill's own bootstrap case),
+   so the focus outline gets its dark-mode color immediately rather than
+   waiting for a later retrofit. */
+.hl-card-details { margin-top: 10px; }
+.hl-card-details > summary { font-size: 13px; font-weight: 600; color: var(--hl-accent); cursor: pointer; list-style: revert; }
+.hl-card-details > summary:focus-visible { outline: 2px solid var(--hl-accent); outline-offset: 2px; }
+.hl-card-details > .hl-card-description { margin: 8px 0 0; font-size: 13px; color: var(--hl-muted); }
+.hl-card-description { margin: 0 0 10px; font-size: 13px; color: var(--hl-muted); max-width: none; }
+
+/* Theme toggle -- a plain pill button whose own label text swaps between
+   "Dark mode"/"Light mode" (not a switch), matching every other dashboard's
+   own toggle on this site. */
+.hl-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 6px 14px;
+  border: 1px solid var(--hl-border);
+  border-radius: 999px;
+  background: var(--hl-surface);
+  color: var(--hl-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.hl-theme-toggle:hover { border-color: var(--hl-accent); }
+.hl-theme-toggle:focus-visible { outline: 2px solid var(--hl-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .hl-theme-toggle { transition: none; }
+}
+
+@media (max-width: 760px) {
+  .hl-row { grid-template-columns: 1fr; }
+  .hl-card { grid-column: 1 / -1; }
+}
