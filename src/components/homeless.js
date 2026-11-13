@@ -72,11 +72,33 @@ function renderReachTile(field, rows) {
  * calendar quarters, one line per project type (Street Outreach/Emergency
  * Shelter/Transitional Housing), colored from the shared SERIES palette in
  * a fixed order so a line's color stays the same across both charts and
- * across filter changes. */
-function renderTrendChart(rows, field, yLabel) {
+ * across filter changes.
+ *
+ * A quarter where a given project type has zero matching people produces
+ * no SQL row at all (COUNT/GROUP BY can't emit a zero-count row with
+ * nothing to count), so that quarter was previously just missing from the
+ * line entirely -- confirmed live to read as "no data" rather than "zero"
+ * for a real combination (Street Outreach x Unaccompanied Minors: 0 for
+ * the recent FY, but the line still appeared to cover the full 8-quarter
+ * range using only the 4 quarters that had data, silently dropping the 4
+ * current-FY quarters instead of showing them at 0). Fixed by deriving the
+ * canonical 8-period list from the "All Project Types" x "All Household
+ * Types" combo's own trend rows (guaranteed full history) and filling in
+ * an explicit zero for every (period, project type) pair the current
+ * filter's own rows don't otherwise cover, so a real zero quarter now
+ * shows as a point sitting on the zero line instead of a silent gap. */
+function renderTrendChart(doc, rows, field, yLabel) {
   if (!rows.length) return empty();
-  const periods = [...new Set(rows.map((r) => r.period))].sort();
+  const canonicalRows = widgetRows(doc, "trend", ["All Project Types", "All Household Types"]);
+  const periods = [...new Set([...canonicalRows, ...rows].map((r) => r.period))].sort();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
+  const present = new Set(rows.map((r) => `${r.period}|${r.project_type}`));
+  const filled = [
+    ...rows,
+    ...periods.flatMap((period) => types
+      .filter((type) => !present.has(`${period}|${type}`))
+      .map((type) => ({period, project_type: type, persons: 0, households: 0})))
+  ].sort((a, b) => a.period.localeCompare(b.period));
   const fmt = d3format(",~f");
   return resize((width) => Plot.plot({
     width,
@@ -91,9 +113,9 @@ function renderTrendChart(rows, field, yLabel) {
     color: colorScale(types),
     marks: [
       Plot.ruleY([0]),
-      Plot.lineY(rows, {x: "period", y: field, stroke: "project_type", strokeWidth: 2}),
-      Plot.dot(rows, {x: "period", y: field, fill: "project_type", r: 4, stroke: "var(--theme-background)", strokeWidth: 2}),
-      Plot.tip(rows, Plot.pointer({x: "period", y: field, stroke: "project_type", channels: {"Project type": "project_type", [yLabel]: field}, format: {y: false, stroke: false, x: true, "Project type": true, [yLabel]: fmt}}))
+      Plot.lineY(filled, {x: "period", y: field, stroke: "project_type", strokeWidth: 2}),
+      Plot.dot(filled, {x: "period", y: field, fill: "project_type", r: 4, stroke: "var(--theme-background)", strokeWidth: 2}),
+      Plot.tip(filled, Plot.pointer({x: "period", y: field, stroke: "project_type", channels: {"Project type": "project_type", [yLabel]: field}, format: {y: false, stroke: false, x: true, "Project type": true, [yLabel]: fmt}}))
     ]
   }));
 }
@@ -404,14 +426,14 @@ const OVERVIEW_CARDS = [
     id: "trend-persons",
     name: "People Active by Project Type, Over Time",
     type: "chart",
-    render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "persons", "People"),
-    description: "The same Active Clients population as the tiles above, by calendar quarter for the 8 most recently completed quarters, broken out by project type. A person active in more than one project type in a given quarter appears on each of that quarter's own lines, so the three lines don't sum to a single combined total."
+    render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "persons", "People"),
+    description: "The same Active Clients population as the tiles above, by calendar quarter for the 8 most recently completed quarters, broken out by project type. A person active in more than one project type in a given quarter appears on each of that quarter's own lines, so the three lines don't sum to a single combined total. A quarter with genuinely zero people for a filter selection still shows as a point on the zero line rather than a gap, so an empty stretch (e.g. the most recent quarters, if the current fiscal year's own reach tile above reads zero) reads as \"zero,\" not \"no data.\""
   },
   {
     id: "trend-households",
     name: "Households Active by Project Type, Over Time",
     type: "chart",
-    render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "households", "Households"),
+    render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "households", "Households"),
     description: "The same quarterly population as the chart above, counted by household instead of by person."
   },
   {
