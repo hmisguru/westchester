@@ -37,7 +37,7 @@ function empty() {
   return html`<p class="hl-empty">No data for this selection.</p>`;
 }
 
-/** Rows for one of the three precomputed queries (reach/trend/living_situation), for the current filter selection. */
+/** Rows for one of the precomputed queries (reach/trend/flow/sankey/...), for the current filter selection. */
 export function widgetRows(doc, qkey, filterValues) {
   const qid = doc.results[filterValues.join("|")]?.[qkey];
   if (!qid) return [];
@@ -165,60 +165,6 @@ function renderFlowChart(rows) {
     <p class="hl-chart-note">Bars show each month's net flow (entries minus exits); the dashed line is the 12-month trend.</p>
     ${chart}
   </div>`;
-}
-
-/** "Prior Living Situation by Project Type" -- one stacked bar per project
- * type, segments in a fixed Living Situation order (see
- * LIVING_SITUATION_ORDER) so the stack order and color assignment stay
- * consistent regardless of which segment happens to be largest for a given
- * filter selection. */
-function renderLivingSituationChart(rows) {
-  if (!rows.length) return empty();
-  const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
-  const situations = LIVING_SITUATION_ORDER.filter((s) => rows.some((r) => r.living_situation === s));
-  const fmt = integer;
-  const chart = resize((width) => Plot.plot({
-    width,
-    height: 360,
-    marginLeft: 56,
-    // tickRotate + marginBottom: with only 3 categories but long labels
-    // ("Emergency Shelter", "Transitional Housing"), horizontal text
-    // collides at narrow/mobile widths -- same -35deg rotation + raised
-    // bottom margin convention as every trend chart's own quarter labels
-    // on this site (dashboard.js/city-performance.js). marginBottom raised
-    // from 48 to 80 after a live report that labels were still clipping --
-    // measured via getBoundingClientRect() (same verification rigor
-    // winter-shelter.js's own header comment documents for its own date
-    // axis): at 48, the rotated "Transitional Housing" label's own bottom
-    // edge landed ~25px past the SVG's own bottom edge (the label's
-    // rotated extent below the plot frame measured ~73px, not 48), which
-    // both clipped the label itself and visually overlapped the card's
-    // "About this data" toggle just below it. 80px confirmed clipping-free
-    // at the same measurement.
-    marginBottom: 80,
-    x: {domain: types, label: null, padding: 0.3, tickRotate: -35},
-    y: {grid: true, label: "People", tickFormat: fmt},
-    color: colorScale(situations),
-    marks: [
-      Plot.barY(rows, Plot.stackY({
-        x: "project_type",
-        y: "persons",
-        fill: "living_situation",
-        order: situations,
-        inset: 1,
-        rx: 2,
-        channels: {"Living situation": "living_situation", "Project type": "project_type"},
-        tip: {format: {x: false, fill: false, "Living situation": true, "Project type": true, y: fmt}}
-      })),
-      Plot.ruleY([0])
-    ]
-  }));
-  // Extra breathing room below the chart itself, on top of the marginBottom
-  // fix above -- same two-part fix (raise the Plot margin to stop the
-  // actual clip, then add wrapper margin for visual spacing) city-
-  // performance.js's own .cpm-chart wrapper uses for this identical
-  // rotated-label-crowding situation.
-  return html`<div class="hl-chart-wrap">${chart}</div>`;
 }
 
 // "Client Flow: Prior Living Situation -> Project Type -> Exit Outcome" --
@@ -492,7 +438,7 @@ function renderAgeHistogram(doc, filterValues) {
     height: 360,
     marginLeft: 56,
     // tickRotate + marginBottom: same -35deg/48px fix as this file's other
-    // long-label charts (renderTrendChart/renderLivingSituationChart) --
+    // long-label charts (renderTrendChart) --
     // AGE_SHORT_LABELS' already-compact forms still don't fit horizontally
     // across 12 categories at a narrow width.
     marginBottom: 48,
@@ -622,6 +568,7 @@ const OVERVIEW_CARDS = [
     id: "trend-persons",
     name: "People Active by Project Type, Over Time",
     type: "chart",
+    span: 6,
     render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "persons", "People"),
     description: "The same Active Clients population as the tiles above, by calendar quarter for the 8 most recently completed quarters, broken out by project type. A person active in more than one project type in a given quarter appears on each of that quarter's own lines, so the three lines don't sum to a single combined total. A quarter with genuinely zero people for a filter selection still shows as a point on the zero line rather than a gap, so an empty stretch (e.g. the most recent quarters, if the current fiscal year's own reach tile above reads zero) reads as \"zero,\" not \"no data.\""
   },
@@ -629,6 +576,7 @@ const OVERVIEW_CARDS = [
     id: "trend-households",
     name: "Households Active by Project Type, Over Time",
     type: "chart",
+    span: 6,
     render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "households", "Households"),
     description: "The same quarterly population as the chart above, counted by household instead of by person."
   },
@@ -640,18 +588,11 @@ const OVERVIEW_CARDS = [
     description: "Each bar shows whether more people entered Street Outreach, Emergency Shelter, or Transitional Housing than left it that month (or the reverse), over the 12 most recently completed calendar months. A person counts as one \"entry\" the month they start a qualifying enrollment and one \"exit\" the month that enrollment ends, so someone active in more than one project type this period is counted once per project type they're active in, the same \"All Project Types\" convention the trend charts above use -- and someone who both enters and exits within the same month nets to zero for that month, which is the correct outcome, not a gap. This is a different count than the reach tiles and trend charts above, which track who's active at a point in time rather than who's coming or going. The dashed line is the overall direction (a best-fit trend) over these same 12 months. Modeled on a similar \"System Flow and Trend Over Time\" chart built for this CoC's own Shelter Dashboard, extended here to cover Street Outreach and Transitional Housing in addition to Emergency Shelter."
   },
   {
-    id: "living-situation",
-    name: "Prior Living Situation by Project Type",
-    type: "chart",
-    render: (doc, fv) => renderLivingSituationChart(widgetRows(doc, "living_situation", fv)),
-    description: "Where each person was staying immediately before their current enrollment, for the recent fiscal year only, grouped into 6 categories from HUD's own Prior Living Situation response options. \"Other\" is the largest category in practice -- a Street Outreach contact in particular often leaves this question unanswered -- which reflects how the question gets answered in the field, not a problem with this chart."
-  },
-  {
     id: "flow-sankey",
     name: "Client Flow: Prior Living Situation → Project Type → Exit Outcome",
     type: "chart",
     render: (doc, fv) => renderSankeyChart(widgetRows(doc, "sankey", fv)),
-    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment, which project type they were active in, and -- for their own representative enrollment, the same one used for Prior Living Situation above -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet flow into a 7th node, Still Enrolled, rather than being left out -- without it, the flow leaving each Project Type node would be smaller than the flow entering it, since \"active\" includes people still enrolled as well as those who've already left. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
+    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet flow into a 7th node, Still Enrolled, rather than being left out -- without it, the flow leaving each Project Type node would be smaller than the flow entering it, since \"active\" includes people still enrolled as well as those who've already left. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
   }
 ];
 

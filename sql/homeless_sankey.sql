@@ -1,9 +1,13 @@
 -- Hand-written, NOT generated from a wcdash YAML -- feeds the Homeless
 -- dashboard's Overview tab Sankey chart (Prior Living Situation -> Project
 -- Type -> Exit Outcome). Same report universe, Active Clients convention,
--- and household-determination machinery as sql/homeless_living_situation.sql
--- (see that file's own header for the full HUD code-band rationale); reuses
--- that file's exact Prior Living Situation bucketing for the first stage.
+-- and household-determination machinery as sql/homeless_reach.sql's own
+-- header documents; the Prior Living Situation bucketing for the first
+-- stage (see the CASE statement below) was originally built for this
+-- dashboard's own "Prior Living Situation by Project Type" chart (removed
+-- from the Overview tab per explicit request -- see CLAUDE.md's own
+-- history of that chart for the full HUD code-band rationale) and copied
+-- here rather than re-derived.
 --
 -- The Exit Outcome stage reads each person's own REPRESENTATIVE
 -- enrollment's own Exit record (the same enrollment already chosen for
@@ -79,8 +83,8 @@ active_enrollments AS (
 ),
 rep AS (
   -- One representative enrollment per (PersonalID, project_type), same
-  -- correction/rationale as sql/homeless_living_situation.sql's own rep
-  -- CTE: under "All Project Types", a person active in both Street
+  -- correction/rationale as sql/homeless_trend.sql's own rep CTE: under
+  -- "All Project Types", a person active in both Street
   -- Outreach and ES/TH this FY must flow through BOTH project types' own
   -- Sankey paths, not get collapsed onto whichever enrollment started most
   -- recently overall.
