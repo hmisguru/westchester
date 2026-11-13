@@ -30,9 +30,13 @@
 -- BETWEEN-range convention this file's own Prior Living Situation CASE
 -- (below) and sql/m7b1_placement.sql's `Destination BETWEEN 400 AND 499`
 -- otherwise use):
---   Homeless              -- 116 only (place not meant for habitation) --
---                            narrowed from the full 100-199 band; 101 and
---                            118 moved into Emergency & Temporary below
+--   Street                 -- 116 only (place not meant for habitation) --
+--                            narrowed from the full 100-199 band and
+--                            relabeled from "Homeless" to "Street" (per a
+--                            follow-up explicit request) to read identically
+--                            to the left side's own "Street" bucket below,
+--                            which is the same HUD code (116); 101 and 118
+--                            moved into Emergency & Temporary below
 --   Emergency & Temporary  -- 101 (emergency shelter), 118 (Safe Haven),
 --                             plus the full 300-399 band (transitional
 --                             housing, temporary stays with family/
@@ -61,8 +65,8 @@
 -- house, moved out of the old "Family or Friends" bucket), and "Friends &
 -- Family" keeps only 335/336 (staying with family/staying with friends,
 -- temporary tenure) -- the two codes the name now literally describes.
--- `renderSankeyChart()`'s own `SANKEY_SIDE_COLORS` gives matching-named
--- buckets on the two sides (`Emergency & Temporary`, `Institutional`/
+-- `renderSankeyChart()`'s own `SANKEY_SIDE_COLORS` gives every matching-named
+-- bucket on the two sides (`Street`, `Emergency & Temporary`, `Institutional`/
 -- `Institutional Setting`, `Permanent`/`Permanent Setting`, `Other`) the
 -- same color, per that same request -- see that constant's own comment.
 --
@@ -200,7 +204,7 @@ exit_links AS (
     'exit' AS stage,
     project_type AS source,
     CASE
-      WHEN Destination = 116 THEN 'Homeless'
+      WHEN Destination = 116 THEN 'Street'
       WHEN Destination IN (101, 118) THEN 'Emergency & Temporary'
       WHEN Destination BETWEEN 200 AND 299 THEN 'Institutional'
       WHEN Destination BETWEEN 300 AND 399 THEN 'Emergency & Temporary'
