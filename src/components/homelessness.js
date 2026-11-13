@@ -1,15 +1,18 @@
-// Homeless dashboard (/homeless/) -- a deep dive into Local Measure 3.3
-// "People in Street Outreach, Emergency Shelter, or Transitional Housing"
-// from the KPI dashboard. Unlike /bridge/, there is no DAC YAML behind this
-// page -- see src/data/homeless.json.py and CLAUDE.md's Homeless dashboard
-// section for why (Bridge's own Overview/Demographics widgets read a
-// pre-aggregated Sheet scoped to "interim housing" that has no Street
-// Outreach value at all). Modeled on Bridge's Overview tab *widget shapes*
-// only: reach tiles, a trend line chart, a stacked bar -- all hand-driven
-// from sql/homeless_*.sql's own result shape rather than YAML display
-// config, the same no-YAML convention coordinated-entry.js already uses.
+// Homelessness Dashboard (/homelessness/) -- a deep dive into Local Measure
+// 3.3 "People in Street Outreach, Emergency Shelter, or Transitional
+// Housing" from the KPI dashboard. Unlike /bridge/, there is no DAC YAML
+// behind this page -- see src/data/homelessness.json.py and CLAUDE.md's
+// Homelessness Dashboard section for why (Bridge's own Overview/
+// Demographics widgets read a pre-aggregated Sheet scoped to "interim
+// housing" that has no Street Outreach value at all). Modeled on Bridge's
+// Overview tab *widget shapes* only: reach tiles, a trend line chart, a
+// stacked bar -- all hand-driven from sql/homeless_*.sql's own result
+// shape rather than YAML display config, the same no-YAML convention
+// coordinated-entry.js already uses.
 //
-// Class prefix "hl-" throughout, matching this page's own /homeless/ route.
+// Class prefix "hl-" throughout (kept from this page's original /homeless/
+// route name -- an internal CSS namespace, not user-facing, so it wasn't
+// renamed along with the route).
 
 import * as Plot from "npm:@observablehq/plot";
 import {format as d3format} from "npm:d3-format";
@@ -20,7 +23,7 @@ import {resize} from "observablehq:stdlib";
 
 // Validated categorical palette (dataviz skill reference instance), same
 // var(--series-N) convention as dashboard.js/coordinated-entry.js --
-// homeless.css defines the light steps on :root and redefines them under
+// homelessness.css defines the light steps on :root and redefines them under
 // html[data-theme="dark"], so toggling the theme recolors every chart with
 // no re-render.
 const SERIES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
@@ -263,7 +266,7 @@ function renderDonut(rows, labelField, valueField, order, colorMap) {
 // all three types on screen at once means pulling this same query's
 // precomputed rows for each of the 3 real household-type filter values
 // directly out of doc.results (all 16 combinations are already in
-// homeless.json, so this needs no new query) rather than the single rows
+// homelessness.json, so this needs no new query) rather than the single rows
 // widgetRows() would return for whatever's currently selected -- special-
 // cased ahead of the normal render() dispatch in DEMOGRAPHICS_CARDS below,
 // the same way that baltimore widget is special-cased ahead of
@@ -571,7 +574,7 @@ function applyTheme(theme) {
   }
 }
 
-/** A light/dark theme toggle button, default light -- see homeless.css for
+/** A light/dark theme toggle button, default light -- see homelessness.css for
  * the [data-theme] styling this drives on <html>. Remembers the visitor's
  * choice via localStorage (own key, not shared with any other dashboard on
  * this site), but every first-ever visit starts light. */
