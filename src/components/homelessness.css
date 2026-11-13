@@ -1,16 +1,17 @@
-/* Homeless dashboard styles (/homeless/), class prefix "hl-" throughout,
-   matching this page's own route. Same county-government palette as every
-   other dashboard on this site (dashboard.css/kpi.js/spm-dashboard.css --
-   deep forest green #02372d / white, accent green #3dc372, "degular"/"Sora"
-   for headings and large numbers), under its own class prefix/custom
-   property namespace since this isn't an embeddable module and isn't the
-   Bridge dashboard. */
+/* Homelessness Dashboard styles (/homelessness/), class prefix "hl-"
+   throughout (kept from this page's original /homeless/ route name -- an
+   internal CSS namespace, not user-facing, so it wasn't renamed along with
+   the route). Same county-government palette as every other dashboard on
+   this site (dashboard.css/kpi.js/spm-dashboard.css -- deep forest green
+   #02372d / white, accent green #3dc372, "degular"/"Sora" for headings and
+   large numbers), under its own class prefix/custom property namespace
+   since this isn't an embeddable module and isn't the Bridge dashboard. */
 :root {
   --hl-accent: #02372d; --hl-surface: #ffffff; --hl-border: #d4d3d6; --hl-muted: #6c6d74;
   --hl-note-bg: #f0f5f3; --hl-note-border: #d4e3dd;
   /* Validated categorical palette (dataviz skill reference instance, light
      steps) -- same values as dashboard.css's own --series-1..8, referenced
-     by SERIES in homeless.js. Never raw hex in chart code, so the
+     by SERIES in homelessness.js. Never raw hex in chart code, so the
      html[data-theme="dark"] block below can swap every chart's colors with
      no re-render. */
   --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;

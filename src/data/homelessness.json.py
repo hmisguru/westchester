@@ -1,5 +1,5 @@
-"""Observable Framework data loader: Homeless dashboard (prototype at
-/homeless/), a deep dive into Local Measure 3.3 "People in Street Outreach,
+"""Observable Framework data loader: Homelessness Dashboard (prototype at
+/homelessness/), a deep dive into Local Measure 3.3 "People in Street Outreach,
 Emergency Shelter, or Transitional Housing" from the KPI dashboard.
 
 Unlike dashboard.json.py (bridge/dashboard.yml), there is no DAC dashboard

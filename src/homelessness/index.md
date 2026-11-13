@@ -1,18 +1,18 @@
 ---
-title: Homeless (prototype)
+title: Homelessness Dashboard (prototype)
 toc: false
 ---
 
-<link rel="stylesheet" href="../components/homeless.css">
+<link rel="stylesheet" href="../components/homelessness.css">
 
 ```js
-import {homelessInputs, renderAbout, renderDemographics, renderFootnote, renderOverview, renderThemeToggle} from "../components/homeless.js";
-const doc = FileAttachment("../data/homeless.json").json();
+import {homelessInputs, renderAbout, renderDemographics, renderFootnote, renderOverview, renderThemeToggle} from "../components/homelessness.js";
+const doc = FileAttachment("../data/homelessness.json").json();
 ```
 
 <div class="hl-header">
   <p class="hl-eyebrow">Prototype</p>
-  <h1>Homeless</h1>
+  <h1>Homelessness Dashboard</h1>
 </div>
 
 ```js
