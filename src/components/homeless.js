@@ -384,16 +384,20 @@ const OVERVIEW_CARDS = [
 function renderCard(doc, card, filterValues) {
   const body = card.render(doc, filterValues);
   const isMetric = card.type === "metric";
+  // Every card's description collapses behind "About this data" below its
+  // own content -- metric tiles included, per explicit request, since
+  // People Active/Households Active carry the same real-paragraph
+  // methodology text (not a one-line caption) every chart/table card here
+  // already collapses. Matches the dashboard-collapsible-description
+  // skill's own predicate ("collapse a real paragraph, not a one-liner"),
+  // not a type-based exception.
   const description = card.description
-    ? isMetric
-      ? html`<p class="hl-card-description">${card.description}</p>`
-      : html`<details class="hl-card-details"><summary>About this data</summary><p class="hl-card-description">${card.description}</p></details>`
+    ? html`<details class="hl-card-details"><summary>About this data</summary><p class="hl-card-description">${card.description}</p></details>`
     : null;
   return html`<section class="hl-card${isMetric ? " hl-card-metric" : ""}" style="--span:${card.span ?? (isMetric ? 6 : 12)}" data-widget=${card.id}>
     <h3 class="hl-card-title">${card.name}</h3>
-    ${isMetric ? description : null}
     ${body}
-    ${isMetric ? null : description}
+    ${description}
   </section>`;
 }
 
