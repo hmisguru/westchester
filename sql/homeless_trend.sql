@@ -1,46 +1,56 @@
 -- Hand-written, NOT generated from a wcdash YAML -- see sql/homeless_reach.sql's
 -- own header comment for the shared report universe, Active Clients
 -- convention, and the Street Outreach same-day-contact exemption this file
--- reuses verbatim (just generalized from 2 fixed FY-long periods to 8
--- trailing calendar quarters). Feeds the Homeless dashboard's Overview tab
--- trend charts ("Persons/Households active by project type over time").
+-- reuses verbatim. Feeds the Homeless dashboard's Overview tab trend charts
+-- ("Persons/Households active by project type over time").
 --
--- 8 trailing CALENDAR quarters (not fiscal-year quarters), ending at the
--- most recently COMPLETE quarter as of the HMIS export's own
--- MAX(ExportEndDate) -- the same "most recent complete period" posture
--- spm.json.py's own fiscal_year() uses, just quarter-grained. Matches
--- bridge/dashboard.yml's own FORMAT_DATE('%Y Q%Q', ...) calendar-quarter
--- convention for its "over time" trend charts, not this repo's own
--- FY-October-start convention.
+-- 12 trailing COMPLETE calendar months, ending at the most recently
+-- complete month as of the HMIS export's own MAX(ExportEndDate) -- per
+-- explicit request, to match sql/homeless_flow.sql's own window exactly
+-- (same `latest_complete_month` derivation and 12-month `months` CTE),
+-- in place of this file's own earlier 8-trailing-calendar-quarters grain
+-- (which matched `/bridge/`'s own calendar-quarter convention instead;
+-- that match no longer applies now that this file matches homeless_flow.sql
+-- instead).
+--
+-- Every (month, project_type) combination the current Project Type filter
+-- allows is in the output even when genuinely zero people are active that
+-- month -- `period_types` cross-joins the canonical `periods` list against
+-- every qualifying project type and `LEFT JOIN`s the actual counts onto it,
+-- the same "join from a canonical list, don't rely on COUNT/GROUP BY to
+-- emit a row for an empty group" pattern sql/homeless_flow.sql's own header
+-- documents. This replaces the JS-side zero-fill `renderTrendChart()`
+-- previously needed to patch this identical gap after the fact (see this
+-- file's own prior header comment, preserved in git history) -- now
+-- redundant and removed from homelessness.js.
 --
 -- Unlike sql/homeless_reach.sql, Project Type here is the chart's own color
--- dimension (one output row per quarter x project type), not folded into a
+-- dimension (one output row per month x project type), not folded into a
 -- single filtered total -- but the Project Type filter still applies the
 -- same way it does in homeless_reach.sql, narrowing qualifying_projects
 -- down to one component when a specific type is selected (so selecting
--- "Street Outreach" shows only that one line, exactly like Bridge's own
--- project-type filter narrows its trend chart to one series).
+-- "Street Outreach" shows only that one line).
 WITH export_info AS (
   SELECT MAX(ExportEndDate) AS export_end FROM wchmiscsv.Export
 ),
-latest_complete_quarter AS (
+latest_complete_month AS (
   SELECT IF(
-    export_end = LAST_DAY(export_end, QUARTER),
-    DATE_TRUNC(export_end, QUARTER),
-    DATE_SUB(DATE_TRUNC(export_end, QUARTER), INTERVAL 3 MONTH)
-  ) AS q_start
+    export_end = LAST_DAY(export_end, MONTH),
+    DATE_TRUNC(export_end, MONTH),
+    DATE_SUB(DATE_TRUNC(export_end, MONTH), INTERVAL 1 MONTH)
+  ) AS m_start
   FROM export_info
 ),
-quarters AS (
-  SELECT DATE_SUB(q_start, INTERVAL n * 3 MONTH) AS period_start
-  FROM latest_complete_quarter, UNNEST(GENERATE_ARRAY(0, 7)) AS n
+months AS (
+  SELECT DATE_SUB(m_start, INTERVAL n MONTH) AS month_start
+  FROM latest_complete_month, UNNEST(GENERATE_ARRAY(0, 11)) AS n
 ),
 periods AS (
   SELECT
-    FORMAT_DATE('%Y Q%Q', period_start) AS period,
-    period_start,
-    DATE_SUB(DATE_ADD(period_start, INTERVAL 3 MONTH), INTERVAL 1 DAY) AS period_end
-  FROM quarters
+    FORMAT_DATE('%b %Y', month_start) AS period,
+    month_start AS period_start,
+    DATE_SUB(DATE_ADD(month_start, INTERVAL 1 MONTH), INTERVAL 1 DAY) AS period_end
+  FROM months
 ),
 qualifying_projects AS (
   SELECT
@@ -123,11 +133,27 @@ classified AS (
     END AS household_type
   FROM rep r
   LEFT JOIN household_ages ha ON ha.rep_person = r.PersonalID AND ha.period = r.period AND ha.project_type = r.project_type
+),
+filtered AS (
+  SELECT period, project_type, PersonalID, HouseholdID
+  FROM classified
+  WHERE ('{{ filters.household_type }}' = 'All Household Types' OR household_type = '{{ filters.household_type }}')
+),
+counts AS (
+  SELECT period, project_type,
+    COUNT(DISTINCT PersonalID) AS persons,
+    COUNT(DISTINCT HouseholdID) AS households
+  FROM filtered
+  GROUP BY period, project_type
+),
+period_types AS (
+  SELECT pe.period, pe.period_start, qp.project_type
+  FROM periods pe
+  CROSS JOIN (SELECT DISTINCT project_type FROM qualifying_projects) qp
 )
-SELECT period, project_type,
-  COUNT(DISTINCT PersonalID) AS persons,
-  COUNT(DISTINCT HouseholdID) AS households
-FROM classified
-WHERE ('{{ filters.household_type }}' = 'All Household Types' OR household_type = '{{ filters.household_type }}')
-GROUP BY period, project_type
-ORDER BY period, project_type
+SELECT pt.period, pt.project_type,
+  COALESCE(c.persons, 0) AS persons,
+  COALESCE(c.households, 0) AS households
+FROM period_types pt
+LEFT JOIN counts c ON c.period = pt.period AND c.project_type = pt.project_type
+ORDER BY pt.period_start, pt.project_type
