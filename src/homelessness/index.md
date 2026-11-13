@@ -11,7 +11,7 @@ const doc = FileAttachment("../data/homelessness.json").json();
 ```
 
 <div class="hl-header">
-  <p class="hl-eyebrow">Prototype</p>
+  <p class="hl-eyebrow">Westchester County New York</p>
   <h1>Homelessness Dashboard</h1>
 </div>
 
