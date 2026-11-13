@@ -72,44 +72,30 @@ function renderReachTile(field, rows) {
   return body;
 }
 
-/** "Persons/Households active by project type over time" -- 8 trailing
- * calendar quarters, one line per project type (Street Outreach/Emergency
- * Shelter/Transitional Housing), colored from the shared SERIES palette in
- * a fixed order so a line's color stays the same across both charts and
- * across filter changes.
+/** "Persons/Households active by project type over time" -- 12 trailing
+ * complete calendar months, one line per project type (Street Outreach/
+ * Emergency Shelter/Transitional Housing), colored from the shared SERIES
+ * palette in a fixed order so a line's color stays the same across both
+ * charts and across filter changes. Per explicit request, this matches
+ * "System Flow and Trend Over Time"'s own 12-month window exactly (was
+ * previously 8 trailing calendar quarters).
  *
- * A quarter where a given project type has zero matching people produces
- * no SQL row at all (COUNT/GROUP BY can't emit a zero-count row with
- * nothing to count), so that quarter was previously just missing from the
- * line entirely -- confirmed live to read as "no data" rather than "zero"
- * for a real combination (Street Outreach x Unaccompanied Minors: 0 for
- * the recent FY, but the line still appeared to cover the full 8-quarter
- * range using only the 4 quarters that had data, silently dropping the 4
- * current-FY quarters instead of showing them at 0). Fixed by deriving the
- * canonical 8-period list from the "All Project Types" x "All Household
- * Types" combo's own trend rows (guaranteed full history) and filling in
- * an explicit zero for every (period, project type) pair the current
- * filter's own rows don't otherwise cover, so a real zero quarter now
- * shows as a point sitting on the zero line instead of a silent gap. */
-function renderTrendChart(doc, rows, field, yLabel) {
+ * sql/homeless_trend.sql's own `period_types` CTE now guarantees a row for
+ * every (month, project type) combination the current Project Type filter
+ * allows, even when genuinely zero people are active that month -- so,
+ * unlike before this change, no JS-side zero-fill is needed here; `rows`
+ * comes back already complete and in chronological order. */
+function renderTrendChart(rows, field, yLabel) {
   if (!rows.length) return empty();
-  const canonicalRows = widgetRows(doc, "trend", ["All Project Types", "All Household Types"]);
-  const periods = [...new Set([...canonicalRows, ...rows].map((r) => r.period))].sort();
+  const periods = [...new Set(rows.map((r) => r.period))];
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
-  const present = new Set(rows.map((r) => `${r.period}|${r.project_type}`));
-  const filled = [
-    ...rows,
-    ...periods.flatMap((period) => types
-      .filter((type) => !present.has(`${period}|${type}`))
-      .map((type) => ({period, project_type: type, persons: 0, households: 0})))
-  ].sort((a, b) => a.period.localeCompare(b.period));
   const fmt = d3format(",~f");
   return resize((width) => Plot.plot({
     width,
     height: 320,
     marginLeft: 56,
-    // marginBottom raised from the default to fit -35deg-rotated quarter
-    // labels ("2025 Q4") without clipping against the bottom of the
+    // marginBottom raised from the default to fit -35deg-rotated month
+    // labels ("Nov 2026") without clipping against the bottom of the
     // chart's own SVG -- same fix Bridge's own trend charts use.
     marginBottom: 48,
     x: {type: "point", domain: periods, label: null, padding: 0.3, tickRotate: -35},
@@ -117,9 +103,9 @@ function renderTrendChart(doc, rows, field, yLabel) {
     color: colorScale(types),
     marks: [
       Plot.ruleY([0]),
-      Plot.lineY(filled, {x: "period", y: field, stroke: "project_type", strokeWidth: 2}),
-      Plot.dot(filled, {x: "period", y: field, fill: "project_type", r: 4, stroke: "var(--theme-background)", strokeWidth: 2}),
-      Plot.tip(filled, Plot.pointer({x: "period", y: field, stroke: "project_type", channels: {"Project type": "project_type", [yLabel]: field}, format: {y: false, stroke: false, x: true, "Project type": true, [yLabel]: fmt}}))
+      Plot.lineY(rows, {x: "period", y: field, stroke: "project_type", strokeWidth: 2}),
+      Plot.dot(rows, {x: "period", y: field, fill: "project_type", r: 4, stroke: "var(--theme-background)", strokeWidth: 2}),
+      Plot.tip(rows, Plot.pointer({x: "period", y: field, stroke: "project_type", channels: {"Project type": "project_type", [yLabel]: field}, format: {y: false, stroke: false, x: true, "Project type": true, [yLabel]: fmt}}))
     ]
   }));
 }
@@ -569,16 +555,16 @@ const OVERVIEW_CARDS = [
     name: "People Active by Project Type, Over Time",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "persons", "People"),
-    description: "The same Active Clients population as the tiles above, by calendar quarter for the 8 most recently completed quarters, broken out by project type. A person active in more than one project type in a given quarter appears on each of that quarter's own lines, so the three lines don't sum to a single combined total. A quarter with genuinely zero people for a filter selection still shows as a point on the zero line rather than a gap, so an empty stretch (e.g. the most recent quarters, if the current fiscal year's own reach tile above reads zero) reads as \"zero,\" not \"no data.\""
+    render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "persons", "People"),
+    description: "The same Active Clients population as the tiles above, by calendar month for the 12 most recently completed months, broken out by project type -- the same 12-month window the System Flow and Trend Over Time chart below uses. A person active in more than one project type in a given month appears on each of that month's own lines, so the three lines don't sum to a single combined total. A month with genuinely zero people for a filter selection still shows as a point on the zero line rather than a gap, so an empty stretch (e.g. the most recent months, if the current fiscal year's own reach tile above reads zero) reads as \"zero,\" not \"no data.\""
   },
   {
     id: "trend-households",
     name: "Households Active by Project Type, Over Time",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "households", "Households"),
-    description: "The same quarterly population as the chart above, counted by household instead of by person."
+    render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "households", "Households"),
+    description: "The same monthly population as the chart above, counted by household instead of by person."
   },
   {
     id: "system-flow",
