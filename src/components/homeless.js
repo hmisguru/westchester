@@ -108,7 +108,7 @@ function renderLivingSituationChart(rows) {
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
   const situations = LIVING_SITUATION_ORDER.filter((s) => rows.some((r) => r.living_situation === s));
   const fmt = integer;
-  return resize((width) => Plot.plot({
+  const chart = resize((width) => Plot.plot({
     width,
     height: 360,
     marginLeft: 56,
@@ -116,9 +116,17 @@ function renderLivingSituationChart(rows) {
     // ("Emergency Shelter", "Transitional Housing"), horizontal text
     // collides at narrow/mobile widths -- same -35deg rotation + raised
     // bottom margin convention as every trend chart's own quarter labels
-    // on this site (dashboard.js/city-performance.js), confirmed
-    // clipping-free down to a 375px viewport.
-    marginBottom: 48,
+    // on this site (dashboard.js/city-performance.js). marginBottom raised
+    // from 48 to 80 after a live report that labels were still clipping --
+    // measured via getBoundingClientRect() (same verification rigor
+    // winter-shelter.js's own header comment documents for its own date
+    // axis): at 48, the rotated "Transitional Housing" label's own bottom
+    // edge landed ~25px past the SVG's own bottom edge (the label's
+    // rotated extent below the plot frame measured ~73px, not 48), which
+    // both clipped the label itself and visually overlapped the card's
+    // "About this data" toggle just below it. 80px confirmed clipping-free
+    // at the same measurement.
+    marginBottom: 80,
     x: {domain: types, label: null, padding: 0.3, tickRotate: -35},
     y: {grid: true, label: "People", tickFormat: fmt},
     color: colorScale(situations),
@@ -136,6 +144,12 @@ function renderLivingSituationChart(rows) {
       Plot.ruleY([0])
     ]
   }));
+  // Extra breathing room below the chart itself, on top of the marginBottom
+  // fix above -- same two-part fix (raise the Plot margin to stop the
+  // actual clip, then add wrapper margin for visual spacing) city-
+  // performance.js's own .cpm-chart wrapper uses for this identical
+  // rotated-label-crowding situation.
+  return html`<div class="hl-chart-wrap">${chart}</div>`;
 }
 
 // Demographics tab -- Priority Households table, Race/Ethnicity/Age pies
