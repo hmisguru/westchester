@@ -25,23 +25,46 @@
 -- renders them as a muted, non-flowing cap on each Project Type node
 -- itself instead -- see that function's own comment for how.
 --
--- Exit destination (HUD 3.12) is bucketed into 6 groups by HUD code band,
--- the same BETWEEN-range convention this file's own Prior Living Situation
--- CASE (below) and sql/m7b1_placement.sql's `Destination BETWEEN 400 AND
--- 499` already use:
---   Homeless            -- 100-199 (place not meant for habitation,
---                          emergency shelter, safe haven)
---   Institutional        -- 200-299
---   Temporary Housing     -- 300-399
---   Permanent Housing     -- 400-499
---   Other                 -- 17 (Other), 24 (Deceased) -- a known, recorded
---                            outcome that just isn't a HUD-banded
---                            destination
---   Unknown               -- 8 (don't know), 9 (refused), 30 (no exit
---                            interview completed), 37 (worker unable to
---                            determine), 99 (data not collected), or a
---                            NULL Destination on an enrollment that does
---                            have an Exit row
+-- Exit destination (HUD 3.12) is bucketed into 6 groups, per explicit
+-- request narrower/regrouped than a plain HUD code-band split (the
+-- BETWEEN-range convention this file's own Prior Living Situation CASE
+-- (below) and sql/m7b1_placement.sql's `Destination BETWEEN 400 AND 499`
+-- otherwise use):
+--   Homeless              -- 116 only (place not meant for habitation) --
+--                            narrowed from the full 100-199 band; 101 and
+--                            118 moved into Emergency & Temporary below
+--   Emergency & Temporary  -- 101 (emergency shelter), 118 (Safe Haven),
+--                             plus the full 300-399 band (transitional
+--                             housing, temporary stays with family/
+--                             friends, a paid hotel/motel, a non-homeless-
+--                             criteria halfway house, a non-crisis host
+--                             home) -- merges what were two separate
+--                             buckets (the non-116 part of the old
+--                             "Homeless" band, and the old "Temporary
+--                             Housing" bucket) into one
+--   Institutional          -- 200-299
+--   Permanent              -- 400-499
+--   Other                  -- 17 (Other), 24 (Deceased) -- a known,
+--                             recorded outcome that just isn't a
+--                             HUD-banded destination
+--   Unknown                -- 8 (don't know), 9 (refused), 30 (no exit
+--                             interview completed), 37 (worker unable to
+--                             determine), 99 (data not collected), or a
+--                             NULL Destination on an enrollment that does
+--                             have an Exit row
+--
+-- Prior Living Situation's own "Emergency & Temporary" and "Friends &
+-- Family" buckets (the CASE below) were regrouped and renamed to match
+-- this same split, per the same explicit request: "Emergency & Temporary"
+-- there is 101, 118, 302 (the old "Emergency Shelter / Transitional
+-- Housing" bucket) plus 314, 329, 332 (host home/hotel-motel/halfway
+-- house, moved out of the old "Family or Friends" bucket), and "Friends &
+-- Family" keeps only 335/336 (staying with family/staying with friends,
+-- temporary tenure) -- the two codes the name now literally describes.
+-- `renderSankeyChart()`'s own `SANKEY_SIDE_COLORS` gives matching-named
+-- buckets on the two sides (`Emergency & Temporary`, `Institutional`/
+-- `Institutional Setting`, `Permanent`/`Permanent Setting`, `Other`) the
+-- same color, per that same request -- see that constant's own comment.
 --
 -- Two sets of Sankey links are unioned together, tagged by `stage`:
 -- 'situation' links Prior Living Situation -> Project Type, 'exit' links
@@ -151,10 +174,10 @@ situation_links AS (
     'situation' AS stage,
     CASE
       WHEN LivingSituation = 116 THEN 'Street'
-      WHEN LivingSituation IN (101, 118, 302) THEN 'Emergency Shelter / Transitional Housing'
+      WHEN LivingSituation IN (101, 118, 302, 314, 329, 332) THEN 'Emergency & Temporary'
       WHEN LivingSituation BETWEEN 400 AND 499 THEN 'Permanent Setting'
       WHEN LivingSituation BETWEEN 200 AND 299 THEN 'Institutional Setting'
-      WHEN LivingSituation BETWEEN 300 AND 399 THEN 'Family or Friends'
+      WHEN LivingSituation BETWEEN 300 AND 399 THEN 'Friends & Family'
       ELSE 'Other'
     END AS source,
     project_type AS target,
@@ -177,10 +200,11 @@ exit_links AS (
     'exit' AS stage,
     project_type AS source,
     CASE
-      WHEN Destination BETWEEN 100 AND 199 THEN 'Homeless'
+      WHEN Destination = 116 THEN 'Homeless'
+      WHEN Destination IN (101, 118) THEN 'Emergency & Temporary'
       WHEN Destination BETWEEN 200 AND 299 THEN 'Institutional'
-      WHEN Destination BETWEEN 300 AND 399 THEN 'Temporary Housing'
-      WHEN Destination BETWEEN 400 AND 499 THEN 'Permanent Housing'
+      WHEN Destination BETWEEN 300 AND 399 THEN 'Emergency & Temporary'
+      WHEN Destination BETWEEN 400 AND 499 THEN 'Permanent'
       WHEN Destination IN (17, 24) THEN 'Other'
       ELSE 'Unknown'
     END AS target,
