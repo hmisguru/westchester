@@ -266,22 +266,28 @@ function renderSankeyChart(rows) {
     // Still-enrolled clients don't flow anywhere in the third stage (see
     // sql/homeless_sankey.sql's own header) -- rather than appear as a
     // destination node, their share of each Project Type node is capped
-    // right there as a muted, non-flowing overlay. node.value (the node's
-    // own full height) already counts them, by the same inflow-equals-
-    // real-exits-plus-still-enrolled conservation sql/homeless_sankey.sql's
-    // own exit_links comment documents, so the still-enrolled count is
-    // just node.value minus the sum of that node's own outgoing link
-    // values -- no separate query or row needed. The cap's own vertical
-    // position (not just its height) matters too: d3-sankey stacks a
-    // node's outgoing links contiguously from its own y0, so the real
-    // exits always occupy the TOP of the node and the uncovered remainder
-    // -- found as the lowest edge among those links, or the node's own y0
-    // if it has no real exits at all -- is always at the BOTTOM, which is
-    // where this cap is drawn.
-    const capEls = layout.nodes.filter((n) => n.column === 1).map((n) => {
+    // right there as a muted, non-flowing overlay, and both this split's
+    // own numbers (not the node's combined total) are what the node's own
+    // label shows (see labelEls below) -- computed once here, shared by
+    // both. node.value (the node's own full height) already counts them,
+    // by the same inflow-equals-real-exits-plus-still-enrolled
+    // conservation sql/homeless_sankey.sql's own exit_links comment
+    // documents, so the still-enrolled count is just node.value minus the
+    // sum of that node's own outgoing link values -- no separate query or
+    // row needed. The cap's own vertical position (not just its height)
+    // matters too: d3-sankey stacks a node's outgoing links contiguously
+    // from its own y0, so the real exits always occupy the TOP of the
+    // node and the uncovered remainder -- found as the lowest edge among
+    // those links, or the node's own y0 if it has no real exits at all --
+    // is always at the BOTTOM, which is where this cap is drawn.
+    const splitByNode = new Map(layout.nodes.filter((n) => n.column === 1).map((n) => {
       const outgoing = layout.links.filter((l) => l.source === n);
+      const exited = outgoing.reduce((sum, l) => sum + l.value, 0);
       const flowedBottom = outgoing.length ? Math.max(...outgoing.map((l) => l.y0 + l.width / 2)) : n.y0;
-      const stillEnrolled = n.value - outgoing.reduce((sum, l) => sum + l.value, 0);
+      return [n, {stillEnrolled: n.value - exited, exited, flowedBottom}];
+    }));
+    const capEls = layout.nodes.filter((n) => n.column === 1).map((n) => {
+      const {stillEnrolled, flowedBottom} = splitByNode.get(n);
       if (stillEnrolled <= 0 || flowedBottom >= n.y1) return null;
       return svg`<rect x=${n.x0} y=${flowedBottom} width=${n.x1 - n.x0} height=${Math.max(1, n.y1 - flowedBottom)} fill="black" fill-opacity="0.42" rx="2"><title>${n.name}: ${fmt(stillEnrolled)} still enrolled (hasn't exited yet)</title></rect>`;
     }).filter((el) => el != null);
@@ -297,27 +303,28 @@ function renderSankeyChart(rows) {
     // than letting the text overflow a tiny box.
     const labelEls = layout.nodes.map((n) => {
       const display = SANKEY_SHORT_LABELS[n.name] ?? n.name;
-      // Project Type's own node.value is each project type's own total
-      // flow, which can (and, in the "All Project Types" combo, does) sum
-      // to more than the People Active reach tile's own total -- a person
-      // active in more than one project type this FY counts once in EACH
-      // project type's own node here (same rep CTE partitioning as
-      // sql/homeless_trend.sql's own lines), not once overall.
-      if (n.column === 1 && n.y1 - n.y0 >= 26) {
+      // Project Type's own label shows the still-enrolled/exited split
+      // (splitByNode, computed above) instead of node.value's own combined
+      // total, per explicit request, so the two numbers printed are the
+      // same two the node's own visual split (the muted cap vs. the
+      // colored portion above it) already shows -- not a third, separate
+      // figure a viewer would have to reconcile against what they're
+      // looking at.
+      if (n.column === 1 && n.y1 - n.y0 >= 40) {
+        const {stillEnrolled, exited} = splitByNode.get(n);
         const midX = (n.x0 + n.x1) / 2, midY = (n.y0 + n.y1) / 2;
         return svg`<g>
-          <text x=${midX} y=${midY - 3} text-anchor="middle" font-size="11" font-weight="600" fill="#fff">${display}</text>
-          <text x=${midX} y=${midY + 9} text-anchor="middle" font-size="10" fill="#fff" fill-opacity="0.85">${fmt(n.value)} people</text>
+          <text x=${midX} y=${midY - 10} text-anchor="middle" font-size="11" font-weight="600" fill="#fff">${display}</text>
+          <text x=${midX} y=${midY + 4} text-anchor="middle" font-size="10" fill="#fff" fill-opacity="0.9">${fmt(stillEnrolled)} still enrolled</text>
+          <text x=${midX} y=${midY + 16} text-anchor="middle" font-size="10" fill="#fff" fill-opacity="0.9">${fmt(exited)} exited</text>
         </g>`;
       }
       if (n.column === 1 && n.y1 - n.y0 >= 18) return svg`<text x=${(n.x0 + n.x1) / 2} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">${display}</text>`;
       if (n.column === 0) return svg`<text x=${n.x1 + 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" font-size="12" fill="currentColor">${display}</text>`;
       if (n.column === 2) return svg`<text x=${n.x0 - 6} y=${(n.y0 + n.y1) / 2} dy="0.32em" text-anchor="end" font-size="12" fill="currentColor">${display}</text>`;
       // Reached only by a column 1 node too short (< 18px) even for its
-      // single-line label above -- still worth the count here, just
-      // folded into one line since there's no block to put a second line
-      // inside of.
-      if (n.column === 1) return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="11" fill="currentColor">${display} (${fmt(n.value)})</text>`;
+      // single-line label above -- no room for either number, so just the
+      // name (hover the node or its cap for the exact split).
       return svg`<text x=${(n.x0 + n.x1) / 2} y=${n.y0 - 6} text-anchor="middle" font-size="12" fill="currentColor">${display}</text>`;
     });
     return svg`<svg viewBox=${`0 0 ${width} ${height}`} width=${width} height=${height} role="img" aria-label="Prior living situation flowing into project type, flowing into exit outcome">
