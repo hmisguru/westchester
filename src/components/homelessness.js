@@ -124,6 +124,49 @@ function renderTrendChart(doc, rows, field, yLabel) {
   }));
 }
 
+/** "System Flow and Trend Over Time" -- monthly net flow (entries minus
+ * exits, i.e. a literal gain/loss of active clients) across 12 trailing
+ * complete calendar months, modeled on the private
+ * hmisguru/westchester-dac repo's own widget of the same name
+ * (wcshelterutilization.yml, Emergency-Shelter-only there), extended per
+ * explicit request to this dashboard's own Street Outreach and
+ * Transitional Housing too (Westchester has no Safe Haven, so there's
+ * nothing to drop there) and to respect this page's own Project Type and
+ * Household Type filters, same as every other Overview chart. Bars are a
+ * single neutral color rather than colored by sign -- net flow (more
+ * people entering than leaving, or the reverse) isn't inherently good or
+ * bad, the same ambiguous-direction posture this dashboard's own reach
+ * tiles already take (see renderReachTile()'s own header comment), so no
+ * green/red value judgment is applied here either. */
+function renderFlowChart(rows) {
+  if (!rows.length) return empty();
+  const fmt = integer;
+  const periods = rows.map((r) => r.period);
+  const chart = resize((width) => Plot.plot({
+    width,
+    height: 320,
+    marginLeft: 56,
+    // tickRotate + marginBottom: same -35deg/48px fix as this file's other
+    // long-label "over time" charts (renderTrendChart).
+    marginBottom: 48,
+    x: {domain: periods, label: null, padding: 0.3, tickRotate: -35},
+    y: {grid: true, zero: true, label: "Net flow (entries − exits)", tickFormat: fmt},
+    marks: [
+      Plot.ruleY([0]),
+      Plot.barY(rows, {
+        x: "period", y: "net_flow", fill: "var(--series-1)", inset: 1, rx: 2,
+        channels: {Entries: "inflow_count", Exits: "outflow_count"},
+        tip: {format: {x: true, y: fmt, Entries: fmt, Exits: fmt}}
+      }),
+      Plot.lineY(rows, {x: "period", y: "trend_value", stroke: "var(--hl-muted)", strokeWidth: 2, strokeDasharray: "5,4"})
+    ]
+  }));
+  return html`<div class="hl-chart-wrap">
+    <p class="hl-chart-note">Bars show each month's net flow (entries minus exits); the dashed line is the 12-month trend.</p>
+    ${chart}
+  </div>`;
+}
+
 /** "Prior Living Situation by Project Type" -- one stacked bar per project
  * type, segments in a fixed Living Situation order (see
  * LIVING_SITUATION_ORDER) so the stack order and color assignment stay
@@ -588,6 +631,13 @@ const OVERVIEW_CARDS = [
     type: "chart",
     render: (doc, fv) => renderTrendChart(doc, widgetRows(doc, "trend", fv), "households", "Households"),
     description: "The same quarterly population as the chart above, counted by household instead of by person."
+  },
+  {
+    id: "system-flow",
+    name: "System Flow and Trend Over Time",
+    type: "chart",
+    render: (doc, fv) => renderFlowChart(widgetRows(doc, "flow", fv)),
+    description: "Each bar shows whether more people entered Street Outreach, Emergency Shelter, or Transitional Housing than left it that month (or the reverse), over the 12 most recently completed calendar months. A person counts as one \"entry\" the month they start a qualifying enrollment and one \"exit\" the month that enrollment ends, so someone active in more than one project type this period is counted once per project type they're active in, the same \"All Project Types\" convention the trend charts above use -- and someone who both enters and exits within the same month nets to zero for that month, which is the correct outcome, not a gap. This is a different count than the reach tiles and trend charts above, which track who's active at a point in time rather than who's coming or going. The dashed line is the overall direction (a best-fit trend) over these same 12 months. Modeled on a similar \"System Flow and Trend Over Time\" chart built for this CoC's own Shelter Dashboard, extended here to cover Street Outreach and Transitional Housing in addition to Emergency Shelter."
   },
   {
     id: "living-situation",
