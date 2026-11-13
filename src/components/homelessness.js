@@ -175,7 +175,7 @@ function renderFlowChart(rows) {
 // each Project Type node's own still-enrolled share as a muted,
 // non-flowing cap on that same node -- see that function's own comment.
 const SANKEY_LIVING_SITUATION_ORDER = LIVING_SITUATION_ORDER;
-const SANKEY_EXIT_ORDER = ["Homeless", "Emergency & Temporary", "Institutional", "Permanent", "Other", "Unknown"];
+const SANKEY_EXIT_ORDER = ["Street", "Emergency & Temporary", "Institutional", "Permanent", "Other", "Unknown"];
 // Display-only short forms for node labels, never touching
 // sql/homeless_sankey.sql -- same abbreviate-for-the-axis-only convention
 // AGE_SHORT_LABELS uses below. "Emergency & Temporary" (both sides) and
@@ -194,15 +194,17 @@ const SANKEY_SHORT_LABELS = {
 // "Temporary Housing" unrelated colors from their own column's position
 // even once their definitions were realigned. Only names that are now
 // identical, or identical after SANKEY_SHORT_LABELS' own display
-// abbreviation, get a shared color: "Emergency & Temporary" (exact match
-// both sides), "Institutional Setting"/"Institutional" and "Permanent
-// Setting"/"Permanent" (short-label pairs), and "Other" (exact match).
-// "Street" (left) and "Homeless" (right) both resolve to HUD code 116 but
-// keep their own distinct labels and were deliberately NOT paired here --
-// the request was to match by name, not by underlying code. "Friends &
-// Family" (left-only) and "Unknown" (right-only) get their own slots.
-// Project Type (column 1) is unaffected -- still purely positional via
-// PROJECT_TYPE_ORDER, as before.
+// abbreviation, get a shared color: "Street" (exact match -- both sides
+// are HUD code 116; the right side's own bucket was originally labeled
+// "Homeless" and read a different color here until a follow-up explicit
+// request relabeled it to "Street" specifically so it would match this
+// left-side bucket, both by name and by color), "Emergency & Temporary"
+// (exact match both sides), "Institutional Setting"/"Institutional" and
+// "Permanent Setting"/"Permanent" (short-label pairs), and "Other" (exact
+// match). "Friends & Family" (left-only) and "Unknown" (right-only) get
+// their own slots -- nothing on this page still needs two bucket names to
+// deliberately NOT share a color. Project Type (column 1) is unaffected --
+// still purely positional via PROJECT_TYPE_ORDER, as before.
 const SANKEY_SIDE_COLORS = {
   "Street": SERIES[0],
   "Emergency & Temporary": SERIES[1],
@@ -212,8 +214,7 @@ const SANKEY_SIDE_COLORS = {
   "Permanent Setting": SERIES[4],
   "Permanent": SERIES[4],
   "Other": SERIES[5],
-  "Homeless": SERIES[6],
-  "Unknown": SERIES[7]
+  "Unknown": SERIES[6]
 };
 
 /** Builds the {nodes, links} graph d3-sankey expects from one widget's
