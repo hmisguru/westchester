@@ -76,8 +76,7 @@ html[data-theme="dark"] .hl-metric { color: #ffffff; }
 .hl-card-details { margin-top: 10px; }
 .hl-card-details > summary { font-size: 13px; font-weight: 600; color: var(--hl-accent); cursor: pointer; list-style: revert; }
 .hl-card-details > summary:focus-visible { outline: 2px solid var(--hl-accent); outline-offset: 2px; }
-.hl-card-details > .hl-card-description { margin: 8px 0 0; font-size: 13px; color: var(--hl-muted); }
-.hl-card-description { margin: 0 0 10px; font-size: 13px; color: var(--hl-muted); max-width: none; }
+.hl-card-details > .hl-card-description { margin: 8px 0 0; font-size: 13px; color: var(--hl-muted); max-width: none; }
 
 /* Theme toggle -- a plain pill button whose own label text swaps between
    "Dark mode"/"Light mode" (not a switch), matching every other dashboard's
