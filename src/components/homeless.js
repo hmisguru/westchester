@@ -405,14 +405,33 @@ function renderCards(doc, cards, filterValues) {
   return html`<div class="hl-row">${cards.map((card) => renderCard(doc, card, filterValues))}</div>`;
 }
 
+/** "Current Fiscal Year: FY2026" full-width tile at the top of both tabs,
+ * the same role bridge/dashboard.yml's own "Current Quarter" tile plays
+ * there -- the metric text itself is the date range (not a separate
+ * label/value pair), the card title names which fiscal year it is. Doesn't
+ * depend on the page's filters, so it's rendered once per tab ahead of
+ * that tab's own filtered cards rather than living in OVERVIEW_CARDS/
+ * DEMOGRAPHICS_CARDS (whose render(doc, fv) signature implies a filtered
+ * result). No description -- a date range needs no "About this data". */
+function renderFiscalYearCard(doc) {
+  const fy = doc.fiscal_year;
+  const range = `${calendarDate(fy.start)} – ${calendarDate(fy.end)}`;
+  return html`<div class="hl-row">
+    <section class="hl-card hl-card-metric" style="--span:12" data-widget="fiscal-year">
+      <h3 class="hl-card-title">Current Fiscal Year: ${fy.label}</h3>
+      <div class="hl-metric">${range}</div>
+    </section>
+  </div>`;
+}
+
 /** All Overview cards, laid out on the 12-column grid. */
 export function renderOverview(doc, filterValues) {
-  return renderCards(doc, OVERVIEW_CARDS, filterValues);
+  return html`${renderFiscalYearCard(doc)}${renderCards(doc, OVERVIEW_CARDS, filterValues)}`;
 }
 
 /** All Demographics cards, laid out on the 12-column grid. */
 export function renderDemographics(doc, filterValues) {
-  return renderCards(doc, DEMOGRAPHICS_CARDS, filterValues);
+  return html`${renderFiscalYearCard(doc)}${renderCards(doc, DEMOGRAPHICS_CARDS, filterValues)}`;
 }
 
 // Loose matching for option names given in a URL: case, spaces and
