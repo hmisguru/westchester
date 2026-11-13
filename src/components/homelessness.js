@@ -162,15 +162,20 @@ function renderFlowChart(rows) {
 // emitted as raw SVG via htl's svg tag, same hand-built-SVG technique as
 // renderDonut().
 //
-// sql/homeless_sankey.sql's own header explains the two load-bearing design
-// choices: a 'Still Enrolled' node in the third stage (so every active
-// client -- not just those who've already exited -- has somewhere to flow,
-// keeping each Project Type node's total flow-in equal to its flow-out),
-// and leaving the page's own Project Type filter in effect here (selecting
-// a single project type collapses the middle stage to one node, same as
-// every other Overview chart on this page).
+// sql/homeless_sankey.sql's own header explains the load-bearing design
+// choice of leaving the page's own Project Type filter in effect here
+// (selecting a single project type collapses the middle stage to one node,
+// same as every other Overview chart on this page).
+//
+// Still-enrolled clients (no Exit record yet) do NOT flow into the Exit
+// Outcome stage, per explicit request -- an earlier version gave them a
+// 7th "Still Enrolled" node there, but they dominated it (over half of
+// total flow in the real data), squeezing the real destination categories
+// into thin, hard-to-compare ribbons. renderSankeyChart() instead renders
+// each Project Type node's own still-enrolled share as a muted,
+// non-flowing cap on that same node -- see that function's own comment.
 const SANKEY_LIVING_SITUATION_ORDER = LIVING_SITUATION_ORDER;
-const SANKEY_EXIT_ORDER = ["Still Enrolled", "Homeless", "Institutional", "Temporary Housing", "Permanent Housing", "Other", "Unknown"];
+const SANKEY_EXIT_ORDER = ["Homeless", "Institutional", "Temporary Housing", "Permanent Housing", "Other", "Unknown"];
 // Display-only short forms for node labels, never touching
 // sql/homeless_sankey.sql -- same abbreviate-for-the-axis-only convention
 // AGE_SHORT_LABELS uses below. Exit Outcome's own names are all short
@@ -258,6 +263,28 @@ function renderSankeyChart(rows) {
     const linkPath = d3sankeyLinkHorizontal();
     const linkEls = layout.links.map((l) => svg`<path d=${linkPath(l)} fill="none" stroke=${l.source.color} stroke-opacity="0.35" stroke-width=${Math.max(1, l.width)}><title>${l.source.name} → ${l.target.name}: ${fmt(l.value)} people</title></path>`);
     const nodeEls = layout.nodes.map((n) => svg`<rect x=${n.x0} y=${n.y0} width=${n.x1 - n.x0} height=${Math.max(1, n.y1 - n.y0)} fill=${n.color} rx="2"><title>${n.name}: ${fmt(n.value)} people</title></rect>`);
+    // Still-enrolled clients don't flow anywhere in the third stage (see
+    // sql/homeless_sankey.sql's own header) -- rather than appear as a
+    // destination node, their share of each Project Type node is capped
+    // right there as a muted, non-flowing overlay. node.value (the node's
+    // own full height) already counts them, by the same inflow-equals-
+    // real-exits-plus-still-enrolled conservation sql/homeless_sankey.sql's
+    // own exit_links comment documents, so the still-enrolled count is
+    // just node.value minus the sum of that node's own outgoing link
+    // values -- no separate query or row needed. The cap's own vertical
+    // position (not just its height) matters too: d3-sankey stacks a
+    // node's outgoing links contiguously from its own y0, so the real
+    // exits always occupy the TOP of the node and the uncovered remainder
+    // -- found as the lowest edge among those links, or the node's own y0
+    // if it has no real exits at all -- is always at the BOTTOM, which is
+    // where this cap is drawn.
+    const capEls = layout.nodes.filter((n) => n.column === 1).map((n) => {
+      const outgoing = layout.links.filter((l) => l.source === n);
+      const flowedBottom = outgoing.length ? Math.max(...outgoing.map((l) => l.y0 + l.width / 2)) : n.y0;
+      const stillEnrolled = n.value - outgoing.reduce((sum, l) => sum + l.value, 0);
+      if (stillEnrolled <= 0 || flowedBottom >= n.y1) return null;
+      return svg`<rect x=${n.x0} y=${flowedBottom} width=${n.x1 - n.x0} height=${Math.max(1, n.y1 - flowedBottom)} fill="black" fill-opacity="0.42" rx="2"><title>${n.name}: ${fmt(stillEnrolled)} still enrolled (hasn't exited yet)</title></rect>`;
+    }).filter((el) => el != null);
     // Column 0 labels sit to the right of their node, column 2 to the
     // left, same inside/outside convention most Sankey examples use.
     // Column 1 (Project Type) instead gets its label centered INSIDE its
@@ -296,6 +323,7 @@ function renderSankeyChart(rows) {
     return svg`<svg viewBox=${`0 0 ${width} ${height}`} width=${width} height=${height} role="img" aria-label="Prior living situation flowing into project type, flowing into exit outcome">
       ${linkEls}
       ${nodeEls}
+      ${capEls}
       ${labelEls}
     </svg>`;
   });
@@ -578,7 +606,7 @@ const OVERVIEW_CARDS = [
     name: "Client Flow: Prior Living Situation → Project Type → Exit Outcome",
     type: "chart",
     render: (doc, fv) => renderSankeyChart(widgetRows(doc, "sankey", fv)),
-    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet flow into a 7th node, Still Enrolled, rather than being left out -- without it, the flow leaving each Project Type node would be smaller than the flow entering it, since \"active\" includes people still enrolled as well as those who've already left. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
+    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet don't flow into the Exit Outcome stage at all -- each Project Type block instead shows them as a darker, non-flowing cap at its own bottom edge (hover it for the exact count), so the real exit destinations' own relative sizes aren't squeezed by a single dominant \"still enrolled\" category. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
   }
 ];
 

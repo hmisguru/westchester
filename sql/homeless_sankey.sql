@@ -15,12 +15,15 @@
 -- exit during the period -- so a client's full path (entry situation ->
 -- project type -> exit outcome) always traces a single consistent
 -- enrollment, never mixed across two different stays. A representative
--- enrollment with no Exit row (NULL ExitDate) buckets to 'Still Enrolled'
--- rather than being dropped: the Active Clients population includes people
--- who haven't exited yet, so a third stage limited to "exit destination"
--- alone would make flow leaving each Project Type node smaller than the
--- flow entering it, which reads as a broken diagram rather than a real
--- "most people are still enrolled" finding.
+-- enrollment with no Exit row (NULL ExitDate) is still-enrolled --
+-- excluded from `exit_links` entirely, per explicit request, rather than
+-- flowing to a same-level "Still Enrolled" destination alongside real exit
+-- outcomes (an earlier version of this chart did exactly that, as a 7th
+-- Exit Outcome node); still-enrolled clients dominated that node (over
+-- half of total flow in the real data), squeezing the real destination
+-- categories into thin, hard-to-compare ribbons. `renderSankeyChart()` now
+-- renders them as a muted, non-flowing cap on each Project Type node
+-- itself instead -- see that function's own comment for how.
 --
 -- Exit destination (HUD 3.12) is bucketed into 6 groups by HUD code band,
 -- the same BETWEEN-range convention this file's own Prior Living Situation
@@ -160,11 +163,20 @@ situation_links AS (
   GROUP BY source, target
 ),
 exit_links AS (
+  -- Still-enrolled clients (ExitDate IS NULL) are excluded here entirely,
+  -- per explicit request -- they no longer flow to a same-level "Still
+  -- Enrolled" destination alongside real exit outcomes. renderSankeyChart()
+  -- derives each Project Type node's own still-enrolled count as
+  -- node.value minus the sum of its own real exit links (which holds
+  -- exactly, since situation_links' own total inflow for a project type
+  -- already equals real exits plus still-enrolled by construction -- every
+  -- qualifying enrollment is classified into exactly one of those two
+  -- buckets) and renders it as a muted, non-flowing cap on that same node,
+  -- rather than this file computing or emitting it as its own row.
   SELECT
     'exit' AS stage,
     project_type AS source,
     CASE
-      WHEN ExitDate IS NULL THEN 'Still Enrolled'
       WHEN Destination BETWEEN 100 AND 199 THEN 'Homeless'
       WHEN Destination BETWEEN 200 AND 299 THEN 'Institutional'
       WHEN Destination BETWEEN 300 AND 399 THEN 'Temporary Housing'
@@ -174,6 +186,7 @@ exit_links AS (
     END AS target,
     COUNT(DISTINCT PersonalID) AS persons
   FROM filtered
+  WHERE ExitDate IS NOT NULL
   GROUP BY source, target
 )
 SELECT stage, source, target, persons FROM situation_links
