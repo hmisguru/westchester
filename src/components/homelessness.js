@@ -380,7 +380,7 @@ function renderSankeyChart(rows) {
 // "priority_households" query key/sql filename stayed as-is -- an internal
 // identifier, not shown to a visitor -- only the display name and labels
 // changed); see sql/homeless_priority_households.sql's own header for why.
-const PRIORITY_POPULATIONS_ORDER = ["Age 55+", "Disabled", "Veterans", "DV Survivors"];
+const PRIORITY_POPULATIONS_ORDER = ["Age 55+", "Disabled", "Co-occurring Disorders", "Veterans", "DV Survivors"];
 const RACE_ORDER = ["AI/AN or Indigenous", "Asian", "Black/African-American", "MENA", "NH/Pacific Islander", "White", "Multiple Races"];
 // Fixed per-category color map for the Race donut, rather than the default
 // positional SERIES[i] assignment renderDonut() uses elsewhere -- the
@@ -593,7 +593,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Priority Populations",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "priority_households", fv), "indicator", "persons", PRIORITY_POPULATIONS_ORDER),
-    description: "4 person-level flags, recent fiscal year vs. the previous one: a person counts under Age 55+ if they are 55 or older, Disabled if their own most recent disability response on file is Yes, Veterans if they are a veteran, and DV Survivors if their own most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing). Per explicit request, this counts people, not households -- two veterans (or two DV survivors) sharing a household each count individually here, where an earlier household-level version would have counted that household once. A person can count under more than one row, so the 4 figures don't sum to People Served."
+    description: "5 person-level flags, recent fiscal year vs. the previous one: a person counts under Age 55+ if they are 55 or older, Disabled if their own most recent disability response on file is Yes for any disability type, Co-occurring Disorders if their own most recent responses say Yes for both a Mental Health Disorder and a Substance Use Disorder (a subset of Disabled -- either one alone still counts as Disabled, just not here), Veterans if they are a veteran, and DV Survivors if their own most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing). Per explicit request, this counts people, not households -- two veterans (or two DV survivors) sharing a household each count individually here, where an earlier household-level version would have counted that household once. A person can count under more than one row, so the 5 figures don't sum to People Served."
   },
   {
     id: "race-pie",

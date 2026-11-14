@@ -22,28 +22,41 @@
 -- aggregate the 4 characteristics themselves; `person_flags` (below)
 -- computes those directly per person instead.
 --
--- 4 indicators, each a person's own characteristic as of their own
+-- 5 indicators, each a person's own characteristic as of their own
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
---   Age 55+         -- the person's own age (same age-math convention as
---                       household_members elsewhere in this file) is 55 or
---                       older.
---   Disabled         -- the person has a wchmiscsv.Disabilities row with
---                       DisabilityResponse = 1, recorded on or before the
---                       reference date (their own most recent such record
---                       as of that date, so a later update that withdraws
---                       the response isn't still counted as of an earlier
---                       reference date).
---   Veterans         -- the person's own wchmiscsv.Client.VeteranStatus = 1.
---   DV Survivors     -- the person's own most recent wchmiscsv.HealthAndDV
---                       row as of the reference date has
---                       DomesticViolenceSurvivor = 1, regardless of
---                       CurrentlyFleeing -- matches the sibling
---                       hmisguru/baltimore repo's own dashboard.json.py
---                       convention for this same measure ("counts if its
---                       set is anything other than 'No history of domestic
---                       violence reported'").
+--   Age 55+               -- the person's own age (same age-math
+--                             convention as household_members elsewhere in
+--                             this file) is 55 or older.
+--   Disabled               -- the person has a wchmiscsv.Disabilities row
+--                             with DisabilityResponse = 1 for ANY
+--                             DisabilityType, recorded on or before the
+--                             reference date (their own most recent such
+--                             record as of that date, so a later update
+--                             that withdraws the response isn't still
+--                             counted as of an earlier reference date).
+--   Co-occurring Disorders -- the person's own most recent response is Yes
+--                             for BOTH DisabilityType 9 (Mental Health
+--                             Disorder) AND DisabilityType 10 (Substance
+--                             Use Disorder), each independently evaluated
+--                             as of the same reference date -- confirmed
+--                             live against wchmiscsv.Disabilities that
+--                             these are HUD's current (2024+) 2.07.2 codes
+--                             for exactly those two conditions. A subset of
+--                             "Disabled" above (having either Mental Health
+--                             Disorder or Substance Use Disorder alone
+--                             still counts as Disabled, just not here).
+--   Veterans               -- the person's own wchmiscsv.Client.VeteranStatus = 1.
+--   DV Survivors           -- the person's own most recent
+--                             wchmiscsv.HealthAndDV row as of the
+--                             reference date has DomesticViolenceSurvivor
+--                             = 1, regardless of CurrentlyFleeing --
+--                             matches the sibling hmisguru/baltimore
+--                             repo's own dashboard.json.py convention for
+--                             this same measure ("counts if its set is
+--                             anything other than 'No history of domestic
+--                             violence reported'").
 -- Order matches PRIORITY_POPULATIONS_ORDER in src/components/homelessness.js.
 WITH bounds AS (
   SELECT
@@ -120,12 +133,15 @@ household_members AS (
       OR (p2.ProjectType != 4 AND ex2.ExitDate > r.EntryDate)
     )
 ),
--- Each person's own most recent Disabilities response as of a reference
--- date, rather than "ever reported any disability" -- a later correction
--- that withdraws an earlier Yes shouldn't still count.
+-- Each person's own most recent Disabilities response PER DISABILITY TYPE
+-- as of a reference date, rather than "ever reported any disability" -- a
+-- later correction that withdraws an earlier Yes shouldn't still count.
+-- DisabilityType is carried through (not just used to partition) so
+-- Co-occurring Disorders below can check two specific types independently
+-- -- each type's own latest record can be as of a different date.
 disability_latest AS (
-  SELECT PersonalID, DisabilityResponse, InformationDate FROM (
-    SELECT PersonalID, DisabilityResponse, InformationDate,
+  SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate FROM (
+    SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate,
       ROW_NUMBER() OVER (PARTITION BY PersonalID, DisabilityType ORDER BY InformationDate DESC) AS rn
     FROM wchmiscsv.Disabilities
   )
@@ -139,7 +155,7 @@ dv_latest AS (
   )
   WHERE rn = 1
 ),
--- The 4 characteristics, computed per person (the representative person
+-- The 5 characteristics, computed per person (the representative person
 -- themselves, from `rep` directly) rather than aggregated across their
 -- household -- see this file's own header for why.
 person_flags AS (
@@ -159,6 +175,18 @@ person_flags AS (
       SELECT 1 FROM disability_latest dl
       WHERE dl.PersonalID = r.PersonalID AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
     ) AS is_disabled,
+    -- DisabilityType 9 = Mental Health Disorder, 10 = Substance Use
+    -- Disorder (HUD 2.07.2) -- two independent EXISTS checks, each
+    -- against that type's own latest record as of the reference date,
+    -- not a single row that happens to carry both (Disabilities has one
+    -- row per type per InformationDate, never both types in one row).
+    (EXISTS (
+      SELECT 1 FROM disability_latest dl
+      WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 9 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
+    ) AND EXISTS (
+      SELECT 1 FROM disability_latest dl
+      WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 10 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
+    )) AS is_co_occurring,
     EXISTS (
       SELECT 1 FROM dv_latest dv
       WHERE dv.PersonalID = r.PersonalID AND dv.InformationDate <= r.EntryDate AND dv.DomesticViolenceSurvivor = 1
@@ -191,13 +219,15 @@ filtered AS (
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_dv_survivor
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_dv_survivor
   FROM filtered f
   JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
 SELECT period, 'Age 55+' AS indicator, COUNT(DISTINCT PersonalID) AS persons FROM scoped_flags WHERE is_senior GROUP BY period
 UNION ALL
 SELECT period, 'Disabled', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_disabled GROUP BY period
+UNION ALL
+SELECT period, 'Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
 UNION ALL
 SELECT period, 'Veterans', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_veteran GROUP BY period
 UNION ALL
