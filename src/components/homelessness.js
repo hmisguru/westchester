@@ -560,7 +560,7 @@ const DEMOGRAPHICS_CARDS = [
     type: "chart",
     span: 6,
     render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS),
-    description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Active — it excludes anyone who left every race box blank or answered don't know/refused/data not collected."
+    description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Served — it excludes anyone who left every race box blank or answered don't know/refused/data not collected."
   },
   {
     id: "ethnicity-pie",
@@ -603,21 +603,21 @@ const DEMOGRAPHICS_CARDS = [
 const OVERVIEW_CARDS = [
   {
     id: "reach-persons",
-    name: "People Active",
+    name: "People Served",
     type: "metric",
     render: (doc, fv) => renderReachTile("persons", widgetRows(doc, "reach", fv)),
     description: "Counts every person with an active enrollment in Street Outreach, Emergency Shelter, or Transitional Housing at any point during the fiscal year -- the same \"Active Clients\" definition (entered on or before the period's end, and not exited before the period's start) Local Measure 3.3's own KPI tile uses, just split out by project type and household type here. A person active in more than one of the three project types this year is still counted once in this total."
   },
   {
     id: "reach-households",
-    name: "Households Active",
+    name: "Households Served",
     type: "metric",
     render: (doc, fv) => renderReachTile("households", widgetRows(doc, "reach", fv)),
-    description: "The same population as People Active, counted by household instead of by person. Household type is determined from each person's own most-recently-started qualifying enrollment this fiscal year; because of that, this household count can very rarely (a handful out of roughly 2,700 households) be a few higher than the true number of distinct households when a filter narrows to one household type -- the \"All Household Types\" selection isn't affected."
+    description: "The same population as People Served, counted by household instead of by person. Household type is determined from each person's own most-recently-started qualifying enrollment this fiscal year; because of that, this household count can very rarely (a handful out of roughly 2,700 households) be a few higher than the true number of distinct households when a filter narrows to one household type -- the \"All Household Types\" selection isn't affected."
   },
   {
     id: "trend-persons",
-    name: "People Active by Project Type, Over Time",
+    name: "People Served by Project Type, Over Time",
     type: "chart",
     span: 6,
     render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "persons", "People"),
@@ -625,7 +625,7 @@ const OVERVIEW_CARDS = [
   },
   {
     id: "trend-households",
-    name: "Households Active by Project Type, Over Time",
+    name: "Households Served by Project Type, Over Time",
     type: "chart",
     span: 6,
     render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "households", "Households"),
@@ -643,7 +643,7 @@ const OVERVIEW_CARDS = [
     name: "Client Flow: Prior Living Situation → Project Type → Exit Outcome",
     type: "chart",
     render: (doc, fv) => renderSankeyChart(widgetRows(doc, "sankey", fv)),
-    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited. Exit Outcome groups HUD's exit destination codes into Homeless, Institutional, Temporary Housing, and Permanent Housing by HUD's own numeric code bands, plus Other (a recorded but non-housing outcome, such as the person having passed away) and Unknown (don't know/refused/no exit interview/missing). Active clients who haven't exited yet don't flow into the Exit Outcome stage at all -- each Project Type block instead shows them as a darker, non-flowing cap at its own bottom edge (hover it for the exact count), so the real exit destinations' own relative sizes aren't squeezed by a single dominant \"still enrolled\" category. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
+    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories, Street/Emergency & Temporary/Friends & Family/Institutional Setting/Permanent Setting/Other, from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited (grouped to match: Street/Emergency & Temporary/Institutional/Permanent/Other/Unknown). Other is a recorded but non-housing outcome, such as the person having passed away; Unknown is don't know/refused/no exit interview/missing. Matching bucket names on both sides share a color, so a ribbon's color on the left tells you what it'll likely still read as on the right. Active clients who haven't exited yet don't flow into the Exit Outcome stage at all -- each Project Type block instead shows them as a darker, non-flowing cap at its own bottom edge (hover it for the exact count), so the real exit destinations' own relative sizes aren't squeezed by a single dominant \"still enrolled\" category. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
   }
 ];
 
@@ -652,7 +652,7 @@ function renderCard(doc, card, filterValues) {
   const isMetric = card.type === "metric";
   // Every card's description collapses behind "About this data" below its
   // own content -- metric tiles included, per explicit request, since
-  // People Active/Households Active carry the same real-paragraph
+  // People Served/Households Served carry the same real-paragraph
   // methodology text (not a one-line caption) every chart/table card here
   // already collapses. Matches the dashboard-collapsible-description
   // skill's own predicate ("collapse a real paragraph, not a one-liner"),
