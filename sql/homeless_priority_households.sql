@@ -1,36 +1,50 @@
 -- Hand-written, NOT generated from a wcdash YAML -- see sql/homeless_reach.sql's
 -- own header comment for the shared report universe, Active Clients
--- convention, and household-determination machinery this file reuses
--- verbatim (through the `household_ages`/`classified` CTEs) for Project
--- Type/Household Type filtering. Feeds the Homeless dashboard's
--- Demographics tab Priority Households QoQ table (Current vs. Previous
--- FY), in long format (one row per period x indicator) -- the page pivots
--- both periods into current/previous/change columns client-side, same
--- convention as sql/homeless_race.sql.
+-- convention, and household-determination machinery this file still
+-- reuses (through the `household_members`/`household_ages`/`classified`
+-- CTEs) for the page's own Household Type filter. Feeds the Homeless
+-- dashboard's Demographics tab Priority Populations QoQ table (Current vs.
+-- Previous FY), in long format (one row per period x indicator) -- the
+-- page pivots both periods into current/previous/change columns
+-- client-side, same convention as sql/homeless_race.sql.
 --
--- 4 indicators, a household counts if ANY member meets the condition (not
--- just the household's own representative person):
---   Households Age 55+   -- any member's age (as of the household's own
---                            reference enrollment date, same age-math
---                            convention as household_ages elsewhere in this
---                            file) is 55 or older.
---   Disabled Households   -- any member has a wchmiscsv.Disabilities row
---                            with DisabilityResponse = 1, recorded on or
---                            before the reference date (their own most
---                            recent such record as of that date, so a
---                            later update that withdraws the response isn't
---                            still counted as of an earlier reference date).
---   Veteran Households    -- any member's wchmiscsv.Client.VeteranStatus = 1.
---   DV Survivor Households -- any member's most recent
---                            wchmiscsv.HealthAndDV row as of the reference
---                            date has DomesticViolenceSurvivor = 1,
---                            regardless of CurrentlyFleeing -- matches the
---                            sibling hmisguru/baltimore repo's own
---                            dashboard.json.py convention for this same
---                            measure ("a household counts if its set is
---                            anything other than 'No history of domestic
---                            violence reported'").
--- Order matches PRIORITY_HOUSEHOLDS_ORDER in src/components/homeless.js.
+-- Per explicit request, this counts PEOPLE who themselves match each
+-- characteristic, not households where ANY member matches (the original
+-- shape, preserved in git history) -- a household with 2 veterans, for
+-- instance, now counts 2 toward "Veterans" instead of 1 toward "Veteran
+-- households". The household-level version undercounted exactly this
+-- kind of case; the person-level version doesn't, at the cost of losing
+-- the "at least one person in this household" framing. Household
+-- composition (`household_members`/`household_ages`/`classified`) is
+-- still computed -- the page's own Household Type filter is a household-
+-- composition concept (adults-only/families-with-children/unaccompanied-
+-- minors) independent of this change -- it's just no longer used to
+-- aggregate the 4 characteristics themselves; `person_flags` (below)
+-- computes those directly per person instead.
+--
+-- 4 indicators, each a person's own characteristic as of their own
+-- representative enrollment's own reference date (the same `rep.EntryDate`
+-- used throughout this dashboard for age math and "most recent record as
+-- of" lookups):
+--   Age 55+         -- the person's own age (same age-math convention as
+--                       household_members elsewhere in this file) is 55 or
+--                       older.
+--   Disabled         -- the person has a wchmiscsv.Disabilities row with
+--                       DisabilityResponse = 1, recorded on or before the
+--                       reference date (their own most recent such record
+--                       as of that date, so a later update that withdraws
+--                       the response isn't still counted as of an earlier
+--                       reference date).
+--   Veterans         -- the person's own wchmiscsv.Client.VeteranStatus = 1.
+--   DV Survivors     -- the person's own most recent wchmiscsv.HealthAndDV
+--                       row as of the reference date has
+--                       DomesticViolenceSurvivor = 1, regardless of
+--                       CurrentlyFleeing -- matches the sibling
+--                       hmisguru/baltimore repo's own dashboard.json.py
+--                       convention for this same measure ("counts if its
+--                       set is anything other than 'No history of domestic
+--                       violence reported'").
+-- Order matches PRIORITY_POPULATIONS_ORDER in src/components/homelessness.js.
 WITH bounds AS (
   SELECT
     @report_start AS cur_start,
@@ -93,8 +107,7 @@ household_members AS (
               > EXTRACT(MONTH FROM r.EntryDate) * 100 + EXTRACT(DAY FROM r.EntryDate),
             1, 0
           )
-    END AS age,
-    cl.VeteranStatus = 1 AS is_veteran
+    END AS age
   FROM rep r
   JOIN wchmiscsv.Enrollment en2 ON en2.HouseholdID = r.HouseholdID
   JOIN wchmiscsv.Project p2 ON en2.ProjectID = p2.ProjectID
@@ -107,9 +120,9 @@ household_members AS (
       OR (p2.ProjectType != 4 AND ex2.ExitDate > r.EntryDate)
     )
 ),
--- Each member's own most recent Disabilities response as of the household's
--- reference date, rather than "ever reported any disability" -- a later
--- correction that withdraws an earlier Yes shouldn't still count.
+-- Each person's own most recent Disabilities response as of a reference
+-- date, rather than "ever reported any disability" -- a later correction
+-- that withdraws an earlier Yes shouldn't still count.
 disability_latest AS (
   SELECT PersonalID, DisabilityResponse, InformationDate FROM (
     SELECT PersonalID, DisabilityResponse, InformationDate,
@@ -126,21 +139,32 @@ dv_latest AS (
   )
   WHERE rn = 1
 ),
-household_flags AS (
+-- The 4 characteristics, computed per person (the representative person
+-- themselves, from `rep` directly) rather than aggregated across their
+-- household -- see this file's own header for why.
+person_flags AS (
   SELECT
-    hm.rep_person, hm.period, hm.project_type, hm.HouseholdID,
-    LOGICAL_OR(hm.age IS NOT NULL AND hm.age >= 55) AS has_senior,
-    LOGICAL_OR(hm.is_veteran) AS has_veteran,
-    LOGICAL_OR(EXISTS (
+    r.PersonalID, r.period, r.project_type,
+    CASE
+      WHEN cl.DOB IS NULL THEN NULL
+      ELSE DATE_DIFF(r.EntryDate, cl.DOB, YEAR)
+        - IF(
+            EXTRACT(MONTH FROM cl.DOB) * 100 + EXTRACT(DAY FROM cl.DOB)
+              > EXTRACT(MONTH FROM r.EntryDate) * 100 + EXTRACT(DAY FROM r.EntryDate),
+            1, 0
+          )
+    END >= 55 AS is_senior,
+    cl.VeteranStatus = 1 AS is_veteran,
+    EXISTS (
       SELECT 1 FROM disability_latest dl
-      WHERE dl.PersonalID = hm.member_person AND dl.InformationDate <= hm.ref_date AND dl.DisabilityResponse = 1
-    )) AS has_disability,
-    LOGICAL_OR(EXISTS (
+      WHERE dl.PersonalID = r.PersonalID AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
+    ) AS is_disabled,
+    EXISTS (
       SELECT 1 FROM dv_latest dv
-      WHERE dv.PersonalID = hm.member_person AND dv.InformationDate <= hm.ref_date AND dv.DomesticViolenceSurvivor = 1
-    )) AS has_dv
-  FROM household_members hm
-  GROUP BY hm.rep_person, hm.period, hm.project_type, hm.HouseholdID
+      WHERE dv.PersonalID = r.PersonalID AND dv.InformationDate <= r.EntryDate AND dv.DomesticViolenceSurvivor = 1
+    ) AS is_dv_survivor
+  FROM rep r
+  JOIN wchmiscsv.Client cl ON cl.PersonalID = r.PersonalID
 ),
 household_ages AS (
   SELECT rep_person, period, project_type, HouseholdID,
@@ -162,20 +186,20 @@ classified AS (
   LEFT JOIN household_ages ha ON ha.rep_person = r.PersonalID AND ha.period = r.period AND ha.project_type = r.project_type
 ),
 filtered AS (
-  SELECT DISTINCT c.PersonalID, c.period, c.project_type, c.HouseholdID
+  SELECT DISTINCT c.PersonalID, c.period, c.project_type
   FROM classified c
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, f.HouseholdID, hf.has_senior, hf.has_veteran, hf.has_disability, hf.has_dv
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_dv_survivor
   FROM filtered f
-  JOIN household_flags hf ON hf.rep_person = f.PersonalID AND hf.period = f.period AND hf.project_type = f.project_type AND hf.HouseholdID = f.HouseholdID
+  JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
-SELECT period, 'Households age 55+' AS indicator, COUNT(DISTINCT HouseholdID) AS households FROM scoped_flags WHERE has_senior GROUP BY period
+SELECT period, 'Age 55+' AS indicator, COUNT(DISTINCT PersonalID) AS persons FROM scoped_flags WHERE is_senior GROUP BY period
 UNION ALL
-SELECT period, 'Disabled households', COUNT(DISTINCT HouseholdID) FROM scoped_flags WHERE has_disability GROUP BY period
+SELECT period, 'Disabled', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_disabled GROUP BY period
 UNION ALL
-SELECT period, 'Veteran households', COUNT(DISTINCT HouseholdID) FROM scoped_flags WHERE has_veteran GROUP BY period
+SELECT period, 'Veterans', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_veteran GROUP BY period
 UNION ALL
-SELECT period, 'DV Survivor Households', COUNT(DISTINCT HouseholdID) FROM scoped_flags WHERE has_dv GROUP BY period
+SELECT period, 'DV Survivors', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_dv_survivor GROUP BY period
 ORDER BY period, indicator
