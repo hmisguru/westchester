@@ -402,6 +402,23 @@ const RACE_COLORS = {
   "Multiple Races": SERIES[5],
   "Asian": SERIES[6]
 };
+// Race's own donut folds any category under this share of the chart's own
+// total into a single "Other" slice, per explicit request -- the QoQ table
+// beside it (DEMOGRAPHICS_CARDS' own "race-qoq" card) keeps the full
+// per-category breakdown untouched, since nothing is actually dropped,
+// just regrouped for the chart. Not applied to the Ethnicity donut (only
+// 2 categories, never small enough to need it) -- renderDonut()'s own
+// otherThreshold parameter is generic should a future donut need the same
+// treatment, but DONUT_OTHER_COLOR below is the one shared "Other" swatch.
+const RACE_DONUT_OTHER_THRESHOLD = 0.03;
+// Fixed neutral swatch for any renderDonut() caller's folded "Other" slice
+// -- deliberately NOT one of the 8 categorical SERIES hues (per the
+// dataviz skill's own "a 9th series is never a generated hue" rule), since
+// this slice isn't a single real entity the way every other wedge is;
+// var(--hl-muted) is already theme-aware (this page's own muted-text
+// token) and reads as "miscellaneous" rather than competing with the real
+// categories' own vivid colors.
+const DONUT_OTHER_COLOR = "var(--hl-muted)";
 const ETHNICITY_ORDER = ["Hispanic", "Non-Hispanic"];
 const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned 18", "18 to 21", "22 to 24", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 and Older"];
 
@@ -415,20 +432,39 @@ const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned
  * native tooltip, and a legend list (swatch + label + value + percent)
  * carry the same information instead. Filters to Current FY rows first --
  * this dashboard's pies/donuts are always a current-year snapshot, with the
- * QoQ table beside them carrying the previous-year comparison. */
-function renderDonut(rows, labelField, valueField, order, colorMap) {
+ * QoQ table beside them carrying the previous-year comparison.
+ *
+ * otherThreshold (optional, a share of the chart's own total, e.g. 0.03):
+ * when given, any category below it is folded into a single "Other" slice
+ * -- computed fresh from whichever rows the page's own filters leave, so a
+ * category that crosses the threshold under one filter selection but not
+ * another is folded or kept accordingly, not a fixed list. Order-based
+ * color assignment (colorMap or the default positional SERIES[i]) is
+ * still computed from the real per-category rows alone, before folding,
+ * so a kept category's own color never shifts depending on what else
+ * happened to fall under the threshold that same render. */
+function renderDonut(rows, labelField, valueField, order, colorMap, otherThreshold) {
   const current = rows.filter((r) => r.period === "Current FY");
   if (!current.length) return empty();
   const fmt = integer;
   const pct = d3format(".0%");
-  const sorted = order
+  const base = order
     ? order.filter((o) => current.some((r) => r[labelField] === o)).map((o) => current.find((r) => r[labelField] === o))
     : [...current].sort((a, b) => b[valueField] - a[valueField]);
-  const total = sorted.reduce((s, d) => s + (d[valueField] ?? 0), 0);
+  const total = base.reduce((s, d) => s + (d[valueField] ?? 0), 0);
   // A category's color comes from colorMap when given (a fixed per-entity
   // assignment, e.g. RACE_COLORS), falling back to the default positional
   // SERIES[i] assignment every other chart on this page uses.
-  const colors = sorted.map((d, i) => colorMap?.[d[labelField]] ?? SERIES[i % SERIES.length]);
+  const baseColors = base.map((d, i) => colorMap?.[d[labelField]] ?? SERIES[i % SERIES.length]);
+  let sorted = base, colors = baseColors;
+  if (otherThreshold) {
+    const keptIdx = base.map((d, i) => i).filter((i) => (base[i][valueField] ?? 0) / total >= otherThreshold);
+    const foldedTotal = base.reduce((s, d, i) => keptIdx.includes(i) ? s : s + (d[valueField] ?? 0), 0);
+    if (foldedTotal > 0) {
+      sorted = [...keptIdx.map((i) => base[i]), {[labelField]: "Other", [valueField]: foldedTotal}];
+      colors = [...keptIdx.map((i) => baseColors[i]), DONUT_OTHER_COLOR];
+    }
+  }
 
   return resize((width) => {
     const size = Math.min(width, 280);
@@ -559,8 +595,8 @@ const DEMOGRAPHICS_CARDS = [
     name: "Race of People Served — Recent Fiscal Year",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS),
-    description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Served — it excludes anyone who left every race box blank or answered don't know/refused/data not collected."
+    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS, RACE_DONUT_OTHER_THRESHOLD),
+    description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Served — it excludes anyone who left every race box blank or answered don't know/refused/data not collected. Any category under 3% of this total is folded into a single \"Other\" slice here so the donut stays readable; the table below keeps every category broken out individually."
   },
   {
     id: "ethnicity-pie",
