@@ -197,7 +197,7 @@ stats AS (
   -- line's own direction -- confirmed live this was happening: the
   -- 12-month fit came out sloping up (+4.5/month) while the 11-month fit
   -- (this CTE's own version) slopes down (-4.3/month), consistent with
-  -- the "People/Households Active, Over Time" charts' own declining trend
+  -- the "People/Households Served, Over Time" charts' own declining trend
   -- over the same general period.
   SELECT
     COVAR_SAMP(x_idx, net_flow) AS covar_xy,
