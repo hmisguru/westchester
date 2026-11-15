@@ -22,7 +22,7 @@
 -- aggregate the 4 characteristics themselves; `person_flags` (below)
 -- computes those directly per person instead.
 --
--- 6 indicators, each a person's own characteristic as of their own
+-- 7 indicators, each a person's own characteristic as of their own
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
@@ -47,6 +47,13 @@
 --                             "Disabled" above (having either Mental Health
 --                             Disorder or Substance Use Disorder alone
 --                             still counts as Disabled, just not here).
+--   Persons with HIV/AIDS  -- the person's own most recent response for
+--                             DisabilityType 8 (HIV/AIDS, HUD 2.07.2) is
+--                             Yes as of the reference date -- the same
+--                             per-type `disability_latest` lookup
+--                             Co-occurring Disorders above already uses,
+--                             just one type instead of two. Also a subset
+--                             of "Disabled" above, same reasoning.
 --   Veterans               -- the person's own wchmiscsv.Client.VeteranStatus = 1.
 --   DV Survivors           -- the person's own most recent
 --                             wchmiscsv.HealthAndDV row as of the
@@ -190,7 +197,7 @@ pregnancy_latest AS (
   )
   WHERE rn = 1
 ),
--- The 6 characteristics, computed per person (the representative person
+-- The 7 characteristics, computed per person (the representative person
 -- themselves, from `rep` directly) rather than aggregated across their
 -- household -- see this file's own header for why.
 person_flags AS (
@@ -222,6 +229,12 @@ person_flags AS (
       SELECT 1 FROM disability_latest dl
       WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 10 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
     )) AS is_co_occurring,
+    -- DisabilityType 8 = HIV/AIDS (HUD 2.07.2) -- same per-type lookup as
+    -- Co-occurring Disorders above, just one type.
+    EXISTS (
+      SELECT 1 FROM disability_latest dl
+      WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 8 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
+    ) AS is_hiv_aids,
     EXISTS (
       SELECT 1 FROM dv_latest dv
       WHERE dv.PersonalID = r.PersonalID AND dv.InformationDate <= r.EntryDate AND dv.DomesticViolenceSurvivor = 1
@@ -281,7 +294,7 @@ filtered AS (
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_dv_survivor, pf.is_parenting_youth
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_hiv_aids, pf.is_dv_survivor, pf.is_parenting_youth
   FROM filtered f
   JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
@@ -290,6 +303,8 @@ UNION ALL
 SELECT period, 'Disabled', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_disabled GROUP BY period
 UNION ALL
 SELECT period, 'Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
+UNION ALL
+SELECT period, 'Persons with HIV/AIDS', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_hiv_aids GROUP BY period
 UNION ALL
 SELECT period, 'Veterans', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_veteran GROUP BY period
 UNION ALL
