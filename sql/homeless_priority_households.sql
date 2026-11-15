@@ -22,7 +22,7 @@
 -- aggregate the 4 characteristics themselves; `person_flags` (below)
 -- computes those directly per person instead.
 --
--- 7 indicators, each a person's own characteristic as of their own
+-- 8 indicators, each a person's own characteristic as of their own
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
@@ -54,6 +54,35 @@
 --                             Co-occurring Disorders above already uses,
 --                             just one type instead of two. Also a subset
 --                             of "Disabled" above, same reasoning.
+--   Chronically Homeless   -- the person is an adult (18+ as of the
+--                             reference date) whose own most recent
+--                             DisablingCondition on their representative
+--                             enrollment is Yes, AND who is either
+--                             continuously homeless 12+ months in their
+--                             current episode (Enrollment.DateToStreetESSH,
+--                             HUD 3.917's own "approximate date this
+--                             episode of homelessness began" -- read
+--                             directly rather than re-deriving HUD's own
+--                             skip-pattern gate (LOSUnderThreshold /
+--                             PreviousStreetESSH), since the instrument
+--                             already only populates it when the
+--                             continuity question applies: confirmed live,
+--                             99.7% of enrollments with a literally-
+--                             homeless LivingSituation at entry carry it)
+--                             at least 365 days before the reference date,
+--                             OR has had 4 or more separate homeless
+--                             episodes in the past 3 years cumulatively
+--                             totaling 12+ months
+--                             (TimesHomelessPastThreeYears = 4 -- HUD's own
+--                             top "four or more times" bucket, confirmed
+--                             live no higher value appears among real
+--                             answers -- AND MonthsHomelessPastThreeYears
+--                             IN (112, 113), HUD's own top two codes,
+--                             confirmed live these are the highest real-
+--                             answer values present and both mean "12
+--                             months or more" cumulative). Also a subset of
+--                             "Disabled" above, same reasoning as
+--                             Co-occurring Disorders and HIV/AIDS.
 --   Veterans               -- the person's own wchmiscsv.Client.VeteranStatus = 1.
 --   DV Survivors           -- the person's own most recent
 --                             wchmiscsv.HealthAndDV row as of the
@@ -114,7 +143,9 @@ qualifying_projects AS (
     END = '{{ filters.project_type }}')
 ),
 active_enrollments AS (
-  SELECT en.EnrollmentID, en.PersonalID, en.HouseholdID, en.EntryDate, en.RelationshipToHoH, qp.project_type, pe.period
+  SELECT en.EnrollmentID, en.PersonalID, en.HouseholdID, en.EntryDate, en.RelationshipToHoH,
+    en.DisablingCondition, en.DateToStreetESSH, en.TimesHomelessPastThreeYears, en.MonthsHomelessPastThreeYears,
+    qp.project_type, pe.period
   FROM wchmiscsv.Enrollment en
   JOIN qualifying_projects qp ON en.ProjectID = qp.ProjectID
   LEFT JOIN wchmiscsv.Exit ex ON en.EnrollmentID = ex.EnrollmentID
@@ -128,8 +159,11 @@ active_enrollments AS (
     )
 ),
 rep AS (
-  SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH FROM (
+  SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH,
+    DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears
+  FROM (
     SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH,
+      DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears,
       ROW_NUMBER() OVER (PARTITION BY PersonalID, period, project_type ORDER BY EntryDate DESC, EnrollmentID DESC) AS rn
     FROM active_enrollments
   )
@@ -197,7 +231,7 @@ pregnancy_latest AS (
   )
   WHERE rn = 1
 ),
--- The 7 characteristics, computed per person (the representative person
+-- The 8 characteristics, computed per person (the representative person
 -- themselves, from `rep` directly) rather than aggregated across their
 -- household -- see this file's own header for why.
 person_flags AS (
@@ -235,6 +269,28 @@ person_flags AS (
       SELECT 1 FROM disability_latest dl
       WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 8 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
     ) AS is_hiv_aids,
+    -- Adult (18+), their own most recent DisablingCondition = 1, and
+    -- either continuously homeless 12+ months in their current episode
+    -- (DateToStreetESSH) or 4+ episodes in the past 3 years cumulatively
+    -- totaling 12+ months (TimesHomelessPastThreeYears/
+    -- MonthsHomelessPastThreeYears) -- see this file's own header for the
+    -- full code rationale.
+    (
+      CASE
+        WHEN cl.DOB IS NULL THEN NULL
+        ELSE DATE_DIFF(r.EntryDate, cl.DOB, YEAR)
+          - IF(
+              EXTRACT(MONTH FROM cl.DOB) * 100 + EXTRACT(DAY FROM cl.DOB)
+                > EXTRACT(MONTH FROM r.EntryDate) * 100 + EXTRACT(DAY FROM r.EntryDate),
+              1, 0
+            )
+      END >= 18
+      AND r.DisablingCondition = 1
+      AND (
+        (r.DateToStreetESSH IS NOT NULL AND DATE_DIFF(r.EntryDate, r.DateToStreetESSH, DAY) >= 365)
+        OR (r.TimesHomelessPastThreeYears = 4 AND r.MonthsHomelessPastThreeYears IN (112, 113))
+      )
+    ) AS is_chronically_homeless,
     EXISTS (
       SELECT 1 FROM dv_latest dv
       WHERE dv.PersonalID = r.PersonalID AND dv.InformationDate <= r.EntryDate AND dv.DomesticViolenceSurvivor = 1
@@ -294,7 +350,7 @@ filtered AS (
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_hiv_aids, pf.is_dv_survivor, pf.is_parenting_youth
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_hiv_aids, pf.is_chronically_homeless, pf.is_dv_survivor, pf.is_parenting_youth
   FROM filtered f
   JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
@@ -305,6 +361,8 @@ UNION ALL
 SELECT period, 'Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
 UNION ALL
 SELECT period, 'Persons with HIV/AIDS', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_hiv_aids GROUP BY period
+UNION ALL
+SELECT period, 'Chronically Homeless', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_chronically_homeless GROUP BY period
 UNION ALL
 SELECT period, 'Veterans', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_veteran GROUP BY period
 UNION ALL
