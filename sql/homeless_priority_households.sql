@@ -47,7 +47,8 @@
 --                             DisablingCondition at all) -- this switch
 --                             roughly doubled this row's own count (708 ->
 --                             1,393 current FY; 490 -> 1,445 previous FY).
---   Co-occurring Disorders -- the person's own most recent response is Yes
+--   Persons with Co-occurring
+--   Disorders              -- the person's own most recent response is Yes
 --                             for BOTH DisabilityType 9 (Mental Health
 --                             Disorder) AND DisabilityType 10 (Substance
 --                             Use Disorder), each independently evaluated
@@ -63,7 +64,10 @@
 --                             current FY's 38 Co-occurring Disorders people
 --                             have DisablingCondition != 1 on their own
 --                             representative enrollment, so they count
---                             here without counting as Disabled.
+--                             here without counting as Disabled. Relabeled
+--                             to "Persons with Co-occurring Disorders," per
+--                             explicit request, to match "Persons with
+--                             HIV/AIDS" below's own naming convention.
 --   Persons with HIV/AIDS  -- the person's own most recent response for
 --                             DisabilityType 8 (HIV/AIDS, HUD 2.07.2) is
 --                             Yes as of the reference date -- the same
@@ -392,7 +396,7 @@ SELECT period, 'Age 55+' AS indicator, COUNT(DISTINCT PersonalID) AS persons FRO
 UNION ALL
 SELECT period, 'Disabled', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_disabled GROUP BY period
 UNION ALL
-SELECT period, 'Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
+SELECT period, 'Persons with Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
 UNION ALL
 SELECT period, 'Persons with HIV/AIDS', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_hiv_aids GROUP BY period
 UNION ALL
