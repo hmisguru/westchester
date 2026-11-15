@@ -29,13 +29,24 @@
 --   Age 55+               -- the person's own age (same age-math
 --                             convention as household_members elsewhere in
 --                             this file) is 55 or older.
---   Disabled               -- the person has a wchmiscsv.Disabilities row
---                             with DisabilityResponse = 1 for ANY
---                             DisabilityType, recorded on or before the
---                             reference date (their own most recent such
---                             record as of that date, so a later update
---                             that withdraws the response isn't still
---                             counted as of an earlier reference date).
+--   Disabled               -- the person's own most recent
+--                             Enrollment.DisablingCondition on their
+--                             representative enrollment is Yes. Per
+--                             explicit request, switched from this row's
+--                             original wchmiscsv.Disabilities-table-based
+--                             definition (any DisabilityType with
+--                             DisabilityResponse = 1) to this single
+--                             Enrollment-level field instead -- confirmed
+--                             live the two disagree often enough that this
+--                             is a genuinely different population, not a
+--                             reworded version of the same one (only 537
+--                             of the 1,393 people flagged via
+--                             DisablingCondition in the current FY are
+--                             also flagged via the Disabilities table, and
+--                             174 flagged via the table aren't flagged via
+--                             DisablingCondition at all) -- this switch
+--                             roughly doubled this row's own count (708 ->
+--                             1,393 current FY; 490 -> 1,445 previous FY).
 --   Co-occurring Disorders -- the person's own most recent response is Yes
 --                             for BOTH DisabilityType 9 (Mental Health
 --                             Disorder) AND DisabilityType 10 (Substance
@@ -43,17 +54,31 @@
 --                             as of the same reference date -- confirmed
 --                             live against wchmiscsv.Disabilities that
 --                             these are HUD's current (2024+) 2.07.2 codes
---                             for exactly those two conditions. A subset of
---                             "Disabled" above (having either Mental Health
---                             Disorder or Substance Use Disorder alone
---                             still counts as Disabled, just not here).
+--                             for exactly those two conditions. NOT a
+--                             guaranteed subset of "Disabled" above now
+--                             that Disabled reads Enrollment.DisablingCondition
+--                             directly instead of this same Disabilities
+--                             table (it was a guaranteed subset before
+--                             that switch) -- confirmed live, 9 of the
+--                             current FY's 38 Co-occurring Disorders people
+--                             have DisablingCondition != 1 on their own
+--                             representative enrollment, so they count
+--                             here without counting as Disabled.
 --   Persons with HIV/AIDS  -- the person's own most recent response for
 --                             DisabilityType 8 (HIV/AIDS, HUD 2.07.2) is
 --                             Yes as of the reference date -- the same
 --                             per-type `disability_latest` lookup
 --                             Co-occurring Disorders above already uses,
---                             just one type instead of two. Also a subset
---                             of "Disabled" above, same reasoning.
+--                             just one type instead of two. Like
+--                             Co-occurring Disorders, NOT a guaranteed
+--                             subset of "Disabled" above now that Disabled
+--                             reads Enrollment.DisablingCondition directly
+--                             -- confirmed live, every one of the current
+--                             FY's 8 HIV/AIDS people also has
+--                             DisablingCondition = 1, but that's incidental
+--                             to this data, not a logical guarantee the way
+--                             it was when both rows read the same
+--                             Disabilities table.
 --   Chronically Homeless   -- the person is an adult (18+ as of the
 --                             reference date) whose own most recent
 --                             DisablingCondition on their representative
@@ -80,9 +105,14 @@
 --                             IN (112, 113), HUD's own top two codes,
 --                             confirmed live these are the highest real-
 --                             answer values present and both mean "12
---                             months or more" cumulative). Also a subset of
---                             "Disabled" above, same reasoning as
---                             Co-occurring Disorders and HIV/AIDS.
+--                             months or more" cumulative). Unlike
+--                             Co-occurring Disorders and HIV/AIDS above,
+--                             this one IS a guaranteed subset of "Disabled"
+--                             above -- both this row and Disabled now read
+--                             the same Enrollment.DisablingCondition field
+--                             directly, so the DisablingCondition = 1 this
+--                             row already requires is exactly what Disabled
+--                             itself requires.
 --   Veterans               -- the person's own wchmiscsv.Client.VeteranStatus = 1.
 --   DV Survivors           -- the person's own most recent
 --                             wchmiscsv.HealthAndDV row as of the
@@ -199,7 +229,10 @@ household_members AS (
 -- later correction that withdraws an earlier Yes shouldn't still count.
 -- DisabilityType is carried through (not just used to partition) so
 -- Co-occurring Disorders below can check two specific types independently
--- -- each type's own latest record can be as of a different date.
+-- -- each type's own latest record can be as of a different date. No
+-- longer used by "Disabled" itself (see this file's own header), only by
+-- Co-occurring Disorders and Persons with HIV/AIDS below, which each need
+-- a specific DisabilityType that Enrollment.DisablingCondition can't give.
 disability_latest AS (
   SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate FROM (
     SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate,
@@ -247,10 +280,11 @@ person_flags AS (
           )
     END >= 55 AS is_senior,
     cl.VeteranStatus = 1 AS is_veteran,
-    EXISTS (
-      SELECT 1 FROM disability_latest dl
-      WHERE dl.PersonalID = r.PersonalID AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
-    ) AS is_disabled,
+    -- Per explicit request, reads Enrollment.DisablingCondition directly
+    -- rather than the wchmiscsv.Disabilities-table lookup this row
+    -- originally used -- see this file's own header for the live-confirmed
+    -- disagreement between the two sources.
+    r.DisablingCondition = 1 AS is_disabled,
     -- DisabilityType 9 = Mental Health Disorder, 10 = Substance Use
     -- Disorder (HUD 2.07.2) -- two independent EXISTS checks, each
     -- against that type's own latest record as of the reference date,
