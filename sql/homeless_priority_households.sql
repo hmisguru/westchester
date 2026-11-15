@@ -22,7 +22,7 @@
 -- aggregate the 4 characteristics themselves; `person_flags` (below)
 -- computes those directly per person instead.
 --
--- 5 indicators, each a person's own characteristic as of their own
+-- 6 indicators, each a person's own characteristic as of their own
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
@@ -57,6 +57,26 @@
 --                             this same measure ("counts if its set is
 --                             anything other than 'No history of domestic
 --                             violence reported'").
+--   Parenting Youth        -- the person is their own household's Head of
+--                             Household (Enrollment.RelationshipToHoH = 1
+--                             on their own representative enrollment),
+--                             under 25 as of the reference date, AND
+--                             either their own most recent
+--                             wchmiscsv.HealthAndDV.PregnancyStatus as of
+--                             that date is Yes, or their own household
+--                             (household_members, below) includes at least
+--                             one member under 18 as of that same date --
+--                             "has children enrolled with them." Pregnancy
+--                             uses its own `pregnancy_latest` lookup (most
+--                             recent record where PregnancyStatus is
+--                             actually answered), not `dv_latest` -- the
+--                             two fields are usually recorded on different
+--                             HealthAndDV rows (confirmed live: only 693 of
+--                             48,178 rows have both populated), so reusing
+--                             dv_latest's own "most recent row overall"
+--                             would frequently pick a DV-focused row with a
+--                             NULL PregnancyStatus and silently miss an
+--                             earlier real answer.
 -- Order matches PRIORITY_POPULATIONS_ORDER in src/components/homelessness.js.
 WITH bounds AS (
   SELECT
@@ -87,7 +107,7 @@ qualifying_projects AS (
     END = '{{ filters.project_type }}')
 ),
 active_enrollments AS (
-  SELECT en.EnrollmentID, en.PersonalID, en.HouseholdID, en.EntryDate, qp.project_type, pe.period
+  SELECT en.EnrollmentID, en.PersonalID, en.HouseholdID, en.EntryDate, en.RelationshipToHoH, qp.project_type, pe.period
   FROM wchmiscsv.Enrollment en
   JOIN qualifying_projects qp ON en.ProjectID = qp.ProjectID
   LEFT JOIN wchmiscsv.Exit ex ON en.EnrollmentID = ex.EnrollmentID
@@ -101,8 +121,8 @@ active_enrollments AS (
     )
 ),
 rep AS (
-  SELECT PersonalID, period, project_type, HouseholdID, EntryDate FROM (
-    SELECT PersonalID, period, project_type, HouseholdID, EntryDate,
+  SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH FROM (
+    SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH,
       ROW_NUMBER() OVER (PARTITION BY PersonalID, period, project_type ORDER BY EntryDate DESC, EnrollmentID DESC) AS rn
     FROM active_enrollments
   )
@@ -155,7 +175,22 @@ dv_latest AS (
   )
   WHERE rn = 1
 ),
--- The 5 characteristics, computed per person (the representative person
+-- Each person's own most recent row where PregnancyStatus is actually
+-- answered -- NOT the same "most recent row overall" as dv_latest, since
+-- Pregnancy and DV are usually recorded on different HealthAndDV rows (see
+-- this file's own header on Parenting Youth); filtering to
+-- PregnancyStatus IS NOT NULL here keeps a real earlier answer from being
+-- shadowed by a later DV-only update.
+pregnancy_latest AS (
+  SELECT PersonalID, PregnancyStatus, InformationDate FROM (
+    SELECT PersonalID, PregnancyStatus, InformationDate,
+      ROW_NUMBER() OVER (PARTITION BY PersonalID ORDER BY InformationDate DESC) AS rn
+    FROM wchmiscsv.HealthAndDV
+    WHERE PregnancyStatus IS NOT NULL
+  )
+  WHERE rn = 1
+),
+-- The 6 characteristics, computed per person (the representative person
 -- themselves, from `rep` directly) rather than aggregated across their
 -- household -- see this file's own header for why.
 person_flags AS (
@@ -190,7 +225,34 @@ person_flags AS (
     EXISTS (
       SELECT 1 FROM dv_latest dv
       WHERE dv.PersonalID = r.PersonalID AND dv.InformationDate <= r.EntryDate AND dv.DomesticViolenceSurvivor = 1
-    ) AS is_dv_survivor
+    ) AS is_dv_survivor,
+    -- Head of Household, under 25 as of the reference date, AND (pregnant
+    -- OR has a household member under 18 as of that date) -- "children
+    -- enrolled with them" reuses household_members' own per-member age
+    -- (computed as of this same r.EntryDate), not a separate lookup.
+    (
+      r.RelationshipToHoH = 1
+      AND CASE
+        WHEN cl.DOB IS NULL THEN NULL
+        ELSE DATE_DIFF(r.EntryDate, cl.DOB, YEAR)
+          - IF(
+              EXTRACT(MONTH FROM cl.DOB) * 100 + EXTRACT(DAY FROM cl.DOB)
+                > EXTRACT(MONTH FROM r.EntryDate) * 100 + EXTRACT(DAY FROM r.EntryDate),
+              1, 0
+            )
+      END < 25
+      AND (
+        EXISTS (
+          SELECT 1 FROM pregnancy_latest pl
+          WHERE pl.PersonalID = r.PersonalID AND pl.InformationDate <= r.EntryDate AND pl.PregnancyStatus = 1
+        )
+        OR EXISTS (
+          SELECT 1 FROM household_members hm
+          WHERE hm.rep_person = r.PersonalID AND hm.period = r.period AND hm.project_type = r.project_type
+            AND hm.age IS NOT NULL AND hm.age < 18
+        )
+      )
+    ) AS is_parenting_youth
   FROM rep r
   JOIN wchmiscsv.Client cl ON cl.PersonalID = r.PersonalID
 ),
@@ -219,7 +281,7 @@ filtered AS (
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_dv_survivor
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_dv_survivor, pf.is_parenting_youth
   FROM filtered f
   JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
@@ -232,4 +294,6 @@ UNION ALL
 SELECT period, 'Veterans', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_veteran GROUP BY period
 UNION ALL
 SELECT period, 'DV Survivors', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_dv_survivor GROUP BY period
+UNION ALL
+SELECT period, 'Parenting Youth', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_parenting_youth GROUP BY period
 ORDER BY period, indicator
