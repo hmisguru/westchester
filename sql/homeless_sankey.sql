@@ -65,10 +65,21 @@
 -- house, moved out of the old "Family or Friends" bucket), and "Friends &
 -- Family" keeps only 335/336 (staying with family/staying with friends,
 -- temporary tenure) -- the two codes the name now literally describes.
+-- Its own catch-all bucket (don't know/refused/data not collected/NULL --
+-- the CASE's own `ELSE`) is labeled "Unknown," per a later explicit
+-- request, not "Other" -- unlike the Exit Outcome side's own separate
+-- "Other" (17/24, a real recorded answer that just isn't HUD-banded),
+-- nothing lands here except missing/non-answers, so "Unknown" describes
+-- it more accurately; this side has no equivalent to the exit side's own
+-- "Other" concept at all, since Prior Living Situation has no HUD code
+-- comparable to 17 (Other) or 24 (Deceased).
 -- `renderSankeyChart()`'s own `SANKEY_SIDE_COLORS` gives every matching-named
 -- bucket on the two sides (`Street`, `Emergency & Temporary`, `Institutional`/
--- `Institutional Setting`, `Permanent`/`Permanent Setting`, `Other`) the
+-- `Institutional Setting`, `Permanent`/`Permanent Setting`, `Unknown`) the
 -- same color, per that same request -- see that constant's own comment.
+-- The exit side's own "Other" (17/24) is unaffected and keeps its own
+-- separate color -- it no longer shares a name or color with anything on
+-- the left side, now that the left's own catch-all is "Unknown" instead.
 --
 -- Two sets of Sankey links are unioned together, tagged by `stage`:
 -- 'situation' links Prior Living Situation -> Project Type, 'exit' links
@@ -182,7 +193,7 @@ situation_links AS (
       WHEN LivingSituation BETWEEN 400 AND 499 THEN 'Permanent Setting'
       WHEN LivingSituation BETWEEN 200 AND 299 THEN 'Institutional Setting'
       WHEN LivingSituation BETWEEN 300 AND 399 THEN 'Friends & Family'
-      ELSE 'Other'
+      ELSE 'Unknown'
     END AS source,
     project_type AS target,
     COUNT(DISTINCT PersonalID) AS persons
