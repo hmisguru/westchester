@@ -615,14 +615,14 @@ const DEMOGRAPHICS_CARDS = [
     id: "race-qoq",
     name: "Race of People Served",
     type: "table",
-    render: (doc, fv) => renderQoqTable(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER),
+    render: (doc, fv) => renderQoqTable(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, ""),
     description: "The same Race breakdown as the pie above, recent fiscal year vs. the previous one."
   },
   {
     id: "ethnicity-qoq",
     name: "Ethnicity of People Served",
     type: "table",
-    render: (doc, fv) => renderQoqTable(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER),
+    render: (doc, fv) => renderQoqTable(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER, ""),
     description: "The same Ethnicity breakdown as the pie above, recent fiscal year vs. the previous one."
   },
   {
@@ -636,7 +636,7 @@ const DEMOGRAPHICS_CARDS = [
     id: "age-qoq",
     name: "Age of People Served",
     type: "table",
-    render: (doc, fv) => renderQoqTable(widgetRows(doc, "age", fv), "age_bucket", "persons", AGE_ORDER),
+    render: (doc, fv) => renderQoqTable(widgetRows(doc, "age", fv), "age_bucket", "persons", AGE_ORDER, ""),
     description: "The same Age breakdown as the pie above, recent fiscal year vs. the previous one."
   }
 ];
