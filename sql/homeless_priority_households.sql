@@ -22,7 +22,7 @@
 -- aggregate the 4 characteristics themselves; `person_flags` (below)
 -- computes those directly per person instead.
 --
--- 8 indicators, each a person's own characteristic as of their own
+-- 7 indicators, each a person's own characteristic as of their own
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
@@ -84,23 +84,12 @@
 --                             representative enrollment, so they count
 --                             here without counting as Disabled. Relabeled
 --                             to "Persons with Co-occurring Disorders," per
---                             explicit request, to match "Persons with
---                             HIV/AIDS" below's own naming convention.
---   Persons with HIV/AIDS  -- the person's own most recent response for
---                             DisabilityType 8 (HIV/AIDS, HUD 2.07.2) is
---                             Yes as of the reference date -- the same
---                             per-type `disability_latest` lookup
---                             Co-occurring Disorders above already uses,
---                             just one type instead of two. Like
---                             Co-occurring Disorders, NOT a guaranteed
---                             subset of "Disabled" above now that Disabled
---                             reads Enrollment.DisablingCondition directly
---                             -- confirmed live, every one of the current
---                             FY's 8 HIV/AIDS people also has
---                             DisablingCondition = 1, but that's incidental
---                             to this data, not a logical guarantee the way
---                             it was when both rows read the same
---                             Disabilities table.
+--                             explicit request, originally to match
+--                             "Persons with HIV/AIDS" below's own naming
+--                             convention -- that row has since been
+--                             removed (see this file's own history), but
+--                             the relabel itself stayed since it reads
+--                             fine on its own.
 --   Chronically Homeless   -- the person is an adult (18+ as of the
 --                             reference date) whose own most recent
 --                             DisablingCondition on their representative
@@ -128,8 +117,8 @@
 --                             confirmed live these are the highest real-
 --                             answer values present and both mean "12
 --                             months or more" cumulative). Unlike
---                             Co-occurring Disorders and HIV/AIDS above,
---                             this one IS a guaranteed subset of "Disabled"
+--                             Co-occurring Disorders above, this one IS a
+--                             guaranteed subset of "Disabled"
 --                             above -- both this row and Disabled now read
 --                             the same Enrollment.DisablingCondition field
 --                             directly, so the DisablingCondition = 1 this
@@ -253,8 +242,8 @@ household_members AS (
 -- Co-occurring Disorders below can check two specific types independently
 -- -- each type's own latest record can be as of a different date. No
 -- longer used by "Disabled" itself (see this file's own header), only by
--- Co-occurring Disorders and Persons with HIV/AIDS below, which each need
--- a specific DisabilityType that Enrollment.DisablingCondition can't give.
+-- Co-occurring Disorders below, which needs two specific DisabilityTypes
+-- that Enrollment.DisablingCondition can't give.
 disability_latest AS (
   SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate FROM (
     SELECT PersonalID, DisabilityType, DisabilityResponse, InformationDate,
@@ -286,7 +275,7 @@ pregnancy_latest AS (
   )
   WHERE rn = 1
 ),
--- The 8 characteristics, computed per person (the representative person
+-- The 7 characteristics, computed per person (the representative person
 -- themselves, from `rep` directly) rather than aggregated across their
 -- household -- see this file's own header for why.
 person_flags AS (
@@ -324,12 +313,6 @@ person_flags AS (
       SELECT 1 FROM disability_latest dl
       WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 10 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
     )) AS is_co_occurring,
-    -- DisabilityType 8 = HIV/AIDS (HUD 2.07.2) -- same per-type lookup as
-    -- Co-occurring Disorders above, just one type.
-    EXISTS (
-      SELECT 1 FROM disability_latest dl
-      WHERE dl.PersonalID = r.PersonalID AND dl.DisabilityType = 8 AND dl.InformationDate <= r.EntryDate AND dl.DisabilityResponse = 1
-    ) AS is_hiv_aids,
     -- Adult (18+), their own most recent DisablingCondition = 1, and
     -- either continuously homeless 12+ months in their current episode
     -- (DateToStreetESSH) or 4+ episodes in the past 3 years cumulatively
@@ -411,7 +394,7 @@ filtered AS (
   WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')
 ),
 scoped_flags AS (
-  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_hiv_aids, pf.is_chronically_homeless, pf.is_dv_survivor, pf.is_parenting_youth
+  SELECT f.period, pf.PersonalID, pf.is_senior, pf.is_veteran, pf.is_disabled, pf.is_co_occurring, pf.is_chronically_homeless, pf.is_dv_survivor, pf.is_parenting_youth
   FROM filtered f
   JOIN person_flags pf ON pf.PersonalID = f.PersonalID AND pf.period = f.period AND pf.project_type = f.project_type
 )
@@ -420,8 +403,6 @@ UNION ALL
 SELECT period, 'Disabled', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_disabled GROUP BY period
 UNION ALL
 SELECT period, 'Persons with Co-occurring Disorders', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_co_occurring GROUP BY period
-UNION ALL
-SELECT period, 'Persons with HIV/AIDS', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_hiv_aids GROUP BY period
 UNION ALL
 SELECT period, 'Chronically Homeless', COUNT(DISTINCT PersonalID) FROM scoped_flags WHERE is_chronically_homeless GROUP BY period
 UNION ALL
