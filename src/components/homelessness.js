@@ -31,7 +31,7 @@ const SERIES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
 const integer = d3format(",~f");
 
 const PROJECT_TYPE_ORDER = ["Street Outreach", "Emergency Shelter", "Transitional Housing"];
-const LIVING_SITUATION_ORDER = ["Street", "Emergency & Temporary", "Friends & Family", "Institutional Setting", "Permanent Setting", "Other"];
+const LIVING_SITUATION_ORDER = ["Street", "Emergency & Temporary", "Friends & Family", "Institutional Setting", "Permanent Setting", "Unknown"];
 
 function empty() {
   return html`<p class="hl-empty">No data for this selection.</p>`;
@@ -200,11 +200,17 @@ const SANKEY_SHORT_LABELS = {
 // request relabeled it to "Street" specifically so it would match this
 // left-side bucket, both by name and by color), "Emergency & Temporary"
 // (exact match both sides), "Institutional Setting"/"Institutional" and
-// "Permanent Setting"/"Permanent" (short-label pairs), and "Other" (exact
-// match). "Friends & Family" (left-only) and "Unknown" (right-only) get
-// their own slots -- nothing on this page still needs two bucket names to
-// deliberately NOT share a color. Project Type (column 1) is unaffected --
-// still purely positional via PROJECT_TYPE_ORDER, as before.
+// "Permanent Setting"/"Permanent" (short-label pairs), and "Unknown"
+// (exact match -- the left side's own catch-all bucket was originally
+// labeled "Other" and shared a color with the right side's own, unrelated
+// "Other" bucket (17/24, a real recorded answer) until a follow-up
+// explicit request relabeled it "Unknown" and repointed its color to
+// match the right side's own "Unknown" instead, since that's what it
+// actually is: don't know/refused/data not collected/NULL, not a real
+// "other" answer). "Friends & Family" (left-only) and "Other" (right-only
+// now) get their own slots -- nothing on this page still needs two bucket
+// names to deliberately NOT share a color. Project Type (column 1) is
+// unaffected -- still purely positional via PROJECT_TYPE_ORDER, as before.
 const SANKEY_SIDE_COLORS = {
   "Street": SERIES[0],
   "Emergency & Temporary": SERIES[1],
@@ -684,7 +690,7 @@ const OVERVIEW_CARDS = [
     name: "Client Flow: Prior Living Situation → Project Type → Exit Outcome",
     type: "chart",
     render: (doc, fv) => renderSankeyChart(widgetRows(doc, "sankey", fv)),
-    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories, Street/Emergency & Temporary/Friends & Family/Institutional Setting/Permanent Setting/Other, from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited (grouped to match: Street/Emergency & Temporary/Institutional/Permanent/Other/Unknown). Other is a recorded but non-housing outcome, such as the person having passed away; Unknown is don't know/refused/no exit interview/missing. Matching bucket names on both sides share a color, so a ribbon's color on the left tells you what it'll likely still read as on the right. Active clients who haven't exited yet don't flow into the Exit Outcome stage at all -- each Project Type block instead shows them as a darker, non-flowing cap at its own bottom edge (hover it for the exact count), so the real exit destinations' own relative sizes aren't squeezed by a single dominant \"still enrolled\" category. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
+    description: "The same Active Clients population as the rest of this tab, traced through a single path per person: where they were staying right before this enrollment (grouped into 6 categories, Street/Emergency & Temporary/Friends & Family/Institutional Setting/Permanent Setting/Unknown, from HUD's own Prior Living Situation response options), which project type they were active in, and -- for their own representative enrollment -- where they went when they exited (grouped to match: Street/Emergency & Temporary/Institutional/Permanent/Other/Unknown). On the left, Unknown is don't know/refused/data not collected/missing -- there's no comparable \"recorded but non-housing\" answer for a prior living situation the way there is for an exit. On the right, Other is a recorded but non-housing outcome, such as the person having passed away, and Unknown is don't know/refused/no exit interview/missing. Matching bucket names on both sides share a color, so a ribbon's color on the left tells you what it'll likely still read as on the right. Active clients who haven't exited yet don't flow into the Exit Outcome stage at all -- each Project Type block instead shows them as a darker, non-flowing cap at its own bottom edge (hover it for the exact count), so the real exit destinations' own relative sizes aren't squeezed by a single dominant \"still enrolled\" category. Filtering to a single Project Type collapses the middle stage to one node, same as every other chart on this tab."
   }
 ];
 
