@@ -380,7 +380,7 @@ function renderSankeyChart(rows) {
 // "priority_households" query key/sql filename stayed as-is -- an internal
 // identifier, not shown to a visitor -- only the display name and labels
 // changed); see sql/homeless_priority_households.sql's own header for why.
-const PRIORITY_POPULATIONS_ORDER = ["Age 55+", "Disabled", "Co-occurring Disorders", "Veterans", "DV Survivors", "Parenting Youth"];
+const PRIORITY_POPULATIONS_ORDER = ["Age 55+", "Disabled", "Co-occurring Disorders", "Persons with HIV/AIDS", "Veterans", "DV Survivors", "Parenting Youth"];
 const RACE_ORDER = ["AI/AN or Indigenous", "Asian", "Black/African-American", "MENA", "NH/Pacific Islander", "White", "Multiple Races"];
 // Fixed per-category color map for the Race donut, rather than the default
 // positional SERIES[i] assignment renderDonut() uses elsewhere -- the
@@ -593,7 +593,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Priority Populations",
     type: "table",
     render: (doc, fv) => renderQoqTable(widgetRows(doc, "priority_households", fv), "indicator", "persons", PRIORITY_POPULATIONS_ORDER),
-    description: "6 person-level flags, recent fiscal year vs. the previous one: a person counts under Age 55+ if they are 55 or older, Disabled if their own most recent disability response on file is Yes for any disability type, Co-occurring Disorders if their own most recent responses say Yes for both a Mental Health Disorder and a Substance Use Disorder (a subset of Disabled -- either one alone still counts as Disabled, just not here), Veterans if they are a veteran, DV Survivors if their own most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing), and Parenting Youth if they are their own household's head of household, under 25, and either pregnant or have a child enrolled with them. Per explicit request, this counts people, not households -- two veterans (or two DV survivors) sharing a household each count individually here, where an earlier household-level version would have counted that household once. A person can count under more than one row, so the 6 figures don't sum to People Served."
+    description: "7 person-level flags, recent fiscal year vs. the previous one: a person counts under Age 55+ if they are 55 or older, Disabled if their own most recent disability response on file is Yes for any disability type, Co-occurring Disorders if their own most recent responses say Yes for both a Mental Health Disorder and a Substance Use Disorder (a subset of Disabled -- either one alone still counts as Disabled, just not here), Persons with HIV/AIDS if their own most recent disability response on file is Yes for HIV/AIDS (also a subset of Disabled), Veterans if they are a veteran, DV Survivors if their own most recent domestic violence screening on file says they are a survivor (whether or not they're currently fleeing), and Parenting Youth if they are their own household's head of household, under 25, and either pregnant or have a child enrolled with them. Per explicit request, this counts people, not households -- two veterans (or two DV survivors) sharing a household each count individually here, where an earlier household-level version would have counted that household once. A person can count under more than one row, so the 7 figures don't sum to People Served."
   },
   {
     id: "race-pie",
