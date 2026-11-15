@@ -26,9 +26,27 @@
 -- representative enrollment's own reference date (the same `rep.EntryDate`
 -- used throughout this dashboard for age math and "most recent record as
 -- of" lookups):
---   Age 55+               -- the person's own age (same age-math
---                             convention as household_members elsewhere in
---                             this file) is 55 or older.
+--   Age 55+               -- the person's own age AS OF THE FISCAL YEAR'S
+--                             OWN END DATE (not this file's usual EntryDate
+--                             reference date -- see below) is 55 or older.
+--                             Per explicit request, following a reported
+--                             discrepancy against sql/homeless_age.sql's
+--                             own Age distribution table (791 there vs. 743
+--                             here, before this change): that table ages
+--                             everyone as of the fiscal year's own end date
+--                             (its own documented convention), while this
+--                             row used to age people as of their own
+--                             representative enrollment's EntryDate --
+--                             confirmed live the entire 48-person gap
+--                             (791 - 743) was exactly the cohort who turned
+--                             55 sometime between their own EntryDate and
+--                             the fiscal year's end. Switched this row to
+--                             period_end to match the Age table instead of
+--                             documenting the gap, per explicit choice --
+--                             every other row in this file (Disabled,
+--                             Co-occurring Disorders, etc.) still uses
+--                             EntryDate; this is a one-off exception for
+--                             Age 55+ alone, not a dashboard-wide change.
 --   Disabled               -- the person's own most recent
 --                             Enrollment.DisablingCondition on their
 --                             representative enrollment is Yes. Per
@@ -179,7 +197,7 @@ qualifying_projects AS (
 active_enrollments AS (
   SELECT en.EnrollmentID, en.PersonalID, en.HouseholdID, en.EntryDate, en.RelationshipToHoH,
     en.DisablingCondition, en.DateToStreetESSH, en.TimesHomelessPastThreeYears, en.MonthsHomelessPastThreeYears,
-    qp.project_type, pe.period
+    qp.project_type, pe.period, pe.period_end
   FROM wchmiscsv.Enrollment en
   JOIN qualifying_projects qp ON en.ProjectID = qp.ProjectID
   LEFT JOIN wchmiscsv.Exit ex ON en.EnrollmentID = ex.EnrollmentID
@@ -194,10 +212,10 @@ active_enrollments AS (
 ),
 rep AS (
   SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH,
-    DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears
+    DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears, period_end
   FROM (
     SELECT PersonalID, period, project_type, HouseholdID, EntryDate, RelationshipToHoH,
-      DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears,
+      DisablingCondition, DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears, period_end,
       ROW_NUMBER() OVER (PARTITION BY PersonalID, period, project_type ORDER BY EntryDate DESC, EnrollmentID DESC) AS rn
     FROM active_enrollments
   )
@@ -274,12 +292,17 @@ pregnancy_latest AS (
 person_flags AS (
   SELECT
     r.PersonalID, r.period, r.project_type,
+    -- Per explicit request, computed as of the fiscal year's own END date
+    -- (r.period_end) rather than this file's usual r.EntryDate reference
+    -- date -- see this file's own header for why (matches
+    -- sql/homeless_age.sql's own age-bucket convention, which ages
+    -- everyone as of period_end rather than their own EntryDate).
     CASE
       WHEN cl.DOB IS NULL THEN NULL
-      ELSE DATE_DIFF(r.EntryDate, cl.DOB, YEAR)
+      ELSE DATE_DIFF(r.period_end, cl.DOB, YEAR)
         - IF(
             EXTRACT(MONTH FROM cl.DOB) * 100 + EXTRACT(DAY FROM cl.DOB)
-              > EXTRACT(MONTH FROM r.EntryDate) * 100 + EXTRACT(DAY FROM r.EntryDate),
+              > EXTRACT(MONTH FROM r.period_end) * 100 + EXTRACT(DAY FROM r.period_end),
             1, 0
           )
     END >= 55 AS is_senior,
