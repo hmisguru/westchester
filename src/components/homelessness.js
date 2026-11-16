@@ -180,7 +180,14 @@ function renderFlowChart(rows) {
  * pies -- a box plot doesn't have a natural "current vs. previous"
  * comparison shape the way a QoQ table does. Filtering to a single
  * Project Type collapses this to one box, same as every other chart on
- * this tab. */
+ * this tab. Per an explicit follow-up report, each box mixes completed
+ * stays (entry to exit) with still-enrolled people's stay-so-far (entry
+ * to the fiscal year's end) -- confirmed live this isn't a rare edge
+ * case (515 of Transitional Housing's own 861 active people this FY,
+ * 148 of Street Outreach's 347, 805 of Emergency Shelter's 3,203, are
+ * still enrolled), so a second permanent `.hl-chart-note` below the
+ * chart calls this out explicitly rather than leaving it to the
+ * collapsed description alone. */
 function renderLengthOfStayChart(rows) {
   if (!rows.length) return empty();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
@@ -199,6 +206,7 @@ function renderLengthOfStayChart(rows) {
   }));
   return html`<div class="hl-chart-wrap">
     <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors.</p>
+    <p class="hl-chart-note">Each box mixes completed stays (entry to exit) with still-enrolled people's stay-so-far (entry to the fiscal year's end) -- a project type with more people still enrolled will show more of these "still counting" lengths pulled in, not just finished stays.</p>
     ${chart}
   </div>`;
 }
@@ -733,7 +741,7 @@ const OVERVIEW_CARDS = [
     name: "Length of Stay by Project Type",
     type: "chart",
     render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
-    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error."
+    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). Because of that second case, each box is a mix of completed stays and still-enrolled people's stay-so-far, not completed stays alone -- a project type where more of its active people haven't exited yet will pull in more of these still-counting lengths, which reads differently than a box built only from finished stays. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error."
   },
   {
     id: "system-flow",
