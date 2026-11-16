@@ -60,6 +60,20 @@ html[data-theme="dark"] .hl-table td { border-bottom-color: #33423c; }
 html[data-theme="dark"] .hl-metric { color: #ffffff; }
 .hl-metric-note { margin: 10px 0 0; font-size: 13px; color: var(--hl-muted); }
 .hl-metric-note strong { color: inherit; font-weight: 700; }
+/* "Length of Stay by Project Type" tiles -- one per project type, replacing
+   that widget's earlier box-and-whisker chart. auto-fit collapses to a
+   single column when a Project Type filter narrows this to one tile, same
+   as the fallback the whole .hl-row grid already uses on a narrow
+   viewport. Each tile's own border-top-color is set inline per project
+   type (that entity's own fixed SERIES color, same "color follows the
+   entity" lookup colorScale() uses for every chart on this tab), so no
+   extra CSS selector is needed per project type here. */
+.hl-los-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.hl-los-tile { padding: 14px 16px; background: var(--hl-surface); border: 1px solid var(--hl-border); border-top-width: 4px; border-top-style: solid; border-radius: 10px; }
+.hl-los-tile-label { margin: 0 0 8px; font-family: "degular", "Sora", system-ui, sans-serif; font-size: 14px; font-weight: 700; color: var(--hl-accent); }
+.hl-los-tile-stat { margin: 4px 0; font-size: 14px; color: var(--hl-muted); }
+.hl-los-tile-value { font-family: "degular", "Sora", system-ui, sans-serif; font-size: 24px; font-weight: 700; color: #161616; margin-right: 4px; }
+html[data-theme="dark"] .hl-los-tile-value { color: #ffffff; }
 .hl-empty { color: var(--hl-muted); font-style: italic; margin: 0; }
 .hl-chart-note { margin: 0 0 10px; font-size: 12px; color: var(--hl-muted); }
 /* Extra breathing room below a chart with rotated x-axis labels, on top of
