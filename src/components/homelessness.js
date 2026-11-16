@@ -187,7 +187,15 @@ function renderFlowChart(rows) {
  * 148 of Street Outreach's 347, 805 of Emergency Shelter's 3,203, are
  * still enrolled), so a second permanent `.hl-chart-note` below the
  * chart calls this out explicitly rather than leaving it to the
- * collapsed description alone. */
+ * collapsed description alone. `tip: true` alone (no `channels`/`format`
+ * overrides) gives both the box and each individual outlier dot a hover
+ * tooltip out of the box, per explicit request after shipping with none --
+ * tried relabeling the tooltip's raw "project_type" field to "Project
+ * type" via a `channels`/`format` combo, but this old pinned Plot
+ * version's composite `boxY` mark doesn't support cleanly replacing a
+ * default channel that way: it added "Project type" as a second line
+ * alongside the original "project_type" rather than replacing it, so
+ * that was reverted in favor of the plain default label. */
 function renderLengthOfStayChart(rows) {
   if (!rows.length) return empty();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
@@ -201,7 +209,7 @@ function renderLengthOfStayChart(rows) {
     color: colorScale(types, PROJECT_TYPE_ORDER),
     marks: [
       Plot.ruleY([0]),
-      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type"})
+      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type", tip: true})
     ]
   }));
   return html`<div class="hl-chart-wrap">
@@ -741,7 +749,7 @@ const OVERVIEW_CARDS = [
     name: "Length of Stay by Project Type",
     type: "chart",
     render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
-    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). Because of that second case, each box is a mix of completed stays and still-enrolled people's stay-so-far, not completed stays alone -- a project type where more of its active people haven't exited yet will pull in more of these still-counting lengths, which reads differently than a box built only from finished stays. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error."
+    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). Because of that second case, each box is a mix of completed stays and still-enrolled people's stay-so-far, not completed stays alone -- a project type where more of its active people haven't exited yet will pull in more of these still-counting lengths, which reads differently than a box built only from finished stays. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a box or an individual dot for its exact length of stay."
   },
   {
     id: "system-flow",
