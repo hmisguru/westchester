@@ -45,8 +45,20 @@ export function widgetRows(doc, qkey, filterValues) {
   return rows.map((r) => Object.fromEntries(columns.map((c, i) => [c, r[i]])));
 }
 
-function colorScale(domain) {
-  return {domain, range: SERIES.slice(0, Math.max(domain.length, 1)), legend: true};
+// `fullOrder` (defaulting to `domain` itself, for a caller whose domain is
+// never filtered down) decouples each entity's own color from its
+// position within whatever subset is currently visible -- color follows
+// the entity, never its rank among the survivors. Found live while
+// building the Length of Stay chart below: without this, filtering the
+// page's own Project Type selector down to a single type (e.g.
+// "Transitional Housing") repainted that one survivor as SERIES[0]
+// (blue, Street Outreach's own color) instead of keeping its usual
+// SERIES[2] (green) -- a real, pre-existing bug in the two Trend charts
+// above (confirmed live via the same filtered screenshot), not something
+// newly introduced here; fixed at this shared root rather than worked
+// around per call site.
+function colorScale(domain, fullOrder = domain) {
+  return {domain, range: domain.map((d) => SERIES[fullOrder.indexOf(d) % SERIES.length]), legend: true};
 }
 
 /** A current-vs-previous-FY reach tile (Persons or Households). Neither
@@ -100,7 +112,7 @@ function renderTrendChart(rows, field, yLabel) {
     marginBottom: 48,
     x: {type: "point", domain: periods, label: null, padding: 0.3, tickRotate: -35},
     y: {grid: true, zero: true, label: yLabel, tickFormat: fmt},
-    color: colorScale(types),
+    color: colorScale(types, PROJECT_TYPE_ORDER),
     marks: [
       Plot.ruleY([0]),
       Plot.lineY(rows, {x: "period", y: field, stroke: "project_type", strokeWidth: 2}),
@@ -149,6 +161,44 @@ function renderFlowChart(rows) {
   }));
   return html`<div class="hl-chart-wrap">
     <p class="hl-chart-note">Bars show each month's net flow (entries minus exits); the dashed line is the 12-month trend.</p>
+    ${chart}
+  </div>`;
+}
+
+/** "Length of Stay by Project Type" -- a box-and-whisker chart over the
+ * same Active Clients population as the rest of this tab, per explicit
+ * request. One box per project type (sql/homeless_length_of_stay.sql's
+ * own per-(person, project_type) dedup, same as the Sankey's own `rep`),
+ * showing each project type's own distribution of `length_of_stay_days`
+ * (that stay's own length as of the fiscal year's end -- see that file's
+ * own header). The pinned @observablehq/plot version's `boxY` mark
+ * computes the five-number summary itself from these per-person raw
+ * values -- unlike every other chart on this tab, this query is NOT
+ * pre-aggregated in SQL, since the box mark needs the underlying
+ * distribution, not a precomputed median/quartiles. Current FY only,
+ * same single-snapshot posture as the Demographics tab's own Age/Race
+ * pies -- a box plot doesn't have a natural "current vs. previous"
+ * comparison shape the way a QoQ table does. Filtering to a single
+ * Project Type collapses this to one box, same as every other chart on
+ * this tab. */
+function renderLengthOfStayChart(rows) {
+  if (!rows.length) return empty();
+  const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
+  const fmt = integer;
+  const chart = resize((width) => Plot.plot({
+    width,
+    height: 320,
+    marginLeft: 56,
+    x: {domain: types, label: null},
+    y: {grid: true, zero: true, label: "Length of stay (days)", tickFormat: fmt},
+    color: colorScale(types, PROJECT_TYPE_ORDER),
+    marks: [
+      Plot.ruleY([0]),
+      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type"})
+    ]
+  }));
+  return html`<div class="hl-chart-wrap">
+    <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors.</p>
     ${chart}
   </div>`;
 }
@@ -677,6 +727,13 @@ const OVERVIEW_CARDS = [
     span: 6,
     render: (doc, fv) => renderTrendChart(widgetRows(doc, "trend", fv), "households", "Households"),
     description: "The same monthly population as the chart above, counted by household instead of by person."
+  },
+  {
+    id: "length-of-stay",
+    name: "Length of Stay by Project Type",
+    type: "chart",
+    render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
+    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error."
   },
   {
     id: "system-flow",
