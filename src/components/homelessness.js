@@ -61,6 +61,24 @@ function colorScale(domain, fullOrder = domain) {
   return {domain, range: domain.map((d) => SERIES[fullOrder.indexOf(d) % SERIES.length]), legend: true};
 }
 
+/** Linear-interpolation quantile over an already-ascending-sorted array --
+ * the same algorithm (and so the same results) as d3.quantile, which the
+ * pinned @observablehq/plot version's `boxY` mark uses internally to
+ * compute its own Q1/median/Q3. Used by renderLengthOfStayChart()'s own
+ * tooltip so its displayed 25th/75th percentile and median exactly match
+ * the box the chart actually draws, rather than drifting from a
+ * differently-rounded or differently-interpolated method. */
+function quantileSorted(sorted, p) {
+  const n = sorted.length;
+  if (!n) return NaN;
+  if (p <= 0) return sorted[0];
+  if (p >= 1) return sorted[n - 1];
+  const i = (n - 1) * p;
+  const lo = Math.floor(i);
+  const hi = Math.min(lo + 1, n - 1);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+
 /** A current-vs-previous-FY reach tile (Persons or Households). Neither
  * direction is inherently better here -- more or fewer people active in
  * Street Outreach/ES/TH can reflect more need, more outreach capacity, or
@@ -191,19 +209,63 @@ function renderFlowChart(rows) {
  * it no longer applies and was removed; only the box/whisker-geometry
  * note remains.
  *
- * `tip: true` alone (no `channels`/`format` overrides) gives both the
- * box and each individual outlier dot a hover tooltip out of the box,
- * per an earlier explicit request after shipping with none -- tried
- * relabeling the tooltip's raw "project_type" field to "Project type"
- * via a `channels`/`format` combo, but this old pinned Plot version's
- * composite `boxY` mark doesn't support cleanly replacing a default
- * channel that way: it added "Project type" as a second line alongside
- * the original "project_type" rather than replacing it, so that was
- * reverted in favor of the plain default label. */
+ * Hover shows one tooltip per project type -- its own 25th-75th
+ * percentile range, median, and average -- per explicit request, rather
+ * than the box/outlier-dot-level tooltips an earlier version of this
+ * chart had. `tip: true` alone on `Plot.boxY` itself (no `channels`/
+ * `format` overrides) was tried first and worked, but surfaced the box's
+ * own raw Q1-Q3 range and, separately, each individual outlier's own
+ * exact value -- point-level detail, not the three per-project-type
+ * summary stats asked for here, so `boxY`'s own `tip` option was removed
+ * entirely (the box, median line, whiskers, and outlier dots still
+ * render, just with no hover of their own any more). A separate,
+ * invisible `Plot.rectY` -- one full-height rect per project type,
+ * drawn LAST so it's on top and catches hover across that whole column
+ * regardless of what box/whisker/dot geometry sits visually underneath
+ * it -- supplies the new tooltip instead, via a `title` channel plus a
+ * bare `tip: true`: the same "title must be a top-level mark channel,
+ * not nested in the `tip` option, or Plot silently ignores it" fix
+ * `winter-shelter.js`'s own calendar heatmap and sparkline tips already
+ * document in the sibling `hmisguru/baltimore` repo, and the same reason
+ * it's used here rather than `channels`/`format` again -- a `title`
+ * channel's own text becomes the ENTIRE tooltip content on a plain,
+ * non-composite mark like `rectY`, with no other channel (`x`, `y1`,
+ * `y2`) leaking into it the way `format: {channel: false}` failed to
+ * suppress them when tried earlier on `boxY`'s own composite marks (see
+ * CLAUDE.md's own history of that attempt). Average (the mean) isn't
+ * something `boxY`'s own five-number summary computes at all, so the
+ * three stats come from `quantileSorted()`/a plain mean over each
+ * project type's own raw `length_of_stay_days` values, computed once per
+ * render in JS rather than in SQL -- `quantileSorted()` uses the exact
+ * same linear-interpolation algorithm `boxY` itself uses internally, so
+ * the displayed 25th/75th percentile and median exactly match the box
+ * the chart actually draws, not a different, independently-rounded
+ * statistic. All four figures are rounded to the nearest whole day for
+ * display (lengths of stay are inherently day-granular; the
+ * interpolated quartiles and the mean are the only reason any of these
+ * would ever come out fractional). The invisible rect's own height runs
+ * from 0 to 10% above the tallest point in the WHOLE chart (not just
+ * that one project type's own max) so a short box's own empty headroom
+ * -- e.g. Street Outreach's own column, capped far below Emergency
+ * Shelter's -- still responds to hover anywhere in that column, not
+ * just right at its own box. */
 function renderLengthOfStayChart(rows) {
   if (!rows.length) return empty();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
   const fmt = integer;
+  const round = (n) => fmt(Math.round(n));
+  const stats = types.map((t) => {
+    const values = rows.filter((r) => r.project_type === t).map((r) => r.length_of_stay_days).sort((a, b) => a - b);
+    const q1 = quantileSorted(values, 0.25);
+    const median = quantileSorted(values, 0.5);
+    const q3 = quantileSorted(values, 0.75);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    return {
+      project_type: t,
+      title: `${t}\n25th-75th percentile: ${round(q1)}-${round(q3)} days\nMedian: ${round(median)} days\nAverage: ${round(mean)} days`
+    };
+  });
+  const maxVal = Math.max(...rows.map((r) => r.length_of_stay_days));
   const chart = resize((width) => Plot.plot({
     width,
     height: 320,
@@ -213,11 +275,12 @@ function renderLengthOfStayChart(rows) {
     color: colorScale(types, PROJECT_TYPE_ORDER),
     marks: [
       Plot.ruleY([0]),
-      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type", tip: true})
+      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type"}),
+      Plot.rectY(stats, {x: "project_type", y1: 0, y2: maxVal * 1.1, fill: "black", fillOpacity: 0, title: "title", tip: true})
     ]
   }));
   return html`<div class="hl-chart-wrap">
-    <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors.</p>
+    <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors. Hover over a project type's own column for its 25th-75th percentile range, median, and average.</p>
     ${chart}
   </div>`;
 }
@@ -752,7 +815,7 @@ const OVERVIEW_CARDS = [
     name: "Length of Stay by Project Type",
     type: "chart",
     render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
-    description: "People who have exited a given project type this fiscal year, with a completed stay: their own entry date to their own exit date. Still-enrolled people aren't included, since their own stay isn't finished yet. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of completed stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a box or an individual dot for its exact length of stay."
+    description: "People who have exited a given project type this fiscal year, with a completed stay: their own entry date to their own exit date. Still-enrolled people aren't included, since their own stay isn't finished yet. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of completed stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a project type's own column for its 25th-75th percentile range, median, and average length of stay."
   },
   {
     id: "system-flow",
