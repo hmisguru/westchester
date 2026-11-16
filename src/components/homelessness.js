@@ -490,14 +490,26 @@ const RACE_ORDER = ["AI/AN or Indigenous", "Asian", "Black/African-American", "M
 // RACE_DONUT_OTHER_THRESHOLD's own bullet in CLAUDE.md already documents
 // for "Multiple Races"), which is an accepted, documented tradeoff of only
 // having 5 non-Project-Type colors for 7 categories, not a bug.
+//
+// Black/African-American and White specifically get green/purple (not
+// DEMOGRAPHICS_SERIES' own first two slots, amber/pink), per an explicit
+// follow-up report that amber-next-to-pink -- the two colors that matter
+// in practice, since they're the only pair normally visible at once --
+// read as clashing. Offered a short menu of alternative pairings (several
+// warm/warm or warm/cool combinations, explicitly avoiding a red/green
+// pairing per the dataviz skill's own CVD rule) and green+purple is the
+// one picked: a cool-toned pair with no shared hue family. The remaining
+// 3 colors (amber, pink, red) cover the other 5, smaller categories the
+// same doubled-up way as before, just reassigned since green/pink and
+// purple/pink are no longer available to them.
 const DEMOGRAPHICS_SERIES = SERIES.slice(3);
 const RACE_COLORS = {
-  "Black/African-American": DEMOGRAPHICS_SERIES[0],
-  "White": DEMOGRAPHICS_SERIES[1],
-  "Asian": DEMOGRAPHICS_SERIES[2],
-  "Multiple Races": DEMOGRAPHICS_SERIES[3],
+  "Black/African-American": DEMOGRAPHICS_SERIES[2],
+  "White": DEMOGRAPHICS_SERIES[3],
+  "Asian": DEMOGRAPHICS_SERIES[0],
+  "Multiple Races": DEMOGRAPHICS_SERIES[1],
   "MENA": DEMOGRAPHICS_SERIES[4],
-  "AI/AN or Indigenous": DEMOGRAPHICS_SERIES[2],
+  "AI/AN or Indigenous": DEMOGRAPHICS_SERIES[0],
   "NH/Pacific Islander": DEMOGRAPHICS_SERIES[4]
 };
 // Race's own donut folds any category under this share of the chart's own
@@ -522,17 +534,21 @@ const ETHNICITY_ORDER = ["Hispanic", "Non-Hispanic"];
 // for the same reason -- renderDonut()'s own default positional SERIES[i]
 // assignment had put Hispanic/Non-Hispanic on SERIES[0]/[1] (the exact
 // blue/orange Project Type uses elsewhere on this tab). Reuses two of
-// DEMOGRAPHICS_SERIES' own colors already assigned to Race's two smallest,
-// most-often-folded-into-Other categories (Multiple Races, MENA/NH-Pacific
-// Islander) rather than its two dominant ones (Black/African-American,
-// White) -- with only 5 non-Project-Type colors covering 9 Race+Ethnicity
-// categories total, some reuse between these two side-by-side donuts is
-// unavoidable, so it's deliberately placed on the pairing least likely to
-// put a visually dominant wedge in one donut next to a same-colored
-// dominant wedge in the other.
+// DEMOGRAPHICS_SERIES' own colors already assigned to Race's smallest,
+// most-often-folded-into-Other categories (Asian/AI-AN or Indigenous,
+// Multiple Races) rather than its two dominant ones (Black/African-
+// American, White) -- with only 5 non-Project-Type colors covering 9
+// Race+Ethnicity categories total, some reuse between these two side-by-
+// side donuts is unavoidable, so it's deliberately placed on the pairing
+// least likely to put a visually dominant wedge in one donut next to a
+// same-colored dominant wedge in the other. Re-picked alongside
+// RACE_COLORS' own green/purple swap above -- Hispanic/Non-Hispanic
+// previously reused purple/red, which would have landed Hispanic (always
+// fully visible, unlike Race's own fold-prone categories) on the exact
+// same purple White just moved to.
 const ETHNICITY_COLORS = {
-  "Hispanic": DEMOGRAPHICS_SERIES[3],
-  "Non-Hispanic": DEMOGRAPHICS_SERIES[4]
+  "Hispanic": DEMOGRAPHICS_SERIES[0],
+  "Non-Hispanic": DEMOGRAPHICS_SERIES[1]
 };
 const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned 18", "18 to 21", "22 to 24", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 and Older"];
 
