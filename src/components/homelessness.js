@@ -459,59 +459,19 @@ function renderSankeyChart(rows) {
 // changed); see sql/homeless_priority_households.sql's own header for why.
 const PRIORITY_POPULATIONS_ORDER = ["Age 55+", "Disabled", "Persons with Co-occurring Disorders", "Chronically Homeless", "Veterans", "DV Survivors", "Parenting Youth"];
 const RACE_ORDER = ["AI/AN or Indigenous", "Asian", "Black/African-American", "MENA", "NH/Pacific Islander", "White", "Multiple Races"];
-// Race and Ethnicity's own fixed color maps draw exclusively from
-// DEMOGRAPHICS_SERIES (SERIES[3..7], below), never SERIES[0..2] -- those
-// three are reserved for Street Outreach/Emergency Shelter/Transitional
-// Housing everywhere else on this tab (colorScale()'s own PROJECT_TYPE_ORDER
-// calls), per explicit request after a report that Race's two largest
-// categories were landing on the exact same blue/orange this page's own
-// Project Type filter uses on the Overview tab, which read as if Race were
-// somehow encoding project type. (An earlier version of this map used
-// SERIES[0]/[1] for exactly that reason -- to escape two look-alike greens
-// within the Race donut itself -- which is what caused this later,
-// different confusion; see CLAUDE.md for that history.)
-//
-// DEMOGRAPHICS_SERIES has only 5 colors for Race's 7 categories, so two
-// pairs double up -- confirmed live against real BigQuery data (Current
-// FY, All Project Types/All Household Types) before choosing which:
-// Black/African-American (70.4%) and White (24.4%) are the only two
-// categories that ever clear RACE_DONUT_OTHER_THRESHOLD under the default
-// filter -- every other category (Multiple Races 2.6%, Asian 1.0%, AI/AN
-// 0.7%, MENA 0.5%, NH/Pacific Islander 0.3%) folds into "Other" there, so
-// Black/African-American and White each get a fully dedicated color, and
-// the two doubled-up pairs (AI/AN or Indigenous/Asian, and NH/Pacific
-// Islander/MENA) are deliberately the four smallest, rarest-to-co-occur-
-// as-visible-individual-slices categories, not paired with either of the
-// two dominant ones. Still a fixed, per-category mapping (never assigned
-// by current rank), so color still follows the entity, not its size,
-// across every filter selection -- a narrow filter can occasionally lift
-// one of the doubled-up categories above the fold threshold at the same
-// time as its own color-mate (the same kind of edge case
-// RACE_DONUT_OTHER_THRESHOLD's own bullet in CLAUDE.md already documents
-// for "Multiple Races"), which is an accepted, documented tradeoff of only
-// having 5 non-Project-Type colors for 7 categories, not a bug.
-//
-// Black/African-American and White specifically get green/purple (not
-// DEMOGRAPHICS_SERIES' own first two slots, amber/pink), per an explicit
-// follow-up report that amber-next-to-pink -- the two colors that matter
-// in practice, since they're the only pair normally visible at once --
-// read as clashing. Offered a short menu of alternative pairings (several
-// warm/warm or warm/cool combinations, explicitly avoiding a red/green
-// pairing per the dataviz skill's own CVD rule) and green+purple is the
-// one picked: a cool-toned pair with no shared hue family. The remaining
-// 3 colors (amber, pink, red) cover the other 5, smaller categories the
-// same doubled-up way as before, just reassigned since green/pink and
-// purple/pink are no longer available to them.
-const DEMOGRAPHICS_SERIES = SERIES.slice(3);
-const RACE_COLORS = {
-  "Black/African-American": DEMOGRAPHICS_SERIES[2],
-  "White": DEMOGRAPHICS_SERIES[3],
-  "Asian": DEMOGRAPHICS_SERIES[0],
-  "Multiple Races": DEMOGRAPHICS_SERIES[1],
-  "MENA": DEMOGRAPHICS_SERIES[4],
-  "AI/AN or Indigenous": DEMOGRAPHICS_SERIES[0],
-  "NH/Pacific Islander": DEMOGRAPHICS_SERIES[4]
-};
+// Race and Ethnicity both render with renderDonut()'s own default
+// positional SERIES[i] assignment (no colorMap argument), per explicit
+// request reverting a sequence of custom per-category color maps tried
+// here: first RACE_COLORS (blue/orange for Black/African-American/White,
+// to escape two look-alike greens under the plain default), then moved
+// off blue/orange entirely onto a dedicated DEMOGRAPHICS_SERIES sub-
+// palette (SERIES[3..7]) once blue/orange turned out to collide with
+// Project Type's own fixed colors elsewhere on this tab, then reshuffled
+// within that sub-palette (green/purple for Black/African-American/White)
+// over a reported amber/pink clash -- see CLAUDE.md for that full history.
+// None of it stuck; this reverts both donuts to the plain default, same
+// as Ethnicity has used all along except for one brief detour alongside
+// RACE_COLORS' own changes.
 // Race's own donut folds any category under this share of the chart's own
 // total into a single "Other" slice, per explicit request -- the QoQ table
 // beside it (DEMOGRAPHICS_CARDS' own "race-qoq" card) keeps the full
@@ -530,26 +490,6 @@ const RACE_DONUT_OTHER_THRESHOLD = 0.03;
 // categories' own vivid colors.
 const DONUT_OTHER_COLOR = "var(--hl-muted)";
 const ETHNICITY_ORDER = ["Hispanic", "Non-Hispanic"];
-// Ethnicity's own explicit color map, added alongside RACE_COLORS above and
-// for the same reason -- renderDonut()'s own default positional SERIES[i]
-// assignment had put Hispanic/Non-Hispanic on SERIES[0]/[1] (the exact
-// blue/orange Project Type uses elsewhere on this tab). Reuses two of
-// DEMOGRAPHICS_SERIES' own colors already assigned to Race's smallest,
-// most-often-folded-into-Other categories (Asian/AI-AN or Indigenous,
-// Multiple Races) rather than its two dominant ones (Black/African-
-// American, White) -- with only 5 non-Project-Type colors covering 9
-// Race+Ethnicity categories total, some reuse between these two side-by-
-// side donuts is unavoidable, so it's deliberately placed on the pairing
-// least likely to put a visually dominant wedge in one donut next to a
-// same-colored dominant wedge in the other. Re-picked alongside
-// RACE_COLORS' own green/purple swap above -- Hispanic/Non-Hispanic
-// previously reused purple/red, which would have landed Hispanic (always
-// fully visible, unlike Race's own fold-prone categories) on the exact
-// same purple White just moved to.
-const ETHNICITY_COLORS = {
-  "Hispanic": DEMOGRAPHICS_SERIES[0],
-  "Non-Hispanic": DEMOGRAPHICS_SERIES[1]
-};
 const AGE_ORDER = ["<1", "1 to 2", "3 to 5", "6 to 17", "17 year-olds who turned 18", "18 to 21", "22 to 24", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 and Older"];
 
 /** Race and Ethnicity render as donuts, per explicit request -- same
@@ -583,8 +523,13 @@ function renderDonut(rows, labelField, valueField, order, colorMap, otherThresho
     : [...current].sort((a, b) => b[valueField] - a[valueField]);
   const total = base.reduce((s, d) => s + (d[valueField] ?? 0), 0);
   // A category's color comes from colorMap when given (a fixed per-entity
-  // assignment, e.g. RACE_COLORS), falling back to the default positional
-  // SERIES[i] assignment every other chart on this page uses.
+  // assignment), falling back to the default positional SERIES[i]
+  // assignment every other chart on this page uses -- the Race and
+  // Ethnicity donuts both currently use this default (no colorMap), per
+  // explicit request reverting a series of custom color maps tried for
+  // Race; see CLAUDE.md and the comment above RACE_ORDER for that history.
+  // colorMap stays a supported parameter here for any future caller that
+  // needs it.
   const baseColors = base.map((d, i) => colorMap?.[d[labelField]] ?? SERIES[i % SERIES.length]);
   let sorted = base, colors = baseColors;
   if (otherThreshold) {
@@ -725,7 +670,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Race of People Served — Recent Fiscal Year",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, RACE_COLORS, RACE_DONUT_OTHER_THRESHOLD),
+    render: (doc, fv) => renderDonut(widgetRows(doc, "race", fv), "race", "persons", RACE_ORDER, undefined, RACE_DONUT_OTHER_THRESHOLD),
     description: "Each person's race, from HUD's current (2024+) data standards, which collect race as several yes/no checkboxes rather than one pick. Someone who checked more than one of the 6 race boxes shown here (not counting Hispanic/Latino(a), which this dashboard keeps as its own Ethnicity chart below) is counted once under Multiple Races instead of under each box separately, so this chart's own total can be a little lower than People Served — it excludes anyone who left every race box blank or answered don't know/refused/data not collected. Any category under 3% of this total is folded into a single \"Other\" slice here so the donut stays readable; the table below keeps every category broken out individually."
   },
   {
@@ -733,7 +678,7 @@ const DEMOGRAPHICS_CARDS = [
     name: "Ethnicity of People Served — Recent Fiscal Year",
     type: "chart",
     span: 6,
-    render: (doc, fv) => renderDonut(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER, ETHNICITY_COLORS),
+    render: (doc, fv) => renderDonut(widgetRows(doc, "ethnicity", fv), "ethnicity", "persons", ETHNICITY_ORDER),
     description: "Hispanic/Latino(a) vs. not, from the same HUD checkbox Race above excludes so the two charts stay independent of each other. Excludes anyone who left this response blank or answered don't know/refused/data not collected."
   },
   {
