@@ -62,12 +62,12 @@ function colorScale(domain, fullOrder = domain) {
 }
 
 /** Linear-interpolation quantile over an already-ascending-sorted array --
- * the same algorithm (and so the same results) as d3.quantile, which the
- * pinned @observablehq/plot version's `boxY` mark uses internally to
- * compute its own Q1/median/Q3. Used by renderLengthOfStayChart()'s own
- * tooltip so its displayed 25th/75th percentile and median exactly match
- * the box the chart actually draws, rather than drifting from a
- * differently-rounded or differently-interpolated method. */
+ * the same algorithm (and so the same results) as d3.quantile. Used by
+ * renderLengthOfStayTiles() for its own median tile, so a median
+ * computed here matches what the pinned @observablehq/plot version's
+ * `boxY` mark (used by this widget's own earlier box-and-whisker shape,
+ * before it was replaced by plain tiles -- see CLAUDE.md) would have
+ * drawn, rather than drifting from a differently-interpolated method. */
 function quantileSorted(sorted, p) {
   const n = sorted.length;
   if (!n) return NaN;
@@ -183,106 +183,45 @@ function renderFlowChart(rows) {
   </div>`;
 }
 
-/** "Length of Stay by Project Type" -- a box-and-whisker chart over the
- * same Active Clients population as the rest of this tab, per explicit
- * request. One box per project type (sql/homeless_length_of_stay.sql's
- * own per-(person, project_type) dedup, same as the Sankey's own `rep`),
- * showing each project type's own distribution of `length_of_stay_days`.
- * The pinned @observablehq/plot version's `boxY` mark computes the
- * five-number summary itself from these per-person raw values -- unlike
- * every other chart on this tab, this query is NOT pre-aggregated in
- * SQL, since the box mark needs the underlying distribution, not a
- * precomputed median/quartiles. Current FY only, same single-snapshot
- * posture as the Demographics tab's own Age/Race pies -- a box plot
- * doesn't have a natural "current vs. previous" comparison shape the
- * way a QoQ table does. Filtering to a single Project Type collapses
- * this to one box, same as every other chart on this tab.
- *
- * Per an explicit follow-up request, this chart is scoped to EXITED
- * clients with a COMPLETED stay only -- still-enrolled people are
- * excluded entirely, rather than the earlier shape that mixed finished
- * stays with still-enrolled people's stay-so-far through the fiscal
- * year's end (see sql/homeless_length_of_stay.sql's own header for the
- * query-level change, and the still-mentions-a-mix bullet in CLAUDE.md
- * for that earlier shape's own history). The "mixes completed stays
- * with still-enrolled" `.hl-chart-note` this chart used to show below
- * it no longer applies and was removed; only the box/whisker-geometry
- * note remains.
- *
- * Hover shows one tooltip per project type -- its own 25th-75th
- * percentile range, median, and average -- per explicit request, rather
- * than the box/outlier-dot-level tooltips an earlier version of this
- * chart had. `tip: true` alone on `Plot.boxY` itself (no `channels`/
- * `format` overrides) was tried first and worked, but surfaced the box's
- * own raw Q1-Q3 range and, separately, each individual outlier's own
- * exact value -- point-level detail, not the three per-project-type
- * summary stats asked for here, so `boxY`'s own `tip` option was removed
- * entirely (the box, median line, whiskers, and outlier dots still
- * render, just with no hover of their own any more). A separate,
- * invisible `Plot.rectY` -- one full-height rect per project type,
- * drawn LAST so it's on top and catches hover across that whole column
- * regardless of what box/whisker/dot geometry sits visually underneath
- * it -- supplies the new tooltip instead, via a `title` channel plus a
- * bare `tip: true`: the same "title must be a top-level mark channel,
- * not nested in the `tip` option, or Plot silently ignores it" fix
- * `winter-shelter.js`'s own calendar heatmap and sparkline tips already
- * document in the sibling `hmisguru/baltimore` repo, and the same reason
- * it's used here rather than `channels`/`format` again -- a `title`
- * channel's own text becomes the ENTIRE tooltip content on a plain,
- * non-composite mark like `rectY`, with no other channel (`x`, `y1`,
- * `y2`) leaking into it the way `format: {channel: false}` failed to
- * suppress them when tried earlier on `boxY`'s own composite marks (see
- * CLAUDE.md's own history of that attempt). Average (the mean) isn't
- * something `boxY`'s own five-number summary computes at all, so the
- * three stats come from `quantileSorted()`/a plain mean over each
- * project type's own raw `length_of_stay_days` values, computed once per
- * render in JS rather than in SQL -- `quantileSorted()` uses the exact
- * same linear-interpolation algorithm `boxY` itself uses internally, so
- * the displayed 25th/75th percentile and median exactly match the box
- * the chart actually draws, not a different, independently-rounded
- * statistic. All four figures are rounded to the nearest whole day for
- * display (lengths of stay are inherently day-granular; the
- * interpolated quartiles and the mean are the only reason any of these
- * would ever come out fractional). The invisible rect's own height runs
- * from 0 to 10% above the tallest point in the WHOLE chart (not just
- * that one project type's own max) so a short box's own empty headroom
- * -- e.g. Street Outreach's own column, capped far below Emergency
- * Shelter's -- still responds to hover anywhere in that column, not
- * just right at its own box. */
-function renderLengthOfStayChart(rows) {
+/** "Length of Stay by Project Type" -- replaced the earlier box-and-
+ * whisker chart entirely with one plain tile per project type showing
+ * its own average and median `length_of_stay_days`, per explicit
+ * request. That request followed a direct question about swapping the
+ * box plot for a "momental skewness chart" -- skewness (the third
+ * standardized moment) is a single number per project type, not a chart
+ * shape, so there's nothing a "skewness chart" could draw that the box
+ * plot's own quartile asymmetry didn't already show; offered either
+ * adding skewness as a tooltip stat (keeping the box plot) or dropping
+ * the chart, and its whole distribution-level detail (IQR, whiskers,
+ * outliers), for plain tiles -- the latter was chosen. Same population
+ * as the removed chart (exited clients with a completed stay only, see
+ * sql/homeless_length_of_stay.sql's own header, and CLAUDE.md for that
+ * chart's full history) and the same Current-FY-only, no-current-vs-
+ * previous-comparison posture. Filtering to a single Project Type
+ * collapses this to one tile, same as every other widget on this tab.
+ * `quantileSorted()` (kept from the removed chart's own tooltip, same
+ * linear-interpolation algorithm `boxY` used internally) computes the
+ * median; the average is a plain mean. Each tile's own top border uses
+ * that project type's own fixed `SERIES` color -- the same "color
+ * follows the entity" lookup `colorScale()` uses elsewhere on this tab,
+ * just applied directly to a CSS custom property instead of a Plot
+ * color scale, since there's no chart here any more to hand a scale
+ * to. */
+function renderLengthOfStayTiles(rows) {
   if (!rows.length) return empty();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
-  const fmt = integer;
-  const round = (n) => fmt(Math.round(n));
-  const stats = types.map((t) => {
+  const round = (n) => integer(Math.round(n));
+  return html`<div class="hl-los-tiles">${types.map((t) => {
     const values = rows.filter((r) => r.project_type === t).map((r) => r.length_of_stay_days).sort((a, b) => a - b);
-    const q1 = quantileSorted(values, 0.25);
     const median = quantileSorted(values, 0.5);
-    const q3 = quantileSorted(values, 0.75);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    return {
-      project_type: t,
-      title: `${t}\n25th-75th percentile: ${round(q1)}-${round(q3)} days\nMedian: ${round(median)} days\nAverage: ${round(mean)} days`
-    };
-  });
-  const maxVal = Math.max(...rows.map((r) => r.length_of_stay_days));
-  const chart = resize((width) => Plot.plot({
-    width,
-    height: 320,
-    marginLeft: 56,
-    x: {domain: types, label: null},
-    y: {grid: true, zero: true, label: "Length of stay (days)", tickFormat: fmt},
-    color: colorScale(types, PROJECT_TYPE_ORDER),
-    marks: [
-      Plot.ruleY([0]),
-      Plot.boxY(rows, {x: "project_type", y: "length_of_stay_days", fill: "project_type", stroke: "project_type"}),
-      Plot.rectY(stats, {x: "project_type", y1: 0, y2: maxVal * 1.1, fill: "black", fillOpacity: 0, title: "title", tip: true})
-    ]
-  }));
-  return html`<div class="hl-chart-wrap">
-    <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors. Hover over a project type's own column for its 25th-75th percentile range, median, and average.</p>
-    ${chart}
-  </div>`;
+    const color = SERIES[PROJECT_TYPE_ORDER.indexOf(t) % SERIES.length];
+    return html`<div class="hl-los-tile" style=${`border-top-color:${color}`}>
+      <p class="hl-los-tile-label">${t}</p>
+      <p class="hl-los-tile-stat"><span class="hl-los-tile-value">${round(mean)}</span> average days</p>
+      <p class="hl-los-tile-stat"><span class="hl-los-tile-value">${round(median)}</span> median days</p>
+    </div>`;
+  })}</div>`;
 }
 
 // "Client Flow: Prior Living Situation -> Project Type -> Exit Outcome" --
@@ -813,9 +752,10 @@ const OVERVIEW_CARDS = [
   {
     id: "length-of-stay",
     name: "Length of Stay by Project Type",
-    type: "chart",
-    render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
-    description: "People who have exited a given project type this fiscal year, with a completed stay: their own entry date to their own exit date. Still-enrolled people aren't included, since their own stay isn't finished yet. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of completed stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a project type's own column for its 25th-75th percentile range, median, and average length of stay."
+    type: "tiles",
+    span: 12,
+    render: (doc, fv) => renderLengthOfStayTiles(widgetRows(doc, "length_of_stay", fv)),
+    description: "People who have exited a given project type this fiscal year, with a completed stay: their own entry date to their own exit date. Still-enrolled people aren't included, since their own stay isn't finished yet. A person active in more than one project type this year contributes to each of that project type's own tile. Average is the plain mean; median is the middle value when every completed stay is sorted shortest to longest -- shown alongside the average since a handful of unusually long stays can pull the average well above a typical person's own experience."
   },
   {
     id: "system-flow",
