@@ -16,18 +16,25 @@
 -- project types' own boxes, not just whichever enrollment started most
 -- recently overall.
 --
--- `length_of_stay_days` is this stay's own length as of the fiscal
--- year's end date: DATE_DIFF between EntryDate and an "as of" date,
--- where the as-of date is the exit date if the person exited on or
--- before the fiscal year's end, or the fiscal year's end itself if
--- they're still enrolled (or exited after the fiscal year already
--- closed -- the Active Clients test below has no upper bound on
--- ExitDate, so a person whose exit was logged shortly after the FY's
--- own end can still match it). Capping every value to this same FY-end
--- date -- rather than letting a post-FY exit inflate a stay past the
--- period it's being counted in -- matches the "as of the fiscal year's
--- own end" convention sql/homeless_priority_households.sql's own
--- "Age 55+" row already established for this dashboard.
+-- Per an explicit follow-up request, this is scoped to EXITED clients
+-- with a COMPLETED stay only -- still-enrolled people (no ExitDate yet)
+-- are excluded entirely rather than contributing their stay-so-far
+-- through the fiscal year's end, which an earlier version of this chart
+-- did (see PR #93/#94 for that shape, and the box's own description/
+-- chart notes before this change). `active_enrollments`' own exit test
+-- already requires `ExitDate > cur_start`, which is false for a NULL
+-- `ExitDate` in BigQuery, so simply dropping the old `ExitDate IS NULL
+-- OR` branch below is enough to exclude every still-enrolled enrollment
+-- with no extra IS NOT NULL check needed. `length_of_stay_days` is then
+-- a plain `DATE_DIFF(ExitDate, EntryDate)` -- no fiscal-year-end cap is
+-- needed any more, since every remaining row has a real exit date and
+-- a genuinely completed stay. A person whose own exit happened after
+-- this fiscal year already closed (the Active Clients test has no upper
+-- bound on `ExitDate`) still counts, with their own real, full completed
+-- length -- deliberately kept, to stay consistent with the same "Active
+-- Clients" population test every other `sql/homeless_*.sql` file in
+-- this dashboard reuses unchanged (only the still-enrolled branch was
+-- removed, not the population definition itself).
 --
 -- `GREATEST(..., 0)` in the final SELECT guards against the same genuine
 -- HMIS data irregularity sql/homeless_reach.sql's own header documents
@@ -71,8 +78,7 @@ active_enrollments AS (
   WHERE (en.EnrollmentCoC = 'NY-604' OR en.EnrollmentCoC IS NULL)
     AND en.EntryDate <= b.cur_end
     AND (
-      ex.ExitDate IS NULL
-      OR (qp.project_type = 'Street Outreach' AND ex.ExitDate > b.cur_start)
+      (qp.project_type = 'Street Outreach' AND ex.ExitDate > b.cur_start)
       OR (qp.project_type != 'Street Outreach' AND ex.ExitDate > b.cur_start AND ex.ExitDate > en.EntryDate)
     )
 ),
@@ -130,14 +136,6 @@ classified AS (
 )
 SELECT
   c.project_type,
-  GREATEST(
-    DATE_DIFF(
-      IF(c.ExitDate IS NOT NULL AND c.ExitDate <= b.cur_end, c.ExitDate, b.cur_end),
-      c.EntryDate,
-      DAY
-    ),
-    0
-  ) AS length_of_stay_days
+  GREATEST(DATE_DIFF(c.ExitDate, c.EntryDate, DAY), 0) AS length_of_stay_days
 FROM classified c
-CROSS JOIN bounds b
 WHERE ('{{ filters.household_type }}' = 'All Household Types' OR c.household_type = '{{ filters.household_type }}')

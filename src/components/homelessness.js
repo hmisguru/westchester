@@ -169,33 +169,37 @@ function renderFlowChart(rows) {
  * same Active Clients population as the rest of this tab, per explicit
  * request. One box per project type (sql/homeless_length_of_stay.sql's
  * own per-(person, project_type) dedup, same as the Sankey's own `rep`),
- * showing each project type's own distribution of `length_of_stay_days`
- * (that stay's own length as of the fiscal year's end -- see that file's
- * own header). The pinned @observablehq/plot version's `boxY` mark
- * computes the five-number summary itself from these per-person raw
- * values -- unlike every other chart on this tab, this query is NOT
- * pre-aggregated in SQL, since the box mark needs the underlying
- * distribution, not a precomputed median/quartiles. Current FY only,
- * same single-snapshot posture as the Demographics tab's own Age/Race
- * pies -- a box plot doesn't have a natural "current vs. previous"
- * comparison shape the way a QoQ table does. Filtering to a single
- * Project Type collapses this to one box, same as every other chart on
- * this tab. Per an explicit follow-up report, each box mixes completed
- * stays (entry to exit) with still-enrolled people's stay-so-far (entry
- * to the fiscal year's end) -- confirmed live this isn't a rare edge
- * case (515 of Transitional Housing's own 861 active people this FY,
- * 148 of Street Outreach's 347, 805 of Emergency Shelter's 3,203, are
- * still enrolled), so a second permanent `.hl-chart-note` below the
- * chart calls this out explicitly rather than leaving it to the
- * collapsed description alone. `tip: true` alone (no `channels`/`format`
- * overrides) gives both the box and each individual outlier dot a hover
- * tooltip out of the box, per explicit request after shipping with none --
- * tried relabeling the tooltip's raw "project_type" field to "Project
- * type" via a `channels`/`format` combo, but this old pinned Plot
- * version's composite `boxY` mark doesn't support cleanly replacing a
- * default channel that way: it added "Project type" as a second line
- * alongside the original "project_type" rather than replacing it, so
- * that was reverted in favor of the plain default label. */
+ * showing each project type's own distribution of `length_of_stay_days`.
+ * The pinned @observablehq/plot version's `boxY` mark computes the
+ * five-number summary itself from these per-person raw values -- unlike
+ * every other chart on this tab, this query is NOT pre-aggregated in
+ * SQL, since the box mark needs the underlying distribution, not a
+ * precomputed median/quartiles. Current FY only, same single-snapshot
+ * posture as the Demographics tab's own Age/Race pies -- a box plot
+ * doesn't have a natural "current vs. previous" comparison shape the
+ * way a QoQ table does. Filtering to a single Project Type collapses
+ * this to one box, same as every other chart on this tab.
+ *
+ * Per an explicit follow-up request, this chart is scoped to EXITED
+ * clients with a COMPLETED stay only -- still-enrolled people are
+ * excluded entirely, rather than the earlier shape that mixed finished
+ * stays with still-enrolled people's stay-so-far through the fiscal
+ * year's end (see sql/homeless_length_of_stay.sql's own header for the
+ * query-level change, and the still-mentions-a-mix bullet in CLAUDE.md
+ * for that earlier shape's own history). The "mixes completed stays
+ * with still-enrolled" `.hl-chart-note` this chart used to show below
+ * it no longer applies and was removed; only the box/whisker-geometry
+ * note remains.
+ *
+ * `tip: true` alone (no `channels`/`format` overrides) gives both the
+ * box and each individual outlier dot a hover tooltip out of the box,
+ * per an earlier explicit request after shipping with none -- tried
+ * relabeling the tooltip's raw "project_type" field to "Project type"
+ * via a `channels`/`format` combo, but this old pinned Plot version's
+ * composite `boxY` mark doesn't support cleanly replacing a default
+ * channel that way: it added "Project type" as a second line alongside
+ * the original "project_type" rather than replacing it, so that was
+ * reverted in favor of the plain default label. */
 function renderLengthOfStayChart(rows) {
   if (!rows.length) return empty();
   const types = PROJECT_TYPE_ORDER.filter((t) => rows.some((r) => r.project_type === t));
@@ -214,7 +218,6 @@ function renderLengthOfStayChart(rows) {
   }));
   return html`<div class="hl-chart-wrap">
     <p class="hl-chart-note">Box = 25th-75th percentile (IQR), line = median, whiskers = the most extreme values within 1.5x the IQR; dots beyond that are individual outliers, not errors.</p>
-    <p class="hl-chart-note">Each box mixes completed stays (entry to exit) with still-enrolled people's stay-so-far (entry to the fiscal year's end) -- a project type with more people still enrolled will show more of these "still counting" lengths pulled in, not just finished stays.</p>
     ${chart}
   </div>`;
 }
@@ -749,7 +752,7 @@ const OVERVIEW_CARDS = [
     name: "Length of Stay by Project Type",
     type: "chart",
     render: (doc, fv) => renderLengthOfStayChart(widgetRows(doc, "length_of_stay", fv)),
-    description: "The same Active Clients population as the tiles above, for the current fiscal year only: for each person active in a given project type, how many days long their own stay has been as of the fiscal year's end -- their own entry date to either their own exit date (if they exited on or before the fiscal year's end) or the fiscal year's end itself (if they're still enrolled). Because of that second case, each box is a mix of completed stays and still-enrolled people's stay-so-far, not completed stays alone -- a project type where more of its active people haven't exited yet will pull in more of these still-counting lengths, which reads differently than a box built only from finished stays. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a box or an individual dot for its exact length of stay."
+    description: "People who have exited a given project type this fiscal year, with a completed stay: their own entry date to their own exit date. Still-enrolled people aren't included, since their own stay isn't finished yet. A person active in more than one project type this year contributes to each of that project type's own box. Each box shows the 25th-75th percentile (the middle half of completed stays), the line inside it is the median, and the whiskers extend to the most extreme stay within 1.5x that middle range -- the standard box-and-whisker convention; stays beyond the whiskers show as individual dots rather than being hidden, since a handful of unusually long (or short) stays are a real part of this population, not a data error. Hover over a box or an individual dot for its exact length of stay."
   },
   {
     id: "system-flow",
